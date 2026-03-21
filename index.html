@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IZY Print Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="logo">IZY</span>
+    <h1>Print Dashboard</h1>
+  </div>
+  <div class="header-right">
+    <span id="last-updated">Loading...</span>
+    <button id="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+  </div>
+</header>
+
+<nav id="tab-nav">
+  <button class="tab-btn active" data-tab="overview">Overview</button>
+  <button class="tab-btn" data-tab="all-jobs">All Jobs</button>
+  <button class="tab-btn" data-tab="active-queue">Active Queue</button>
+
+  <button class="tab-btn" data-tab="reports">Reports</button>
+  <button class="tab-btn" data-tab="shipping">Shipping History</button>
+</nav>
+
+<main>
+
+  <!-- ─── OVERVIEW ─── -->
+  <section id="tab-overview" class="tab-content active">
+
+    <div id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-label">Total Jobs</div>
+        <div class="stat-value" id="s-total">—</div>
+      </div>
+      <div class="stat-card accent-blue">
+        <div class="stat-icon">⚙️</div>
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="s-in-progress">—</div>
+      </div>
+      <div class="stat-card accent-green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Shipped</div>
+        <div class="stat-value" id="s-shipped">—</div>
+      </div>
+      <div class="stat-card accent-orange">
+        <div class="stat-icon">🖨️</div>
+        <div class="stat-label">Still to Print</div>
+        <div class="stat-value" id="s-still">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🍶</div>
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value" id="s-bottles">—</div>
+      </div>
+      <div class="stat-card accent-red">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-label">Faulty Prints</div>
+        <div class="stat-value" id="s-faulty">—</div>
+      </div>
+      <div class="stat-card accent-purple">
+        <div class="stat-icon">🧴</div>
+        <div class="stat-label">Need Sleeving</div>
+        <div class="stat-value" id="s-sleeve">—</div>
+      </div>
+      <div class="stat-card accent-yellow">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-label">Overdue</div>
+        <div class="stat-value" id="s-overdue">—</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Status Distribution</h3>
+        <canvas id="chart-status"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Jobs by Owner</h3>
+        <canvas id="chart-owner"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Jobs Added per Month</h3>
+        <canvas id="chart-monthly"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Jobs by Product Type</h3>
+        <canvas id="chart-colors"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Top 10 Companies by Volume</h3>
+        <canvas id="chart-companies"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Items Still to Print by Owner</h3>
+        <canvas id="chart-still-owner"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── ALL JOBS ─── -->
+  <section id="tab-all-jobs" class="tab-content">
+    <div class="filters-bar">
+      <input type="text" id="aj-search" placeholder="Search company, print name..." />
+      <select id="aj-status"><option value="">All Statuses</option></select>
+      <select id="aj-owner"><option value="">All Owners</option></select>
+      <select id="aj-color"><option value="">All Colors</option></select>
+      <select id="aj-sleeve"><option value="">Sleeve: All</option><option value="Yes">Sleeve: Yes</option><option value="No">Sleeve: No</option></select>
+      <select id="aj-type"><option value="">All Types</option></select>
+      <select id="aj-date-field">
+        <option value="Date added ">By: Date Added</option>
+        <option value="Deadline">By: Deadline</option>
+        <option value="Shipped">By: Shipped</option>
+      </select>
+      <select id="aj-period">
+        <option value="">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="year">This Year</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <span id="aj-custom-range" style="display:none;gap:6px;align-items:center;">
+        <input type="date" id="aj-date-from" style="min-width:unset;width:140px;" />
+        <span style="color:#94a3b8;font-size:12px;">→</span>
+        <input type="date" id="aj-date-to" style="min-width:unset;width:140px;" />
+      </span>
+      <label class="check-label"><input type="checkbox" id="aj-only-active" /> Active only</label>
+      <label class="check-label"><input type="checkbox" id="aj-only-faulty" /> Has faulty prints</label>
+      <button class="btn-clear" onclick="clearFilters()">Clear</button>
+    </div>
+    <div class="results-count" id="aj-count"></div>
+    <div class="table-wrap">
+      <table id="all-jobs-table">
+        <thead>
+          <tr>
+            <th data-sort="Priority">#</th>
+            <th data-sort="Name_Company">Company</th>
+            <th data-sort="Name_Print">Print Name</th>
+            <th data-sort="Status">Status</th>
+            <th data-sort="Owner">Owner</th>
+            <th data-sort="Deadline">Deadline</th>
+            <th data-sort="Soort">Type</th>
+            <th data-sort="Bottle color">Color</th>
+            <th data-sort="Quantity">Qty</th>
+            <th data-sort="Quantity printed ">Printed</th>
+            <th data-sort="Quantity still to print">Still to Print</th>
+            <th data-sort="Faulty prints">Faulty</th>
+            <th>Sleeve</th>
+          </tr>
+        </thead>
+        <tbody id="aj-body"><tr><td colspan="12">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─── ACTIVE QUEUE ─── -->
+  <section id="tab-active-queue" class="tab-content">
+    <h2 class="section-title">Active Queue <span class="subtitle">— Jobs not yet shipped</span></h2>
+    <div class="filters-bar">
+      <input type="text" id="aq-search" placeholder="Search..." />
+      <select id="aq-status"><option value="">All Statuses</option></select>
+      <select id="aq-owner"><option value="">All Owners</option></select>
+      <select id="aq-period">
+        <option value="">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="year">This Year</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <span id="aq-custom-range" style="display:none;gap:6px;align-items:center;">
+        <input type="date" id="aq-date-from" style="min-width:unset;width:140px;" />
+        <span style="color:#94a3b8;font-size:12px;">→</span>
+        <input type="date" id="aq-date-to" style="min-width:unset;width:140px;" />
+      </span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Company</th>
+            <th>Print Name</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Deadline</th>
+            <th>Type</th>
+            <th>Color</th>
+            <th>Qty</th>
+            <th>Still to Print</th>
+            <th>Days Left</th>
+          </tr>
+        </thead>
+        <tbody id="aq-body"><tr><td colspan="10">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- ─── REPORTS ─── -->
+  <section id="tab-reports" class="tab-content">
+    <div class="filters-bar" style="margin-bottom:20px;">
+      <strong style="font-size:13px;color:#64748b;white-space:nowrap;">Filter all reports:</strong>
+      <select id="rp-owner"><option value="">All Owners</option></select>
+      <select id="rp-period">
+        <option value="">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="year">This Year</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <span id="rp-custom-range" style="display:none;gap:6px;align-items:center;">
+        <input type="date" id="rp-date-from" style="min-width:unset;width:140px;" />
+        <span style="color:#94a3b8;font-size:12px;">→</span>
+        <input type="date" id="rp-date-to" style="min-width:unset;width:140px;" />
+      </span>
+    </div>
+
+    <div class="report-grid">
+
+      <div class="report-card accent-red">
+        <div class="report-card-header"><h3>🚨 Overdue Jobs</h3><p class="report-desc">Deadline passed, not yet shipped</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Days Late</th><th>Qty</th></tr></thead>
+          <tbody id="rep-overdue"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card accent-orange">
+        <div class="report-card-header"><h3>⚠️ Jobs With Faulty Prints</h3><p class="report-desc">Any job with recorded faulty prints</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Qty</th><th>Faulty</th><th>% Faulty</th></tr></thead>
+          <tbody id="rep-faulty"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card accent-purple">
+        <div class="report-card-header"><h3>🧴 Needs Sleeving</h3><p class="report-desc">To sleeve = Yes, but not yet sleeved</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Owner</th><th>Qty</th></tr></thead>
+          <tbody id="rep-sleeve"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card accent-blue">
+        <div class="report-card-header"><h3>🖨️ Ready to Print</h3><p class="report-desc">Status = "To Print" — next in queue</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Deadline</th><th>Type</th><th>Color</th><th>Qty</th></tr></thead>
+          <tbody id="rep-to-print"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card accent-yellow">
+        <div class="report-card-header"><h3>⏳ Waiting Jobs</h3><p class="report-desc">Status = "Waiting" — blocked or pending</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Deadline</th><th>Qty</th></tr></thead>
+          <tbody id="rep-waiting"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card accent-green">
+        <div class="report-card-header"><h3>✅ Print Ready, Not Yet Shipped</h3><p class="report-desc">Printing done, sleeved if needed, waiting for shipment</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Type</th><th>Qty</th><th>Sleeve</th></tr></thead>
+          <tbody id="rep-ready-ship"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-header"><h3>📅 Deadlines This Week</h3><p class="report-desc">Jobs with a deadline in the next 7 days</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Days Left</th><th>Qty</th></tr></thead>
+          <tbody id="rep-this-week"></tbody></table>
+        </div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-header"><h3>📦 Recently Shipped</h3><p class="report-desc">Shipped in the last 30 days</p></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Shipped Date</th><th>Qty</th></tr></thead>
+          <tbody id="rep-recent-shipped"></tbody></table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── SHIPPING HISTORY ─── -->
+  <section id="tab-shipping" class="tab-content">
+
+    <div id="shipping-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;">
+      <div class="stat-card accent-green">
+        <div class="stat-icon">📦</div>
+        <div class="stat-label">Matched Shipments</div>
+        <div class="stat-value" id="sh-count">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🍶</div>
+        <div class="stat-label">Items Shipped</div>
+        <div class="stat-value" id="sh-bottles">—</div>
+      </div>
+      <div class="stat-card accent-blue">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-label">Avg Turnaround</div>
+        <div class="stat-value" id="sh-avg-days">—</div>
+      </div>
+      <div class="stat-card accent-green">
+        <div class="stat-icon">🚀</div>
+        <div class="stat-label">Fastest (days)</div>
+        <div class="stat-value" id="sh-fastest">—</div>
+      </div>
+      <div class="stat-card accent-orange">
+        <div class="stat-icon">🐢</div>
+        <div class="stat-label">Slowest (days)</div>
+        <div class="stat-value" id="sh-slowest">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏢</div>
+        <div class="stat-label">Companies</div>
+        <div class="stat-value" id="sh-companies">—</div>
+      </div>
+      <div class="stat-card accent-purple">
+        <div class="stat-icon">💶</div>
+        <div class="stat-label">Total Ship Cost</div>
+        <div class="stat-value" id="sh-cost">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔗</div>
+        <div class="stat-label">Matched by Ref</div>
+        <div class="stat-value" id="sh-by-ref">—</div>
+      </div>
+    </div>
+
+    <div class="charts-grid" style="margin-bottom:24px;">
+      <div class="chart-card">
+        <h3>Shipments per Week</h3>
+        <canvas id="chart-ship-weekly"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Items Shipped per Month</h3>
+        <canvas id="chart-ship-monthly"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Avg Turnaround Time per Month (days)</h3>
+        <canvas id="chart-turnaround-monthly"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Avg Turnaround per Owner (days)</h3>
+        <canvas id="chart-turnaround-owner"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Shipments by Carrier</h3>
+        <canvas id="chart-ship-carrier"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Shipping Cost per Month (€)</h3>
+        <canvas id="chart-ship-cost"></canvas>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+      <div class="chart-card">
+        <h3>🐢 Slowest Turnarounds</h3>
+        <div class="table-wrap" style="max-height:280px;overflow-y:auto;border-radius:8px;box-shadow:none;border:none;">
+          <table><thead><tr><th>#</th><th>Company</th><th>Owner</th><th>Days</th><th>Shipped</th></tr></thead>
+          <tbody id="sh-slowest-list"></tbody></table>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>🚀 Fastest Turnarounds</h3>
+        <div class="table-wrap" style="max-height:280px;overflow-y:auto;border-radius:8px;box-shadow:none;border:none;">
+          <table><thead><tr><th>#</th><th>Company</th><th>Owner</th><th>Days</th><th>Shipped</th></tr></thead>
+          <tbody id="sh-fastest-list"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">All Matched Shipments</h2>
+    <div class="filters-bar">
+      <input type="text" id="sh-search" placeholder="Search company or print name..." />
+      <select id="sh-owner"><option value="">All Owners</option></select>
+      <select id="sh-period">
+        <option value="">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="year">This Year</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <span id="sh-custom-range" style="display:none;gap:6px;align-items:center;">
+        <input type="date" id="sh-date-from" style="min-width:unset;width:140px;" />
+        <span style="color:#94a3b8;font-size:12px;">→</span>
+        <input type="date" id="sh-date-to" style="min-width:unset;width:140px;" />
+      </span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Print Job</th>
+            <th>Recipient</th>
+            <th>Owner</th>
+            <th>Type</th>
+            <th>Date Added</th>
+            <th>Shipped</th>
+            <th>Turnaround</th>
+            <th>Destination</th>
+            <th>Carrier</th>
+            <th>Cost</th>
+            <th>Qty</th>
+            <th>Match</th>
+            <th>Track</th>
+          </tr>
+        </thead>
+        <tbody id="sh-body"><tr><td colspan="13">Loading...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- ─── REVIEW SECTION ─── -->
+    <div id="review-section" style="display:none;margin-top:32px;">
+      <h2 class="section-title" style="color:var(--orange);">
+        ⚠️ Needs Review
+        <span id="review-count" style="background:var(--orange);color:#fff;border-radius:20px;padding:2px 10px;font-size:13px;margin-left:8px;">0</span>
+      </h2>
+      <p style="font-size:13px;color:#64748b;margin:-8px 0 14px;">These print jobs are marked <strong>Shipped</strong> in the workfile but have no matching shipment record in ShippingHistory. Add a Referentie number in Sendcloud to link future shipments automatically.</p>
+      <button id="review-restore" onclick="restoreDismissed()" style="display:none;margin-bottom:12px;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:4px 12px;font-size:12px;color:#64748b;cursor:pointer;">↩ Restore dismissed</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Company</th>
+              <th>Print Name</th>
+              <th>Owner</th>
+              <th>Date Added</th>
+              <th>Shipped Date</th>
+              <th>Qty</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="review-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<footer>
+  Last updated: <span id="last-updated-footer">—</span> &nbsp;·&nbsp; IZY Print Dashboard
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
