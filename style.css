@@ -540,3 +540,118 @@ footer {
   margin-top: 20px;
   background: var(--surface);
 }
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — tablet & mobile
+───────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Header */
+  header {
+    padding: 0 16px;
+    height: 52px;
+  }
+  header h1 { font-size: 13px; }
+  #last-updated { display: none; }
+
+  /* Tab nav */
+  #tab-nav {
+    padding: 0 8px;
+  }
+  .tab-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .tab-btn::after { left: 12px; right: 12px; }
+
+  /* Main content */
+  main {
+    padding: 16px 12px 32px;
+  }
+
+  /* Stats grid — 2 columns */
+  #stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat-value { font-size: 22px; }
+  .stat-icon  { font-size: 18px; margin-bottom: 8px; }
+
+  /* Charts — single column */
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .chart-card canvas { max-height: 220px; }
+
+  /* Report cards — single column */
+  .report-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Filters bar — stack vertically */
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .filters-bar input,
+  .filters-bar select {
+    min-width: 0;
+    width: 100%;
+  }
+  .filters-bar > span[style] {
+    flex-direction: column !important;
+    display: flex !important;
+    gap: 6px !important;
+  }
+  .check-label { justify-content: flex-start; }
+  .btn-clear   { width: 100%; text-align: center; }
+
+  /* Tables — allow horizontal scroll, tighten cells */
+  .table-wrap { border-radius: var(--radius-sm); }
+  tbody td    { padding: 9px 10px; font-size: 12px; }
+  thead th    { padding: 9px 10px; font-size: 10px; }
+  td.print-name { max-width: 120px; }
+
+  /* Shipping stats — 2 columns */
+  #shipping-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Slowest/fastest side-by-side → stacked */
+  div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Section titles */
+  .section-title { font-size: 14px; }
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE — phones (≤ 480px)
+───────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Stats — still 2 columns but smaller */
+  #stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-card { padding: 14px 14px 12px; }
+  .stat-value { font-size: 20px; }
+  .stat-label { font-size: 10px; }
+  .stat-icon  { font-size: 16px; }
+
+  /* Header */
+  header h1     { display: none; }
+  #btn-refresh  { padding: 6px 10px; font-size: 11px; }
+
+  /* Tab nav — smaller */
+  .tab-btn { padding: 9px 10px; font-size: 11px; }
+
+  main { padding: 12px 10px 28px; }
+}
