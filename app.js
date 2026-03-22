@@ -1241,7 +1241,7 @@ async function markSleeved(rowIdx) {
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode:   'no-cors',
-      body:   JSON.stringify({ action: 'sleeve_check', sheetRow: job['_sheetRow'] }),
+      body:   JSON.stringify({ sheetRow: job['_sheetRow'], status: 'Ready to ship' }),
     });
     refreshData();
   } catch (err) {
