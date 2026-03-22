@@ -1076,7 +1076,7 @@ function getOverviewRows() {
   if (period === 'week')    cutoff.setDate(now.getDate() - 7);
   if (period === 'month')   cutoff.setMonth(now.getMonth() - 1);
   if (period === 'quarter') cutoff.setMonth(now.getMonth() - 3);
-  if (period === 'year')    cutoff.setFullYear(now.getFullYear() - 1);
+  if (period === 'year')    { cutoff.setMonth(0, 1); cutoff.setHours(0, 0, 0, 0); }
   return allRows.filter(r => {
     const d = parseDate(get(r, 'Date added'));
     return d && d >= cutoff;
