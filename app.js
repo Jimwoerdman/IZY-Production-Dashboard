@@ -1041,7 +1041,7 @@ function renderReview() {
 }
 
 // ── Cache helpers ─────────────────────────────────────────────
-const MAIN_CACHE_KEY = 'izy_main_cache';
+const MAIN_CACHE_KEY = 'izy_main_cache_v2';
 
 function saveMainCache(rows) {
   try { localStorage.setItem(MAIN_CACHE_KEY, JSON.stringify({ rows, ts: Date.now() })); } catch (_) {}
