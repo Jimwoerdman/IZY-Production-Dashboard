@@ -1206,6 +1206,7 @@ async function submitPrintUpdate() {
 
     const payload = {
       priority:        get(modalJob,'Priority'),
+      soort:           get(modalJob,'Soort'),
       quantityPrinted: printed,
       faultyPrints:    faulty,
       printer:         printer,
