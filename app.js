@@ -23,10 +23,11 @@ async function fetchData() {
 function parseCSV(text) {
   const lines   = text.trim().split('\n');
   const headers = splitLine(lines[0]).map(h => h.replace(/"/g, '').trim());
-  return lines.slice(1).map(line => {
+  return lines.slice(1).map((line, idx) => {
     const vals = splitLine(line);
     const row  = {};
     headers.forEach((h, i) => row[h] = (vals[i] || '').replace(/"/g, '').trim());
+    row['_sheetRow'] = idx + 2; // +1 for header row, +1 for 1-indexing
     return row;
   });
 }
@@ -1205,6 +1206,7 @@ async function submitPrintUpdate() {
     }
 
     const payload = {
+      sheetRow:        modalJob['_sheetRow'],
       priority:        get(modalJob,'Priority'),
       soort:           get(modalJob,'Soort'),
       quantityPrinted: printed,
