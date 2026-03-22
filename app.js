@@ -120,6 +120,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'shipping') loadShipping();
+    if (btn.dataset.tab === 'add-job') populateAddJobOwners();
   });
 });
 
@@ -831,12 +832,11 @@ function renderShipping() {
   // Filter
   const rows = shippedRows.filter(r => {
     if (globalPeriod) {
-      const gp = globalPeriod === 'quarter' ? null : globalPeriod;
       if (globalPeriod === 'quarter') {
         const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 3);
         if (r.shipDate < cutoff) return false;
       } else {
-        const range = getDateRange(gp);
+        const range = getDateRange(globalPeriod);
         if (range && (r.shipDate < range.from || r.shipDate > range.to)) return false;
       }
     }
@@ -1003,10 +1003,11 @@ function renderShipping() {
       </tr>`).join('');
 }
 
-['sh-global-period','sh-search','sh-owner','sh-period','sh-date-from','sh-date-to'].forEach(id => {
+['sh-search','sh-owner','sh-period','sh-date-from','sh-date-to'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderShipping);
   document.getElementById(id).addEventListener('change', renderShipping);
 });
+document.getElementById('sh-global-period').addEventListener('change', renderShipping);
 document.getElementById('sh-period').addEventListener('change', function() {
   document.getElementById('sh-custom-range').style.display = this.value === 'custom' ? 'inline-flex' : 'none';
 });
@@ -1346,5 +1347,78 @@ async function submitPrintUpdate() {
     statusEl.className = 'modal-error';
   }
 }
+
+// ── Add Job ────────────────────────────────────────────────────
+function populateAddJobOwners() {
+  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const sel = document.getElementById('nj-owner');
+  sel.innerHTML = '<option value="">Select owner…</option>' +
+    owners.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
+document.getElementById('nj-soort').addEventListener('change', function() {
+  const soort = this.value.toLowerCase();
+  const hint  = document.getElementById('nj-priority-hint');
+  if (!soort || !allRows.length) { hint.textContent = ''; return; }
+  const max = Math.max(0, ...allRows
+    .filter(r => get(r,'Soort').toLowerCase() === soort)
+    .map(r => parseInt(get(r,'Priority')) || 0));
+  hint.textContent = max > 0 ? `(max: ${max})` : '';
+});
+
+document.getElementById('nj-submit').addEventListener('click', async function() {
+  const soort     = document.getElementById('nj-soort').value;
+  const priority  = document.getElementById('nj-priority').value;
+  const company   = document.getElementById('nj-company').value.trim();
+  const printName = document.getElementById('nj-print-name').value.trim();
+  const quantity  = document.getElementById('nj-quantity').value;
+  const color     = document.getElementById('nj-color').value.trim();
+  const lid       = document.getElementById('nj-lid').value.trim();
+  const deadline  = document.getElementById('nj-deadline').value;
+  const owner     = document.getElementById('nj-owner').value;
+  const planning  = document.getElementById('nj-planning').value;
+  const statusEl  = document.getElementById('nj-status');
+
+  if (!soort || !priority || !company || !printName || !quantity) {
+    statusEl.className = 'form-status error';
+    statusEl.textContent = 'Please fill in all required fields.';
+    return;
+  }
+
+  this.disabled = true;
+  statusEl.className = 'form-status';
+  statusEl.textContent = 'Saving…';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:    'add_job',
+        priority:  parseInt(priority),
+        soort,
+        company,
+        printName,
+        quantity:  parseInt(quantity),
+        color,
+        lid,
+        deadline,
+        owner,
+        planning,
+        status:    'To Print',
+      }),
+    });
+    statusEl.className = 'form-status success';
+    statusEl.textContent = '✓ Print job added!';
+    document.getElementById('add-job-form').reset();
+    document.getElementById('nj-priority-hint').textContent = '';
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    refreshData();
+  } catch (err) {
+    statusEl.className = 'form-status error';
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+  this.disabled = false;
+});
 
 refreshData();

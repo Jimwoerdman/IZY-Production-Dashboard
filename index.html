@@ -30,6 +30,7 @@
 
   <button class="tab-btn" data-tab="reports">Reports</button>
   <button class="tab-btn" data-tab="shipping">Shipping History</button>
+  <button class="tab-btn" data-tab="add-job">+ Add Job</button>
 </nav>
 
 <main>
@@ -504,6 +505,71 @@
     </div>
   </div>
 </div>
+
+<section id="tab-add-job" class="tab-content">
+  <div class="add-job-card">
+    <h2 style="margin:0 0 24px;font-size:18px;color:var(--text);">New Print Job</h2>
+    <form id="add-job-form" onsubmit="return false;">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Product Type <span class="req">*</span></label>
+          <select id="nj-soort" required>
+            <option value="">Select type…</option>
+            <option value="Bottle">Bottle</option>
+            <option value="Mug">Mug</option>
+            <option value="Travel Bottle">Travel Bottle</option>
+            <option value="Tumbler">Tumbler</option>
+            <option value="Sample Bottle">Sample Bottle</option>
+            <option value="Sample Mug">Sample Mug</option>
+            <option value="Sample Travel Bottle">Sample Travel Bottle</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priority <span class="req">*</span> <span id="nj-priority-hint" class="form-hint"></span></label>
+          <input type="number" id="nj-priority" required min="1" placeholder="e.g. 105" />
+        </div>
+        <div class="form-group">
+          <label>Company <span class="req">*</span></label>
+          <input type="text" id="nj-company" required placeholder="Company name" />
+        </div>
+        <div class="form-group">
+          <label>Print Name <span class="req">*</span></label>
+          <input type="text" id="nj-print-name" required placeholder="Print job name" />
+        </div>
+        <div class="form-group">
+          <label>Bottle Color</label>
+          <input type="text" id="nj-color" placeholder="e.g. White" />
+        </div>
+        <div class="form-group">
+          <label>Lid Color</label>
+          <input type="text" id="nj-lid" placeholder="e.g. Black" />
+        </div>
+        <div class="form-group">
+          <label>Quantity <span class="req">*</span></label>
+          <input type="number" id="nj-quantity" required min="1" placeholder="e.g. 100" />
+        </div>
+        <div class="form-group">
+          <label>Deadline</label>
+          <input type="date" id="nj-deadline" />
+        </div>
+        <div class="form-group">
+          <label>Owner</label>
+          <select id="nj-owner">
+            <option value="">Select owner…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Planning to Print</label>
+          <input type="date" id="nj-planning" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="nj-submit" class="btn-nj-submit">Add Print Job</button>
+        <span id="nj-status" class="form-status"></span>
+      </div>
+    </form>
+  </div>
+</section>
 
 <script src="app.js"></script>
 </body>
