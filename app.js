@@ -443,7 +443,7 @@ function renderActiveQueue() {
           <td>${num(r,'Quantity') || '—'}</td>
           <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
           <td>${daysCell(days)}</td>
-          <td><button class="btn-log" onclick="openPrintModal('${get(r,'Priority')}')">✏️ Log</button></td>
+          <td><button class="btn-log" data-priority="${get(r,'Priority')}">✏️ Log</button></td>
         </tr>`;
       }).join('');
 }
@@ -451,6 +451,13 @@ function renderActiveQueue() {
 ['aq-search','aq-status','aq-owner','aq-period','aq-date-from','aq-date-to'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderActiveQueue);
   document.getElementById(id).addEventListener('change', renderActiveQueue);
+});
+
+// Log button — event delegation so it works after table re-render
+document.getElementById('aq-body').addEventListener('click', function(e) {
+  const btn = e.target.closest('.btn-log');
+  if (!btn) return;
+  openPrintModal(btn.dataset.priority);
 });
 
 // ── By Company ────────────────────────────────────────────────

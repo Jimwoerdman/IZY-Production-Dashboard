@@ -541,6 +541,189 @@ footer {
   background: var(--surface);
 }
 
+/* ── Print Log Modal ─────────────────────────────────────────── */
+#print-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,22,41,0.6);
+  backdrop-filter: blur(3px);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#print-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+  animation: fadeIn 0.18s ease;
+}
+
+.modal-header {
+  background: var(--navy);
+  background-image: linear-gradient(135deg, var(--navy) 0%, #1e2d50 100%);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.modal-header h2 {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+.modal-close {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.7);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: rgba(255,255,255,0.2); color: white; }
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-job-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+  font-size: 13px;
+}
+.modal-job-card > div { display: flex; flex-direction: column; gap: 2px; }
+.modal-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-3);
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.modal-field input,
+.modal-field select {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+}
+.modal-field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.modal-field input:focus,
+.modal-field select:focus {
+  border-color: var(--blue);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.modal-field input[type="file"] {
+  padding: 7px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+}
+.modal-btn-cancel {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.modal-btn-cancel:hover { background: var(--bg); }
+.modal-btn-submit {
+  flex: 2;
+  padding: 10px;
+  border: none;
+  background: var(--blue);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.modal-btn-submit:hover    { background: #2563eb; }
+.modal-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.modal-success { color: var(--green);  font-size: 13px; font-weight: 500; }
+.modal-error   { color: var(--red);    font-size: 13px; font-weight: 500; }
+
+/* Log button in Active Queue */
+.btn-log {
+  padding: 4px 10px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.btn-log:hover {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
 /* ─────────────────────────────────────────────
    RESPONSIVE — tablet & mobile
 ───────────────────────────────────────────── */

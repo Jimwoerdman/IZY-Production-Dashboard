@@ -200,6 +200,7 @@
             <th>Qty</th>
             <th>Still to Print</th>
             <th>Days Left</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="aq-body"><tr><td colspan="10">Loading...</td></tr></tbody>
@@ -463,6 +464,45 @@
 <footer>
   Last updated: <span id="last-updated-footer">—</span> &nbsp;·&nbsp; IZY Print Dashboard
 </footer>
+
+<!-- ─── PRINT LOG MODAL ─── -->
+<div id="print-modal-overlay">
+  <div id="print-modal">
+    <div class="modal-header">
+      <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
+      <h2>Log Print Update</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-job-info"></div>
+
+      <div class="modal-field">
+        <label>Quantity Printed</label>
+        <input type="number" id="modal-printed" min="0" placeholder="e.g. 240" />
+      </div>
+      <div class="modal-field">
+        <label>Faulty Prints</label>
+        <input type="number" id="modal-faulty" min="0" value="0" />
+      </div>
+      <div class="modal-field">
+        <label>Printer Used</label>
+        <select id="modal-printer"></select>
+      </div>
+      <div class="modal-field">
+        <label>Photo of Product <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
+        <input type="file" id="modal-photo" accept="image/*" capture="environment" onchange="handlePhotoPreview(this)" />
+        <img id="modal-preview" style="display:none;margin-top:10px;max-width:100%;max-height:200px;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0;" />
+      </div>
+
+      <div id="modal-status"></div>
+
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn-submit" id="modal-submit" onclick="submitPrintUpdate()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
