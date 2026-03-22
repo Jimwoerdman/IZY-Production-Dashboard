@@ -107,6 +107,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'shipping') loadShipping();
   });
 });
 
@@ -986,35 +987,76 @@ function renderReview() {
       </tr>`).join('');
 }
 
-// ── Init & Refresh ────────────────────────────────────────────
-async function refreshData() {
-  document.getElementById('last-updated').textContent = 'Refreshing...';
+// ── Cache helpers ─────────────────────────────────────────────
+const MAIN_CACHE_KEY = 'izy_main_cache';
+const MAIN_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+function saveMainCache(rows) {
+  try { localStorage.setItem(MAIN_CACHE_KEY, JSON.stringify({ rows, ts: Date.now() })); } catch (_) {}
+}
+function loadMainCache() {
   try {
-    const [mainRaw, shipRaw] = await Promise.all([
-      fetch(CSV_URL  + '&t=' + Date.now()).then(r => r.text()),
-      fetch(SHIP_URL + '&t=' + Date.now()).then(r => r.text()),
-    ]);
+    const raw = localStorage.getItem(MAIN_CACHE_KEY);
+    if (!raw) return null;
+    const { rows, ts } = JSON.parse(raw);
+    return (Date.now() - ts < MAIN_CACHE_TTL) ? rows : null;
+  } catch (_) { return null; }
+}
 
-    const mainParsed = parseCSV(mainRaw);
+// ── Render main tabs (everything except shipping) ──────────────
+function renderMain() {
+  renderStats(allRows);
+  renderCharts(allRows);
+  populateAllJobsFilters(allRows);
+  renderAllJobs();
+  populateSecondaryFilters(allRows);
+  renderActiveQueue();
+  renderReports();
+}
+
+// ── Init & Refresh ────────────────────────────────────────────
+let shippingLoaded = false;
+
+async function loadShipping() {
+  if (shippingLoaded && shippedRows.length) return; // already loaded
+  document.getElementById('sh-count').textContent = '…';
+  try {
+    const shipRaw    = await fetch(SHIP_URL + '&t=' + Date.now()).then(r => r.text());
     const shipParsed = parseCSV(shipRaw);
-
-    allRows = mainParsed.filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
     const shipResult = buildShippedRows(allRows, shipParsed);
     shippedRows = shipResult.matched;
     reviewRows  = shipResult.review;
-
+    shippingLoaded = true;
     fill('sh-owner', [...new Set(shippedRows.map(r => r.owner).filter(Boolean))].sort());
-
-    renderStats(allRows);
-    renderCharts(allRows);
-    populateAllJobsFilters(allRows);
-    renderAllJobs();
-    populateSecondaryFilters(allRows);
-    renderActiveQueue();
-
-    renderReports();
     renderShipping();
     renderReview();
+  } catch (err) {
+    document.getElementById('sh-count').textContent = 'Error';
+  }
+}
+
+async function refreshData() {
+  // 1. Show cached data immediately so the page feels instant
+  const cached = loadMainCache();
+  if (cached) {
+    allRows = cached;
+    renderMain();
+  } else {
+    document.getElementById('last-updated').textContent = 'Loading…';
+  }
+
+  // 2. Fetch fresh main data in background
+  try {
+    const mainRaw  = await fetch(CSV_URL + '&t=' + Date.now()).then(r => r.text());
+    allRows = parseCSV(mainRaw).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
+    saveMainCache(allRows);
+    renderMain();
+
+    // 3. Reload shipping only if that tab is active or already loaded
+    shippingLoaded = false;
+    if (document.getElementById('tab-shipping').classList.contains('active')) {
+      loadShipping();
+    }
 
     const now = new Date().toLocaleString();
     document.getElementById('last-updated').textContent = now;
