@@ -751,21 +751,32 @@ footer {
 }
 .btn-sleeve {
   padding: 4px 10px;
-  background: var(--green-dim);
-  border: 1px solid rgba(34,197,94,0.3);
+  background: var(--red-dim);
+  border: 1px solid rgba(239,68,68,0.3);
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--green);
+  color: var(--red);
   cursor: pointer;
   margin-left: 4px;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   font-family: inherit;
 }
 .btn-sleeve:hover {
-  background: var(--green);
+  background: var(--red);
   color: white;
-  border-color: var(--green);
+  border-color: var(--red);
+}
+.btn-sleeve.sleeved {
+  background: var(--green-dim);
+  border-color: rgba(34,197,94,0.3);
+  color: var(--green);
+  cursor: default;
+}
+.btn-sleeve.sleeved:hover {
+  background: var(--green-dim);
+  color: var(--green);
+  border-color: rgba(34,197,94,0.3);
 }
 
 /* ─────────────────────────────────────────────

@@ -485,7 +485,7 @@ function renderActiveQueue() {
                 <td>${daysCell(days)}</td>
                 <td>
                   <button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button>
-                  ${get(r,'Status').toLowerCase() === 'waiting' ? `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✓ Sleeved</button>` : ''}
+                  ${(() => { const st = get(r,'Status').toLowerCase(); if (st === 'waiting') return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`; if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`; return ''; })()}
                 </td>
               </tr>`;
             }).join('')}</tbody>
@@ -508,7 +508,7 @@ document.getElementById('tab-active-queue').addEventListener('click', function(e
   const logBtn    = e.target.closest('.btn-log');
   const sleeveBtn = e.target.closest('.btn-sleeve');
   if (logBtn)    openPrintModal(parseInt(logBtn.dataset.rowidx));
-  if (sleeveBtn) markSleeved(parseInt(sleeveBtn.dataset.rowidx));
+  if (sleeveBtn && !sleeveBtn.classList.contains('sleeved')) markSleeved(parseInt(sleeveBtn.dataset.rowidx), sleeveBtn);
 });
 
 // ── By Company ────────────────────────────────────────────────
@@ -1232,11 +1232,17 @@ function compressImage(file, maxWidth = 1400) {
   });
 }
 
-async function markSleeved(rowIdx) {
+async function markSleeved(rowIdx, btn) {
   const job = allRows[rowIdx];
   if (!job) return;
   const label = get(job,'Name_Company') + ' #' + get(job,'Priority');
-  if (!confirm(`Mark "${label}" as sleeved?\nThis will set the status to "Ready to ship".`)) return;
+  if (!confirm(`Mark "${label}" as sleeved?\nThis will set the status to "Ready to Ship".`)) return;
+  // Immediately flip button to green
+  if (btn) {
+    btn.textContent = '✓ Sleeved';
+    btn.classList.add('sleeved');
+    btn.disabled = true;
+  }
   try {
     await fetch(SCRIPT_URL, {
       method: 'POST',
@@ -1245,6 +1251,8 @@ async function markSleeved(rowIdx) {
     });
     refreshData();
   } catch (err) {
+    // Revert button on failure
+    if (btn) { btn.textContent = '✕ Sleeve'; btn.classList.remove('sleeved'); btn.disabled = false; }
     alert('Could not update: ' + err.message);
   }
 }
