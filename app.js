@@ -483,7 +483,10 @@ function renderActiveQueue() {
                 <td>${num(r,'Quantity') || '—'}</td>
                 <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
                 <td>${daysCell(days)}</td>
-                <td><button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button></td>
+                <td>
+                  <button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button>
+                  ${get(r,'Status').toLowerCase() === 'waiting' ? `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✓ Sleeved</button>` : ''}
+                </td>
               </tr>`;
             }).join('')}</tbody>
           </table>
@@ -500,11 +503,12 @@ function renderActiveQueue() {
   document.getElementById(id).addEventListener('change', renderActiveQueue);
 });
 
-// Log button — event delegation on section container
+// Log + Sleeve buttons — event delegation on section container
 document.getElementById('tab-active-queue').addEventListener('click', function(e) {
-  const btn = e.target.closest('.btn-log');
-  if (!btn) return;
-  openPrintModal(parseInt(btn.dataset.rowidx));
+  const logBtn    = e.target.closest('.btn-log');
+  const sleeveBtn = e.target.closest('.btn-sleeve');
+  if (logBtn)    openPrintModal(parseInt(logBtn.dataset.rowidx));
+  if (sleeveBtn) markSleeved(parseInt(sleeveBtn.dataset.rowidx));
 });
 
 // ── By Company ────────────────────────────────────────────────
@@ -1226,6 +1230,23 @@ function compressImage(file, maxWidth = 1400) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+async function markSleeved(rowIdx) {
+  const job = allRows[rowIdx];
+  if (!job) return;
+  const label = get(job,'Name_Company') + ' #' + get(job,'Priority');
+  if (!confirm(`Mark "${label}" as sleeved?\nThis will set the status to "Ready to ship".`)) return;
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({ action: 'sleeve_check', sheetRow: job['_sheetRow'] }),
+    });
+    refreshData();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
 }
 
 async function submitPrintUpdate() {
