@@ -998,8 +998,8 @@ function loadMainCache() {
   try {
     const raw = localStorage.getItem(MAIN_CACHE_KEY);
     if (!raw) return null;
-    const { rows, ts } = JSON.parse(raw);
-    return (Date.now() - ts < MAIN_CACHE_TTL) ? rows : null;
+    const { rows } = JSON.parse(raw);
+    return rows || null; // always return cached data, even if stale
   } catch (_) { return null; }
 }
 
