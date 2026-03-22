@@ -546,6 +546,26 @@ footer {
 ───────────────────────────────────────────── */
 @media (max-width: 768px) {
 
+  /* Prevent any horizontal overflow at root level */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  main, .tab-content, .filters-bar,
+  .charts-grid, .report-grid, #stats-grid,
+  .chart-card, .report-card, .stat-card {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Constrain inline-styled date inputs in custom range spans */
+  .filters-bar input[type="date"] {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
   /* Header */
   header {
     padding: 0 16px;
@@ -567,6 +587,7 @@ footer {
   /* Main content */
   main {
     padding: 16px 12px 32px;
+    overflow-x: hidden;
   }
 
   /* Stats grid — 2 columns */
@@ -610,8 +631,14 @@ footer {
   .check-label { justify-content: flex-start; }
   .btn-clear   { width: 100%; text-align: center; }
 
-  /* Tables — allow horizontal scroll, tighten cells */
-  .table-wrap { border-radius: var(--radius-sm); }
+  /* Tables — scroll inside wrapper, never push page width */
+  .table-wrap {
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+  table       { min-width: 500px; }
   tbody td    { padding: 9px 10px; font-size: 12px; }
   thead th    { padding: 9px 10px; font-size: 10px; }
   td.print-name { max-width: 120px; }
