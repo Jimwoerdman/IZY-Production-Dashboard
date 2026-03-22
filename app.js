@@ -989,7 +989,6 @@ function renderReview() {
 
 // ── Cache helpers ─────────────────────────────────────────────
 const MAIN_CACHE_KEY = 'izy_main_cache';
-const MAIN_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
 function saveMainCache(rows) {
   try { localStorage.setItem(MAIN_CACHE_KEY, JSON.stringify({ rows, ts: Date.now() })); } catch (_) {}
@@ -999,8 +998,20 @@ function loadMainCache() {
     const raw = localStorage.getItem(MAIN_CACHE_KEY);
     if (!raw) return null;
     const { rows } = JSON.parse(raw);
-    return rows || null; // always return cached data, even if stale
+    return rows || null;
   } catch (_) { return null; }
+}
+
+function setStatus(msg) {
+  document.getElementById('last-updated').textContent = msg;
+}
+
+// Fetch with a 20-second timeout
+function fetchWithTimeout(url, ms = 20000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal })
+    .finally(() => clearTimeout(timer));
 }
 
 // ── Render main tabs (everything except shipping) ──────────────
@@ -1018,10 +1029,10 @@ function renderMain() {
 let shippingLoaded = false;
 
 async function loadShipping() {
-  if (shippingLoaded && shippedRows.length) return; // already loaded
+  if (shippingLoaded && shippedRows.length) return;
   document.getElementById('sh-count').textContent = '…';
   try {
-    const shipRaw    = await fetch(SHIP_URL + '&t=' + Date.now()).then(r => r.text());
+    const shipRaw    = await fetchWithTimeout(SHIP_URL + '&t=' + Date.now()).then(r => r.text());
     const shipParsed = parseCSV(shipRaw);
     const shipResult = buildShippedRows(allRows, shipParsed);
     shippedRows = shipResult.matched;
@@ -1036,33 +1047,44 @@ async function loadShipping() {
 }
 
 async function refreshData() {
-  // 1. Show cached data immediately so the page feels instant
+  // 1. Always show cached data immediately if available
   const cached = loadMainCache();
   if (cached) {
     allRows = cached;
     renderMain();
+    setStatus('Updating…');
   } else {
-    document.getElementById('last-updated').textContent = 'Loading…';
+    setStatus('Connecting to Google Sheets…');
   }
 
-  // 2. Fetch fresh main data in background
+  // Warn user if it's taking long
+  const slowTimer = setTimeout(() => {
+    if (document.getElementById('last-updated').textContent.includes('…')) {
+      setStatus('Still loading — Google Sheets is slow…');
+    }
+  }, 6000);
+
+  // 2. Fetch fresh data
   try {
-    const mainRaw  = await fetch(CSV_URL + '&t=' + Date.now()).then(r => r.text());
+    const mainRaw = await fetchWithTimeout(CSV_URL + '&t=' + Date.now()).then(r => r.text());
+    clearTimeout(slowTimer);
+
     allRows = parseCSV(mainRaw).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
     saveMainCache(allRows);
     renderMain();
 
-    // 3. Reload shipping only if that tab is active or already loaded
     shippingLoaded = false;
     if (document.getElementById('tab-shipping').classList.contains('active')) {
       loadShipping();
     }
 
     const now = new Date().toLocaleString();
-    document.getElementById('last-updated').textContent = now;
+    setStatus(now);
     document.getElementById('last-updated-footer').textContent = now;
   } catch (err) {
-    document.getElementById('last-updated').textContent = 'Error: ' + err.message;
+    clearTimeout(slowTimer);
+    const msg = err.name === 'AbortError' ? 'Timeout — Google Sheets did not respond' : 'Error: ' + err.message;
+    setStatus(cached ? `⚠️ Showing cached data (${msg})` : msg);
   }
 }
 
