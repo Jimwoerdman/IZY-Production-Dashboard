@@ -1042,28 +1042,30 @@ async function refreshData() {
   const cached = loadMainCache();
   if (cached && cached.length > 0) {
     allRows = cached;
-    renderMain();
+    try { renderMain(); } catch (_) {}
   } else {
-    // No cache — show a loading hint in the stats area so user knows it's working
+    // No cache — make clear something is happening
     document.querySelectorAll('.stat-value').forEach(el => { el.textContent = '…'; });
+    lu.textContent = 'Loading data… (first load may take 15–30s)';
   }
 
-  // 30-second timeout — Google Sheets can be slow on cold starts
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-
   try {
-    const mainRaw = await fetch(CSV_URL + '&t=' + Date.now(), { signal: controller.signal }).then(r => r.text());
-    clearTimeout(timeoutId);
+    // Use Promise.race for timeout — works in all browsers without AbortController quirks
+    const fetchPromise = fetch(CSV_URL + '&t=' + Date.now()).then(r => r.text());
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 35000)
+    );
 
-    const parsed = parseCSV(mainRaw).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
+    const mainRaw = await Promise.race([fetchPromise, timeoutPromise]);
+    const parsed  = parseCSV(mainRaw).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
 
     if (parsed.length > 0) {
       allRows = parsed;
       saveMainCache(allRows);
-      renderMain();
+      try { renderMain(); } catch (_) {}
     } else if (!cached || !cached.length) {
-      lu.textContent = '⚠️ No data received — click Refresh';
+      lu.textContent = '⚠️ No data — click ↻ Refresh';
+      return;
     }
 
     shippingLoaded = false;
@@ -1071,19 +1073,19 @@ async function refreshData() {
       loadShipping();
     }
 
-    if (allRows.length > 0) {
-      const now = new Date().toLocaleString();
-      lu.textContent = now;
-      document.getElementById('last-updated-footer').textContent = now;
-    }
+    const now = new Date().toLocaleString();
+    lu.textContent = now;
+    document.getElementById('last-updated-footer').textContent = now;
+
   } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
+    if (err.message === 'timeout') {
       lu.textContent = cached && cached.length
         ? '⚠️ Slow connection — showing cached data'
-        : '⚠️ Loading timed out — click Refresh to retry';
+        : '⚠️ Timed out — click ↻ Refresh to retry';
     } else {
-      lu.textContent = cached && cached.length ? '⚠️ Offline — showing cached data' : 'Error: ' + err.message;
+      lu.textContent = cached && cached.length
+        ? '⚠️ Offline — showing cached data'
+        : '⚠️ Error loading — click ↻ Refresh';
     }
   }
 }
