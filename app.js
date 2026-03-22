@@ -20,14 +20,25 @@ async function fetchData() {
   return parseCSV(text);
 }
 
+function colLetter(i) {
+  // Convert 0-based column index to spreadsheet letter (A, B, ..., Z, AA, ...)
+  let s = '', n = i + 1;
+  while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+  return s;
+}
+
 function parseCSV(text) {
   const lines   = text.trim().split('\n');
   const headers = splitLine(lines[0]).map(h => h.replace(/"/g, '').trim());
   return lines.slice(1).map((line, idx) => {
     const vals = splitLine(line);
     const row  = {};
-    headers.forEach((h, i) => row[h] = (vals[i] || '').replace(/"/g, '').trim());
-    row['_sheetRow'] = idx + 2; // +1 for header row, +1 for 1-indexing
+    headers.forEach((h, i) => {
+      const v = (vals[i] || '').replace(/"/g, '').trim();
+      row[h] = v;
+      row['_col_' + colLetter(i)] = v; // also accessible by column letter e.g. _col_Q
+    });
+    row['_sheetRow'] = idx + 2;
     return row;
   });
 }
@@ -453,7 +464,7 @@ function renderActiveQueue() {
           <table>
             <thead><tr>
               <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
-              <th>Deadline</th><th>Color</th><th>Lid Color</th>
+              <th>Type</th><th>Deadline</th><th>Color</th><th>Lid Color</th>
               <th>Qty</th><th>Still to Print</th><th>Days Left</th><th></th>
             </tr></thead>
             <tbody>${rows.map(r => {
@@ -465,9 +476,10 @@ function renderActiveQueue() {
                 <td><strong>${get(r,'Name_Company')}</strong></td>
                 <td class="print-name">${get(r,'Name_Print') || '—'}</td>
                 <td>${badge(get(r,'Status'))}</td>
+                <td>${typeBadge(get(r,'Soort'))}</td>
                 <td>${get(r,'Deadline') || '—'}</td>
                 <td>${get(r,'Bottle color') || '—'}</td>
-                <td>${get(r,'Lid color') || '—'}</td>
+                <td>${r['_col_Q'] || '—'}</td>
                 <td>${num(r,'Quantity') || '—'}</td>
                 <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
                 <td>${daysCell(days)}</td>
