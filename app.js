@@ -1002,18 +1002,6 @@ function loadMainCache() {
   } catch (_) { return null; }
 }
 
-function setStatus(msg) {
-  document.getElementById('last-updated').textContent = msg;
-}
-
-// Fetch with a 20-second timeout
-function fetchWithTimeout(url, ms = 20000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  return fetch(url, { signal: ctrl.signal })
-    .finally(() => clearTimeout(timer));
-}
-
 // ── Render main tabs (everything except shipping) ──────────────
 function renderMain() {
   renderStats(allRows);
@@ -1032,7 +1020,7 @@ async function loadShipping() {
   if (shippingLoaded && shippedRows.length) return;
   document.getElementById('sh-count').textContent = '…';
   try {
-    const shipRaw    = await fetchWithTimeout(SHIP_URL + '&t=' + Date.now()).then(r => r.text());
+    const shipRaw    = await fetch(SHIP_URL + '&t=' + Date.now()).then(r => r.text());
     const shipParsed = parseCSV(shipRaw);
     const shipResult = buildShippedRows(allRows, shipParsed);
     shippedRows = shipResult.matched;
@@ -1047,44 +1035,56 @@ async function loadShipping() {
 }
 
 async function refreshData() {
-  // 1. Always show cached data immediately if available
+  const lu = document.getElementById('last-updated');
+  lu.textContent = 'Updating…';
+
+  // Show cached data instantly while fresh data loads
   const cached = loadMainCache();
-  if (cached) {
+  if (cached && cached.length > 0) {
     allRows = cached;
     renderMain();
-    setStatus('Updating…');
   } else {
-    setStatus('Connecting to Google Sheets…');
+    // No cache — show a loading hint in the stats area so user knows it's working
+    document.querySelectorAll('.stat-value').forEach(el => { el.textContent = '…'; });
   }
 
-  // Warn user if it's taking long
-  const slowTimer = setTimeout(() => {
-    if (document.getElementById('last-updated').textContent.includes('…')) {
-      setStatus('Still loading — Google Sheets is slow…');
-    }
-  }, 6000);
+  // 30-second timeout — Google Sheets can be slow on cold starts
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  // 2. Fetch fresh data
   try {
-    const mainRaw = await fetchWithTimeout(CSV_URL + '&t=' + Date.now()).then(r => r.text());
-    clearTimeout(slowTimer);
+    const mainRaw = await fetch(CSV_URL + '&t=' + Date.now(), { signal: controller.signal }).then(r => r.text());
+    clearTimeout(timeoutId);
 
-    allRows = parseCSV(mainRaw).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
-    saveMainCache(allRows);
-    renderMain();
+    const parsed = parseCSV(mainRaw).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
+
+    if (parsed.length > 0) {
+      allRows = parsed;
+      saveMainCache(allRows);
+      renderMain();
+    } else if (!cached || !cached.length) {
+      lu.textContent = '⚠️ No data received — click Refresh';
+    }
 
     shippingLoaded = false;
     if (document.getElementById('tab-shipping').classList.contains('active')) {
       loadShipping();
     }
 
-    const now = new Date().toLocaleString();
-    setStatus(now);
-    document.getElementById('last-updated-footer').textContent = now;
+    if (allRows.length > 0) {
+      const now = new Date().toLocaleString();
+      lu.textContent = now;
+      document.getElementById('last-updated-footer').textContent = now;
+    }
   } catch (err) {
-    clearTimeout(slowTimer);
-    const msg = err.name === 'AbortError' ? 'Timeout — Google Sheets did not respond' : 'Error: ' + err.message;
-    setStatus(cached ? `⚠️ Showing cached data (${msg})` : msg);
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      lu.textContent = cached && cached.length
+        ? '⚠️ Slow connection — showing cached data'
+        : '⚠️ Loading timed out — click Refresh to retry';
+    } else {
+      lu.textContent = cached && cached.length ? '⚠️ Offline — showing cached data' : 'Error: ' + err.message;
+    }
   }
 }
 
