@@ -443,7 +443,7 @@ function renderActiveQueue() {
           <td>${num(r,'Quantity') || '—'}</td>
           <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
           <td>${daysCell(days)}</td>
-          <td><button class="btn-log" data-priority="${get(r,'Priority')}">✏️ Log</button></td>
+          <td><button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button></td>
         </tr>`;
       }).join('');
 }
@@ -457,7 +457,7 @@ function renderActiveQueue() {
 document.getElementById('aq-body').addEventListener('click', function(e) {
   const btn = e.target.closest('.btn-log');
   if (!btn) return;
-  openPrintModal(btn.dataset.priority);
+  openPrintModal(parseInt(btn.dataset.rowidx));
 });
 
 // ── By Company ────────────────────────────────────────────────
@@ -1100,12 +1100,12 @@ async function refreshData() {
 // ── Print Logger Modal ────────────────────────────────────────
 let modalJob = null;
 
-function openPrintModal(priority) {
+function openPrintModal(rowIdx) {
   if (!SCRIPT_URL) {
     alert('Print logging is not configured yet.\nAsk your admin to set up the SCRIPT_URL in app.js.');
     return;
   }
-  modalJob = allRows.find(r => get(r,'Priority') === priority);
+  modalJob = allRows[rowIdx];
   if (!modalJob) return;
 
   // Populate job info
