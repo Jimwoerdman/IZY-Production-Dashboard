@@ -291,6 +291,17 @@
   <!-- ─── SHIPPING HISTORY ─── -->
   <section id="tab-shipping" class="tab-content">
 
+    <div class="overview-filters">
+      <label for="sh-global-period">Period:</label>
+      <select id="sh-global-period">
+        <option value="">All time</option>
+        <option value="week">This week</option>
+        <option value="month" selected>This month</option>
+        <option value="quarter">Last 3 months</option>
+        <option value="year">This year</option>
+      </select>
+    </div>
+
     <div id="shipping-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;">
       <div class="stat-card accent-green">
         <div class="stat-icon">📦</div>

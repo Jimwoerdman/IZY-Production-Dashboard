@@ -821,14 +821,25 @@ function fmtDate(d) {
 }
 
 function renderShipping() {
-  const search   = document.getElementById('sh-search').value.toLowerCase();
-  const owner    = document.getElementById('sh-owner').value;
-  const period   = document.getElementById('sh-period').value;
-  const dateFrom = document.getElementById('sh-date-from').value;
-  const dateTo   = document.getElementById('sh-date-to').value;
+  const search       = document.getElementById('sh-search').value.toLowerCase();
+  const owner        = document.getElementById('sh-owner').value;
+  const period       = document.getElementById('sh-period').value;
+  const dateFrom     = document.getElementById('sh-date-from').value;
+  const dateTo       = document.getElementById('sh-date-to').value;
+  const globalPeriod = document.getElementById('sh-global-period')?.value || '';
 
   // Filter
   const rows = shippedRows.filter(r => {
+    if (globalPeriod) {
+      const gp = globalPeriod === 'quarter' ? null : globalPeriod;
+      if (globalPeriod === 'quarter') {
+        const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 3);
+        if (r.shipDate < cutoff) return false;
+      } else {
+        const range = getDateRange(gp);
+        if (range && (r.shipDate < range.from || r.shipDate > range.to)) return false;
+      }
+    }
     if (search && !(r.company.toLowerCase().includes(search) || r.printName.toLowerCase().includes(search))) return false;
     if (owner && r.owner !== owner) return false;
     if (period) {
@@ -992,7 +1003,7 @@ function renderShipping() {
       </tr>`).join('');
 }
 
-['sh-search','sh-owner','sh-period','sh-date-from','sh-date-to'].forEach(id => {
+['sh-global-period','sh-search','sh-owner','sh-period','sh-date-from','sh-date-to'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderShipping);
   document.getElementById(id).addEventListener('change', renderShipping);
 });
