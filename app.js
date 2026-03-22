@@ -403,59 +403,93 @@ document.getElementById('aq-period').addEventListener('change', function() {
 });
 
 // ── Active Queue ──────────────────────────────────────────────
+const AQ_SECTIONS = [
+  { label: 'Bottles',        colors: TYPE_COLORS['bottle'],        match: s => s.includes('bottle') && !s.includes('travel') },
+  { label: 'Mugs',           colors: TYPE_COLORS['mug'],           match: s => s.includes('mug') },
+  { label: 'Travel Bottles', colors: TYPE_COLORS['travel bottle'], match: s => s.includes('travel') },
+  { label: 'Tumblers',       colors: TYPE_COLORS['tumbler'],       match: s => s.includes('tumbler') },
+  { label: 'Samples',        colors: { bg: '#f1f5f9', text: '#475569' }, match: s => s.includes('sample') },
+];
+
+function statusSortOrder(r) {
+  const s = get(r,'Status').toLowerCase();
+  if (s.includes('progress')) return 0;
+  if (s === 'to print')       return 1;
+  if (s === 'waiting')        return 2;
+  if (s === 'ready to ship')  return 3;
+  return 4;
+}
+
 function renderActiveQueue() {
   const search   = document.getElementById('aq-search').value.toLowerCase();
   const status   = document.getElementById('aq-status').value;
-  const owner    = document.getElementById('aq-owner').value;
   const period   = document.getElementById('aq-period').value;
   const dateFrom = document.getElementById('aq-date-from').value;
   const dateTo   = document.getElementById('aq-date-to').value;
 
-  const rows = allRows.filter(r => {
+  const filtered = allRows.filter(r => {
     if (!isActive(r)) return false;
     if (search && !(get(r,'Name_Company').toLowerCase().includes(search) || get(r,'Name_Print').toLowerCase().includes(search))) return false;
     if (status && get(r,'Status') !== status) return false;
-    if (owner  && get(r,'Owner')  !== owner)  return false;
     if (period && !inDateRange(r, 'Deadline', period, dateFrom, dateTo)) return false;
     return true;
-  }).sort((a,b) => {
-    const da = parseDate(get(a,'Deadline')), db = parseDate(get(b,'Deadline'));
-    if (!da && !db) return 0;
-    if (!da) return 1;
-    if (!db) return -1;
-    return da - db;
   });
 
-  document.getElementById('aq-body').innerHTML = rows.length === 0
-    ? '<tr><td colspan="12">No active jobs.</td></tr>'
-    : rows.map(r => {
-        const d    = parseDate(get(r,'Deadline'));
-        const days = daysFrom(d);
-        const still = num(r,'Quantity still to print');
-        return `<tr class="${isOverdue(r) ? 'row-overdue' : ''}">
-          <td>${get(r,'Priority')}</td>
-          <td><strong>${get(r,'Name_Company')}</strong></td>
-          <td class="print-name">${get(r,'Name_Print') || '—'}</td>
-          <td>${badge(get(r,'Status'))}</td>
-          <td>${get(r,'Owner') || '—'}</td>
-          <td>${get(r,'Deadline') || '—'}</td>
-          <td>${typeBadge(get(r,'Soort'))}</td>
-          <td>${get(r,'Bottle color') || '—'}</td>
-          <td>${num(r,'Quantity') || '—'}</td>
-          <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
-          <td>${daysCell(days)}</td>
-          <td><button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button></td>
-        </tr>`;
-      }).join('');
+  const html = AQ_SECTIONS.map(section => {
+    const rows = filtered
+      .filter(r => section.match(get(r,'Soort').toLowerCase()))
+      .sort((a,b) => statusSortOrder(a) - statusSortOrder(b));
+
+    if (rows.length === 0) return '';
+
+    const c = section.colors;
+    return `
+      <div class="aq-section">
+        <div class="aq-section-title">
+          <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
+          <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
+              <th>Deadline</th><th>Color</th><th>Lid Color</th>
+              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th></th>
+            </tr></thead>
+            <tbody>${rows.map(r => {
+              const d     = parseDate(get(r,'Deadline'));
+              const days  = daysFrom(d);
+              const still = num(r,'Quantity still to print');
+              return `<tr class="${isOverdue(r) ? 'row-overdue' : ''}">
+                <td>${get(r,'Priority')}</td>
+                <td><strong>${get(r,'Name_Company')}</strong></td>
+                <td class="print-name">${get(r,'Name_Print') || '—'}</td>
+                <td>${badge(get(r,'Status'))}</td>
+                <td>${get(r,'Deadline') || '—'}</td>
+                <td>${get(r,'Bottle color') || '—'}</td>
+                <td>${get(r,'Lid color') || '—'}</td>
+                <td>${num(r,'Quantity') || '—'}</td>
+                <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
+                <td>${daysCell(days)}</td>
+                <td><button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button></td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('aq-sections').innerHTML = html ||
+    '<p style="color:#94a3b8;padding:20px;">No active jobs match the current filters.</p>';
 }
 
-['aq-search','aq-status','aq-owner','aq-period','aq-date-from','aq-date-to'].forEach(id => {
+['aq-search','aq-status','aq-period','aq-date-from','aq-date-to'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderActiveQueue);
   document.getElementById(id).addEventListener('change', renderActiveQueue);
 });
 
-// Log button — event delegation so it works after table re-render
-document.getElementById('aq-body').addEventListener('click', function(e) {
+// Log button — event delegation on section container
+document.getElementById('tab-active-queue').addEventListener('click', function(e) {
   const btn = e.target.closest('.btn-log');
   if (!btn) return;
   openPrintModal(parseInt(btn.dataset.rowidx));
@@ -581,7 +615,6 @@ function populateSecondaryFilters(rows) {
   const statuses = [...new Set(active.map(r => get(r,'Status')).filter(Boolean))].sort();
   const owners   = [...new Set(rows.map(r => get(r,'Owner')).filter(Boolean))].sort();
   fill('aq-status', statuses);
-  fill('aq-owner',  owners);
   fill('rp-owner',  owners);
 }
 
