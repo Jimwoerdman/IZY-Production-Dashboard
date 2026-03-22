@@ -129,16 +129,18 @@ function renderStats(rows) {
   const inProgress = rows.filter(r => isActive(r)).length;
   const stillTotal = rows.reduce((s, r) => s + num(r, 'Quantity still to print'), 0);
   const bottles    = rows.reduce((s, r) => s + num(r, 'Quantity'), 0);
-  const faulty     = rows.reduce((s, r) => s + num(r, 'Faulty prints'), 0);
-  const needSleeve = rows.filter(r => get(r,'To sleeve?') === 'Yes' && get(r,'Gesleeved?') !== 'Yes').length;
-  const overdue    = rows.filter(r => isOverdue(r)).length;
+  const totalFaulty   = rows.reduce((s, r) => s + num(r, 'Faulty prints'), 0);
+  const totalPrinted  = rows.reduce((s, r) => s + num(r, 'Quantity printed'), 0);
+  const faultyPct     = totalPrinted > 0 ? ((totalFaulty / totalPrinted) * 100).toFixed(1) + '%' : '—';
+  const needSleeve    = rows.filter(r => get(r,'Status').toLowerCase() === 'waiting').length;
+  const overdue       = rows.filter(r => isOverdue(r)).length;
 
   document.getElementById('s-total').textContent       = rows.length;
   document.getElementById('s-shipped').textContent     = shipped;
   document.getElementById('s-in-progress').textContent = inProgress;
   document.getElementById('s-still').textContent       = stillTotal.toLocaleString();
   document.getElementById('s-bottles').textContent     = bottles.toLocaleString();
-  document.getElementById('s-faulty').textContent      = faulty;
+  document.getElementById('s-faulty').textContent      = faultyPct;
   document.getElementById('s-sleeve').textContent      = needSleeve;
   document.getElementById('s-overdue').textContent     = overdue;
 }
@@ -393,6 +395,12 @@ document.querySelectorAll('#all-jobs-table thead th[data-sort]').forEach(th => {
     else { ajSort.key = key; ajSort.asc = true; }
     renderAllJobs();
   });
+});
+
+document.getElementById('overview-period').addEventListener('change', () => {
+  const overviewRows = getOverviewRows();
+  renderStats(overviewRows);
+  renderCharts(overviewRows);
 });
 
 ['aj-search','aj-status','aj-owner','aj-color','aj-sleeve','aj-type','aj-date-field','aj-period','aj-date-from','aj-date-to','aj-only-active','aj-only-faulty'].forEach(id => {
@@ -1060,9 +1068,25 @@ function loadMainCache() {
 }
 
 // ── Render main tabs (everything except shipping) ──────────────
+function getOverviewRows() {
+  const period = document.getElementById('overview-period')?.value || 'all';
+  if (period === 'all') return allRows;
+  const now = new Date();
+  const cutoff = new Date();
+  if (period === 'week')    cutoff.setDate(now.getDate() - 7);
+  if (period === 'month')   cutoff.setMonth(now.getMonth() - 1);
+  if (period === 'quarter') cutoff.setMonth(now.getMonth() - 3);
+  if (period === 'year')    cutoff.setFullYear(now.getFullYear() - 1);
+  return allRows.filter(r => {
+    const d = parseDate(get(r, 'Date added'));
+    return d && d >= cutoff;
+  });
+}
+
 function renderMain() {
-  renderStats(allRows);
-  renderCharts(allRows);
+  const overviewRows = getOverviewRows();
+  renderStats(overviewRows);
+  renderCharts(overviewRows);
   populateAllJobsFilters(allRows);
   renderAllJobs();
   populateSecondaryFilters(allRows);

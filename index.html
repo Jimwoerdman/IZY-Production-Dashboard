@@ -37,6 +37,17 @@
   <!-- ─── OVERVIEW ─── -->
   <section id="tab-overview" class="tab-content active">
 
+    <div class="overview-filters">
+      <label for="overview-period">Period:</label>
+      <select id="overview-period">
+        <option value="all">All time</option>
+        <option value="week">This week</option>
+        <option value="month" selected>This month</option>
+        <option value="quarter">Last 3 months</option>
+        <option value="year">This year</option>
+      </select>
+    </div>
+
     <div id="stats-grid">
       <div class="stat-card">
         <div class="stat-icon">📋</div>
