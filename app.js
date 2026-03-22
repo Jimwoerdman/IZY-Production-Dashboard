@@ -2,6 +2,12 @@ const SHEET_ID    = '1vIERVGUheXWkMS155VWfBEuCrUV4qXGYSUM9mIdppfc';
 const CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 const SHIP_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=1459899540`;
 
+// ── Print Logger config ────────────────────────────────────────
+// Paste your Google Apps Script Web App URL here after deploying:
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1LuTt6ySUIXR_Rp3f8EyE4nV1XNW3hmK8YqirpxN_6HwzXFvvtyuVl_7Pj8_eNICs/exec';
+// List your printers here:
+const PRINTERS = ['Bottle 1', 'Bottle 2', 'Mug 1', 'Travel Bottle 1'];
+
 let allRows      = [];
 let shippedRows  = []; // confirmed matched shipping rows
 let reviewRows   = []; // unmatched / low-confidence rows for review
@@ -419,7 +425,7 @@ function renderActiveQueue() {
   });
 
   document.getElementById('aq-body').innerHTML = rows.length === 0
-    ? '<tr><td colspan="11">No active jobs.</td></tr>'
+    ? '<tr><td colspan="12">No active jobs.</td></tr>'
     : rows.map(r => {
         const d    = parseDate(get(r,'Deadline'));
         const days = daysFrom(d);
@@ -436,6 +442,7 @@ function renderActiveQueue() {
           <td>${num(r,'Quantity') || '—'}</td>
           <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
           <td>${daysCell(days)}</td>
+          <td><button class="btn-log" onclick="openPrintModal('${get(r,'Priority')}')">✏️ Log</button></td>
         </tr>`;
       }).join('');
 }
@@ -1014,6 +1021,144 @@ async function refreshData() {
     document.getElementById('last-updated-footer').textContent = now;
   } catch (err) {
     document.getElementById('last-updated').textContent = 'Error: ' + err.message;
+  }
+}
+
+// ── Print Logger Modal ────────────────────────────────────────
+let modalJob = null;
+
+function openPrintModal(priority) {
+  if (!SCRIPT_URL) {
+    alert('Print logging is not configured yet.\nAsk your admin to set up the SCRIPT_URL in app.js.');
+    return;
+  }
+  modalJob = allRows.find(r => get(r,'Priority') === priority);
+  if (!modalJob) return;
+
+  // Populate job info
+  document.getElementById('modal-job-info').innerHTML = `
+    <div class="modal-job-card">
+      <div><span class="modal-label">Job</span><strong>#${get(modalJob,'Priority')} — ${get(modalJob,'Name_Company')}</strong></div>
+      <div><span class="modal-label">Print</span>${get(modalJob,'Name_Print') || '—'}</div>
+      <div><span class="modal-label">Type</span>${typeBadge(get(modalJob,'Soort'))}</div>
+      <div><span class="modal-label">Color</span>${get(modalJob,'Bottle color') || '—'}</div>
+      <div><span class="modal-label">Total Qty</span>${num(modalJob,'Quantity')}</div>
+      <div><span class="modal-label">Already Printed</span>${num(modalJob,'Quantity printed ') || num(modalJob,'Quantity printed') || 0}</div>
+    </div>`;
+
+  // Pre-fill current values
+  document.getElementById('modal-printed').value = num(modalJob,'Quantity printed ') || num(modalJob,'Quantity printed') || '';
+  document.getElementById('modal-faulty').value  = num(modalJob,'Faulty prints') || 0;
+
+  // Populate printers
+  const sel = document.getElementById('modal-printer');
+  sel.innerHTML = '<option value="">Select printer...</option>' +
+    PRINTERS.map(p => `<option value="${p}">${p}</option>`).join('');
+  const cur = get(modalJob,'Printer');
+  if (cur) sel.value = cur;
+
+  // Reset photo
+  document.getElementById('modal-photo').value = '';
+  document.getElementById('modal-preview').style.display = 'none';
+  document.getElementById('modal-status').textContent = '';
+
+  document.getElementById('print-modal-overlay').style.display = 'flex';
+  document.getElementById('modal-printed').focus();
+}
+
+function closeModal() {
+  document.getElementById('print-modal-overlay').style.display = 'none';
+  modalJob = null;
+}
+
+// Close on overlay click
+document.getElementById('print-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function handlePhotoPreview(input) {
+  const preview = document.getElementById('modal-preview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function compressImage(file, maxWidth = 1400) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale  = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitPrintUpdate() {
+  const statusEl = document.getElementById('modal-status');
+  const submitBtn = document.getElementById('modal-submit');
+  const printed = parseInt(document.getElementById('modal-printed').value);
+  const faulty  = parseInt(document.getElementById('modal-faulty').value)  || 0;
+  const printer = document.getElementById('modal-printer').value;
+  const photoFile = document.getElementById('modal-photo').files[0];
+
+  if (!printed && printed !== 0) { statusEl.textContent = 'Please enter quantity printed.'; statusEl.className = 'modal-error'; return; }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+  statusEl.textContent = '';
+
+  try {
+    let imageBase64 = null;
+    let imageMime   = null;
+    if (photoFile) {
+      imageBase64 = await compressImage(photoFile);
+      imageMime   = 'image/jpeg';
+    }
+
+    const payload = {
+      priority:        get(modalJob,'Priority'),
+      quantityPrinted: printed,
+      faultyPrints:    faulty,
+      printer:         printer,
+      imageBase64,
+      imageMime,
+    };
+
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify(payload),
+    });
+
+    submitBtn.textContent = 'Submit';
+    submitBtn.disabled = false;
+    statusEl.textContent = '✅ Saved! The sheet will update within a few seconds.';
+    statusEl.className = 'modal-success';
+
+    // Close after 2 seconds and refresh data
+    setTimeout(() => { closeModal(); refreshData(); }, 2200);
+
+  } catch (err) {
+    submitBtn.textContent = 'Submit';
+    submitBtn.disabled = false;
+    statusEl.textContent = '❌ Error: ' + err.message;
+    statusEl.className = 'modal-error';
   }
 }
 
