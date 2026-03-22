@@ -415,10 +415,10 @@ document.getElementById('aq-period').addEventListener('change', function() {
 
 // ── Active Queue ──────────────────────────────────────────────
 const AQ_SECTIONS = [
-  { label: 'Bottles',        colors: TYPE_COLORS['bottle'],        match: s => s.includes('bottle') && !s.includes('travel') && !s.includes('sample') },
-  { label: 'Mugs',           colors: TYPE_COLORS['mug'],           match: s => s.includes('mug') && !s.includes('sample') },
-  { label: 'Travel Bottles', colors: TYPE_COLORS['travel bottle'], match: s => s.includes('travel') && !s.includes('sample') },
-  { label: 'Tumblers',       colors: TYPE_COLORS['tumbler'],       match: s => s.includes('tumbler') && !s.includes('sample') },
+  { label: 'Bottles',        colors: TYPE_COLORS['bottle'],        match: s => s === 'bottle' },
+  { label: 'Mugs',           colors: TYPE_COLORS['mug'],           match: s => s === 'mug' },
+  { label: 'Travel Bottles', colors: TYPE_COLORS['travel bottle'], match: s => s === 'travel bottle' },
+  { label: 'Tumblers',       colors: TYPE_COLORS['tumbler'],       match: s => s === 'tumbler' },
   { label: 'Samples',        colors: { bg: '#f1f5f9', text: '#475569' }, match: s => s.includes('sample') },
 ];
 
