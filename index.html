@@ -521,7 +521,7 @@
 
       <div class="form-section">
         <div class="form-section-label">Job</div>
-        <div class="form-grid form-grid-4">
+        <div class="form-grid form-grid-3">
           <div class="form-group">
             <label>Product Type <span class="req">*</span></label>
             <select id="nj-soort" required>
@@ -534,10 +534,6 @@
               <option value="Sample Mug">Sample Mug</option>
               <option value="Sample Travel Bottle">Sample Travel Bottle</option>
             </select>
-          </div>
-          <div class="form-group">
-            <label>Priority <span class="req">*</span> <span id="nj-priority-hint" class="form-hint"></span></label>
-            <input type="number" id="nj-priority" required min="1" placeholder="e.g. 105" />
           </div>
           <div class="form-group">
             <label>Owner</label>
@@ -565,18 +561,42 @@
         <div class="form-grid form-grid-2">
           <div class="form-group">
             <label>Bottle Color</label>
-            <input type="text" id="nj-color" placeholder="e.g. White" />
+            <select id="nj-color">
+              <option value="">Select color…</option>
+              <option>White</option><option>Black</option><option>Gray</option>
+              <option>Light Blue</option><option>Blue</option><option>Green</option>
+              <option>Red</option><option>Orange</option><option>Yellow</option>
+              <option>Pink</option><option>Silver</option><option>Gold</option>
+              <option>Nvt</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Lid Color</label>
-            <input type="text" id="nj-lid" placeholder="e.g. Black" />
+            <select id="nj-lid">
+              <option value="">Select color…</option>
+              <option>White</option><option>Black</option><option>Gray</option>
+              <option>Light Blue</option><option>Blue</option><option>Green</option>
+              <option>Red</option><option>Orange</option><option>Yellow</option>
+              <option>Pink</option><option>Silver</option><option>Gold</option>
+              <option>Nvt</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid form-grid-1">
+          <div class="form-group">
+            <label>Picture Mockup</label>
+            <label class="file-upload-area" id="nj-mockup-label" for="nj-mockup">
+              <span class="file-upload-icon">📎</span>
+              <span id="nj-mockup-name">Click to upload or drag & drop</span>
+              <input type="file" id="nj-mockup" accept="image/*" style="display:none;" />
+            </label>
           </div>
         </div>
       </div>
 
       <div class="form-section">
         <div class="form-section-label">Planning</div>
-        <div class="form-grid form-grid-2">
+        <div class="form-grid form-grid-3">
           <div class="form-group">
             <label>Deadline</label>
             <input type="date" id="nj-deadline" />
@@ -584,6 +604,13 @@
           <div class="form-group">
             <label>Planning to Print</label>
             <input type="date" id="nj-planning" />
+          </div>
+          <div class="form-group">
+            <label>To Sleeve?</label>
+            <button type="button" id="nj-tosleeve" class="toggle-btn" data-value="No">
+              <span class="toggle-track"><span class="toggle-knob"></span></span>
+              <span class="toggle-text">No</span>
+            </button>
           </div>
         </div>
       </div>

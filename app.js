@@ -1366,20 +1366,41 @@ document.getElementById('nj-soort').addEventListener('change', function() {
   hint.textContent = max > 0 ? `(max: ${max})` : '';
 });
 
+// Mockup file: update label display
+document.getElementById('nj-mockup').addEventListener('change', function() {
+  const label = document.getElementById('nj-mockup-label');
+  const nameEl = document.getElementById('nj-mockup-name');
+  if (this.files && this.files[0]) {
+    nameEl.textContent = this.files[0].name;
+    label.classList.add('has-file');
+  } else {
+    nameEl.textContent = 'Click to upload or drag & drop';
+    label.classList.remove('has-file');
+  }
+});
+
+// To Sleeve toggle
+document.getElementById('nj-tosleeve').addEventListener('click', function() {
+  const current = this.dataset.value === 'Yes';
+  this.dataset.value = current ? 'No' : 'Yes';
+  this.querySelector('.toggle-text').textContent = current ? 'No' : 'Yes';
+});
+
 document.getElementById('nj-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('nj-soort').value;
-  const priority  = document.getElementById('nj-priority').value;
   const company   = document.getElementById('nj-company').value.trim();
   const printName = document.getElementById('nj-print-name').value.trim();
   const quantity  = document.getElementById('nj-quantity').value;
-  const color     = document.getElementById('nj-color').value.trim();
-  const lid       = document.getElementById('nj-lid').value.trim();
+  const color     = document.getElementById('nj-color').value;
+  const lid       = document.getElementById('nj-lid').value;
   const deadline  = document.getElementById('nj-deadline').value;
   const owner     = document.getElementById('nj-owner').value;
   const planning  = document.getElementById('nj-planning').value;
+  const tosleeve  = document.getElementById('nj-tosleeve').dataset.value;
+  const mockupFile = document.getElementById('nj-mockup').files[0];
   const statusEl  = document.getElementById('nj-status');
 
-  if (!soort || !priority || !company || !printName || !quantity) {
+  if (!soort || !company || !printName || !quantity) {
     statusEl.className = 'form-status error';
     statusEl.textContent = 'Please fill in all required fields.';
     return;
@@ -1389,13 +1410,22 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   statusEl.className = 'form-status';
   statusEl.textContent = 'Saving…';
 
+  // Read mockup as base64 if provided
+  let mockupBase64 = null;
+  if (mockupFile) {
+    mockupBase64 = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(mockupFile);
+    });
+  }
+
   try {
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode:   'no-cors',
       body:   JSON.stringify({
         action:    'add_job',
-        priority:  parseInt(priority),
         soort,
         company,
         printName,
@@ -1405,6 +1435,8 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         deadline,
         owner,
         planning,
+        tosleeve,
+        mockupBase64,
         status:    'To Print',
       }),
     });
@@ -1412,6 +1444,10 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     statusEl.textContent = '✓ Print job added!';
     document.getElementById('add-job-form').reset();
     document.getElementById('nj-priority-hint').textContent = '';
+    document.getElementById('nj-mockup-label').classList.remove('has-file');
+    document.getElementById('nj-mockup-name').textContent = 'Click to upload or drag & drop';
+    document.getElementById('nj-tosleeve').dataset.value = 'No';
+    document.getElementById('nj-tosleeve').querySelector('.toggle-text').textContent = 'No';
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
   } catch (err) {
