@@ -1298,8 +1298,8 @@ function openPrintModal(rowIdx) {
       <div><span class="modal-label">Already Printed</span>${num(modalJob,'Quantity printed ') || num(modalJob,'Quantity printed') || 0}</div>
     </div>`;
 
-  // Pre-fill current values
-  document.getElementById('modal-printed').value = num(modalJob,'Quantity printed ') || num(modalJob,'Quantity printed') || '';
+  // Pre-fill: session input starts at 0; existing total shown in job info above
+  document.getElementById('modal-printed').value = '';
   document.getElementById('modal-faulty').value  = num(modalJob,'Faulty prints') || 0;
 
   // Populate printers
@@ -1432,12 +1432,15 @@ async function resetJob(rowIdx) {
 async function submitPrintUpdate() {
   const statusEl = document.getElementById('modal-status');
   const submitBtn = document.getElementById('modal-submit');
-  const printed = parseInt(document.getElementById('modal-printed').value);
+  const sessionPrinted = parseInt(document.getElementById('modal-printed').value);
   const faulty  = parseInt(document.getElementById('modal-faulty').value)  || 0;
   const printer = document.getElementById('modal-printer').value;
   const photoFile = document.getElementById('modal-photo').files[0];
 
-  if (!printed && printed !== 0) { statusEl.textContent = 'Please enter quantity printed.'; statusEl.className = 'modal-error'; return; }
+  if (!sessionPrinted && sessionPrinted !== 0) { statusEl.textContent = 'Please enter quantity printed.'; statusEl.className = 'modal-error'; return; }
+
+  const alreadyPrinted = num(modalJob,'Quantity printed ') || num(modalJob,'Quantity printed') || 0;
+  const printed = alreadyPrinted + sessionPrinted;
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
