@@ -260,7 +260,7 @@ function doGet(e) {
     ? ss.getSheetByName('Shipping overview')
     : ss.getSheetByName('Workfile');
 
-  if (!sheet) return respondGet({ error: 'Sheet not found' });
+  if (!sheet) return respondGet({ error: 'Sheet not found', availableSheets: ss.getSheets().map(s => s.getName()) });
   const values = sheet.getDataRange().getValues();
   const headers = values[0].map(h => String(h).trim());
   const rows = values.slice(1).map((row, idx) => {

@@ -1212,7 +1212,13 @@ async function loadShipping() {
   if (shippingLoaded && shippedRows.length) return;
   document.getElementById('sh-count').textContent = '…';
   try {
-    const shipParsed = await fetch(SCRIPT_URL + '?sheet=shipping&t=' + Date.now()).then(r => r.json()).then(d => d.rows || []);
+    const shipRaw    = await fetch(SCRIPT_URL + '?sheet=shipping&t=' + Date.now()).then(r => r.json());
+    const shipParsed = shipRaw.rows || [];
+    if (shipRaw.error) {
+      const dbg = document.getElementById('sh-debug');
+      if (dbg) { dbg.innerHTML = `<b>Apps Script error:</b> ${shipRaw.error}<br><b>Available sheets:</b> ${(shipRaw.availableSheets||[]).join(', ')}`; dbg.style.display = 'block'; }
+      return;
+    }
     const shipResult = buildShippedRows(allRows, shipParsed);
     shippedRows = shipResult.matched;
     reviewRows  = shipResult.review;
