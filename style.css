@@ -803,74 +803,133 @@ footer {
 ───────────────────────────────────────────── */
 .add-job-card {
   background: white;
-  border-radius: 12px;
-  padding: 28px 32px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
-  max-width: 820px;
+  max-width: 860px;
+  overflow: hidden;
+}
+.add-job-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 32px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, #f8faff 0%, white 100%);
+}
+.add-job-header-icon {
+  font-size: 32px;
+  width: 56px;
+  height: 56px;
+  background: var(--blue-dim);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.add-job-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.add-job-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.form-section {
+  padding: 22px 32px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.form-section:last-of-type { border-bottom: none; }
+.form-section-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--blue);
+  margin-bottom: 14px;
 }
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
+.form-grid-2 { grid-template-columns: 1fr 1fr; }
+.form-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 .form-group label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 .form-group input,
 .form-group select {
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 10px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
   font-size: 14px;
   font-family: inherit;
-  background: white;
+  background: #fafbfc;
   color: var(--text);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.form-group input:hover,
+.form-group select:hover {
+  border-color: #cbd5e1;
+  background: white;
 }
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
   border-color: var(--blue);
+  background: white;
   box-shadow: 0 0 0 3px rgba(0,119,255,0.1);
 }
-.req { color: var(--red); }
+.req { color: var(--red); font-weight: 700; }
 .form-hint {
   font-size: 11px;
   color: var(--blue);
-  font-weight: 400;
+  font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
+  background: var(--blue-dim);
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 .form-actions {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 4px;
+  padding: 20px 32px 24px;
 }
 .btn-nj-submit {
-  padding: 10px 28px;
+  padding: 12px 32px;
   background: var(--blue);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 0.15s;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(0,119,255,0.25);
 }
-.btn-nj-submit:hover   { opacity: 0.85; }
-.btn-nj-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-nj-submit:hover {
+  background: #0066dd;
+  box-shadow: 0 4px 14px rgba(0,119,255,0.35);
+  transform: translateY(-1px);
+}
+.btn-nj-submit:active  { transform: translateY(0); }
+.btn-nj-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 .form-status         { font-size: 13px; font-weight: 600; }
 .form-status.success { color: var(--green); }
 .form-status.error   { color: var(--red); }
