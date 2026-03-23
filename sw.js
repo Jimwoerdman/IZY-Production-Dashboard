@@ -1,4 +1,4 @@
-const CACHE_NAME = 'izy-print-v1';
+const CACHE_NAME = 'izy-print-v2';
 const STATIC_ASSETS = [
   '/IZY-Production-Dashboard/',
   '/IZY-Production-Dashboard/index.html',
