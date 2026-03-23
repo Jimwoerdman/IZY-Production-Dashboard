@@ -2,7 +2,7 @@
   "name": "IZY Print Dashboard",
   "short_name": "IZY Prints",
   "description": "Print job management dashboard for IZY",
-  "start_url": "/",
+  "start_url": "/IZY-Production-Dashboard/",
   "display": "standalone",
   "background_color": "#111827",
   "theme_color": "#111827",
