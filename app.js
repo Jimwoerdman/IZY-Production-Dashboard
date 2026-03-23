@@ -545,7 +545,7 @@ function renderActiveQueue() {
           <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
           ${still > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to print</span><span class="cell-danger">${still}</span></div>` : ''}
           ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
-          ${r['_col_Q'] ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${r['_col_Q']}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
@@ -558,7 +558,7 @@ function renderActiveQueue() {
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${r['_col_Q'] || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
         <td>${num(r,'Quantity') || '—'}</td>
         <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
         <td>${daysCell(days)}</td>
