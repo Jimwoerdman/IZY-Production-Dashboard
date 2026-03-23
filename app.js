@@ -484,6 +484,8 @@ function statusSortOrder(r) {
   return 4;
 }
 
+let aqTypeFilter = '';
+
 function renderActiveQueue() {
   const search   = document.getElementById('aq-search').value.toLowerCase();
   const status   = document.getElementById('aq-status').value;
@@ -499,7 +501,16 @@ function renderActiveQueue() {
     return true;
   });
 
-  const html = AQ_SECTIONS.map(section => {
+  // Type filter pills
+  const tabsEl = document.getElementById('aq-type-tabs');
+  tabsEl.innerHTML = `<button class="aq-type-tab${aqTypeFilter === '' ? ' active' : ''}" data-type="">All <span class="aq-tab-count">${filtered.length}</span></button>` +
+    AQ_SECTIONS.map(s => {
+      const n = filtered.filter(r => s.match(get(r,'Soort').toLowerCase())).length;
+      if (!n) return '';
+      return `<button class="aq-type-tab${aqTypeFilter === s.label ? ' active' : ''}" data-type="${s.label}" style="--tc:${s.colors.text};--tb:${s.colors.bg}">${s.label} <span class="aq-tab-count">${n}</span></button>`;
+    }).join('');
+
+  const html = AQ_SECTIONS.filter(s => !aqTypeFilter || s.label === aqTypeFilter).map(section => {
     const rows = filtered
       .filter(r => section.match(get(r,'Soort').toLowerCase()))
       .sort((a,b) => statusSortOrder(a) - statusSortOrder(b));
@@ -557,6 +568,11 @@ function renderActiveQueue() {
 ['aq-search','aq-status','aq-period','aq-date-from','aq-date-to'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderActiveQueue);
   document.getElementById(id).addEventListener('change', renderActiveQueue);
+});
+
+document.getElementById('aq-type-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.aq-type-tab');
+  if (btn) { aqTypeFilter = btn.dataset.type; renderActiveQueue(); }
 });
 
 // Log + Sleeve + Reset buttons — event delegation on section container
