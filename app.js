@@ -331,7 +331,7 @@ function getAJFiltered() {
     if (status && get(r,'Status') !== status) return false;
     if (owner  && get(r,'Owner')  !== owner)  return false;
     if (color  && get(r,'Bottle color') !== color) return false;
-    if (sleeve && get(r,'To sleeve?') !== sleeve) return false;
+    if (sleeve && r['_col_V'] !== sleeve) return false;
     if (type   && get(r,'Soort') !== type)    return false;
     if (period && !inDateRange(r, dateField, period, dateFrom, dateTo)) return false;
     if (onlyActive && !isActive(r))           return false;
@@ -374,7 +374,7 @@ function renderAllJobs() {
           <td>${num(r,'Quantity printed ') || num(r,'Quantity printed') || '—'}</td>
           <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
           <td class="${faulty > 0 ? 'cell-warn' : ''}">${faulty > 0 ? faulty : '—'}</td>
-          <td>${get(r,'To sleeve?') || '—'}</td>
+          <td>${r['_col_V'] || '—'}</td>
         </tr>`;
       }).join('');
 }
@@ -495,7 +495,7 @@ function renderActiveQueue() {
                 <td>
                   <button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button>
                   ${(() => {
-                    if (get(r,'To sleeve?') !== 'Yes') return '';
+                    if (r['_col_V'] !== 'Yes') return '';
                     const st = get(r,'Status').toLowerCase();
                     if (st === 'waiting') return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
                     if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`;
@@ -573,7 +573,7 @@ function renderReports() {
       }).join('');
 
   // Needs sleeving
-  const sleeve = base.filter(r => get(r,'To sleeve?') === 'Yes' && get(r,'Gesleeved?') !== 'Yes' && isActive(r));
+  const sleeve = base.filter(r => r['_col_V'] === 'Yes' && get(r,'Gesleeved?') !== 'Yes' && isActive(r));
   document.getElementById('rep-sleeve').innerHTML = sleeve.length === 0
     ? '<tr><td colspan="6" class="cell-ok">All sleeveable jobs are done!</td></tr>'
     : sleeve.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
@@ -602,7 +602,7 @@ function renderReports() {
   // Print ready, not shipped
   const readyToShip = base.filter(r => {
     const printReady = get(r,'Printing ready?') === 'Yes';
-    const sleeveOk   = get(r,'To sleeve?') !== 'Yes' || get(r,'Gesleeved?') === 'Yes';
+    const sleeveOk   = r['_col_V'] !== 'Yes' || get(r,'Gesleeved?') === 'Yes';
     return printReady && sleeveOk && isActive(r);
   });
   document.getElementById('rep-ready-ship').innerHTML = readyToShip.length === 0
@@ -610,7 +610,7 @@ function renderReports() {
     : readyToShip.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${num(r,'Quantity')}</td><td>${get(r,'To sleeve?') === 'Yes' ? '✅' : '—'}</td></tr>`).join('');
+        <td>${num(r,'Quantity')}</td><td>${r['_col_V'] === 'Yes' ? '✅' : '—'}</td></tr>`).join('');
 
   // Deadlines this week
   const thisWeek = base.filter(r => {
