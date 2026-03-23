@@ -502,9 +502,10 @@ function renderActiveQueue() {
                     const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
                     if (sleeveVal !== 'yes') return '';
                     const st = get(r,'Status').toLowerCase();
-                    if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`;
+                    if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}">✓ Sleeved</button>`;
                     return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
                   })()}
+                  <button class="btn-reset" data-rowidx="${allRows.indexOf(r)}">↺ Reset</button>
                 </td>
               </tr>`;
             }).join('')}</tbody>
@@ -522,12 +523,17 @@ function renderActiveQueue() {
   document.getElementById(id).addEventListener('change', renderActiveQueue);
 });
 
-// Log + Sleeve buttons — event delegation on section container
+// Log + Sleeve + Reset buttons — event delegation on section container
 document.getElementById('tab-active-queue').addEventListener('click', function(e) {
   const logBtn    = e.target.closest('.btn-log');
   const sleeveBtn = e.target.closest('.btn-sleeve');
-  if (logBtn)    openPrintModal(parseInt(logBtn.dataset.rowidx));
-  if (sleeveBtn && !sleeveBtn.classList.contains('sleeved')) markSleeved(parseInt(sleeveBtn.dataset.rowidx), sleeveBtn);
+  const resetBtn  = e.target.closest('.btn-reset');
+  if (logBtn)   openPrintModal(parseInt(logBtn.dataset.rowidx));
+  if (resetBtn) resetJob(parseInt(resetBtn.dataset.rowidx));
+  if (sleeveBtn) {
+    if (sleeveBtn.classList.contains('sleeved')) unsleeveJob(parseInt(sleeveBtn.dataset.rowidx), sleeveBtn);
+    else markSleeved(parseInt(sleeveBtn.dataset.rowidx), sleeveBtn);
+  }
 });
 
 // ── By Company ────────────────────────────────────────────────
@@ -1300,6 +1306,48 @@ async function markSleeved(rowIdx, btn) {
     // Revert button on failure
     if (btn) { btn.textContent = '✕ Sleeve'; btn.classList.remove('sleeved'); btn.disabled = false; }
     alert('Could not update: ' + err.message);
+  }
+}
+
+async function unsleeveJob(rowIdx, btn) {
+  const job = allRows[rowIdx];
+  if (!job) return;
+  const label = get(job,'Name_Company') + ' #' + get(job,'Priority');
+  if (!confirm(`Undo sleeving for "${label}"?\nStatus will go back to "Waiting".`)) return;
+  if (btn) { btn.textContent = '✕ Sleeve'; btn.classList.remove('sleeved'); btn.disabled = false; }
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({ sheetRow: job['_sheetRow'], status: 'Waiting' }),
+    });
+    refreshData();
+  } catch (err) {
+    if (btn) { btn.textContent = '✓ Sleeved'; btn.classList.add('sleeved'); btn.disabled = true; }
+    alert('Could not update: ' + err.message);
+  }
+}
+
+async function resetJob(rowIdx) {
+  const job = allRows[rowIdx];
+  if (!job) return;
+  const label = get(job,'Name_Company') + ' #' + get(job,'Priority');
+  if (!confirm(`Reset "${label}"?\nThis will clear quantity printed, faulty prints and printer, and set status back to "To Print".`)) return;
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        sheetRow:        job['_sheetRow'],
+        status:          'To Print',
+        quantityPrinted: 0,
+        faultyPrints:    0,
+        printer:         '',
+      }),
+    });
+    refreshData();
+  } catch (err) {
+    alert('Could not reset: ' + err.message);
   }
 }
 

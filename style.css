@@ -790,12 +790,29 @@ footer {
   background: var(--green-dim);
   border-color: rgba(34,197,94,0.3);
   color: var(--green);
-  cursor: default;
+  cursor: pointer;
 }
 .btn-sleeve.sleeved:hover {
-  background: var(--green-dim);
+  background: rgba(34,197,94,0.22);
   color: var(--green);
-  border-color: rgba(34,197,94,0.3);
+  border-color: rgba(34,197,94,0.5);
+}
+.btn-reset {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-reset:hover {
+  background: var(--orange-dim);
+  color: var(--orange);
+  border-color: rgba(249,115,22,0.3);
 }
 
 /* ─────────────────────────────────────────────
