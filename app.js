@@ -1212,32 +1212,10 @@ async function loadShipping() {
   if (shippingLoaded && shippedRows.length) return;
   document.getElementById('sh-count').textContent = '…';
   try {
-    const shipRaw    = await fetch(SCRIPT_URL + '?sheet=shipping&t=' + Date.now()).then(r => r.json());
-    const shipParsed = shipRaw.rows || [];
-    if (shipRaw.error) {
-      const dbg = document.getElementById('sh-debug');
-      if (dbg) { dbg.innerHTML = `<b>Apps Script error:</b> ${shipRaw.error}<br><b>Available sheets:</b> ${(shipRaw.availableSheets||[]).join(', ')}`; dbg.style.display = 'block'; }
-      return;
-    }
+    const shipParsed = await fetch(SCRIPT_URL + '?sheet=shipping&t=' + Date.now()).then(r => r.json()).then(d => d.rows || []);
     const shipResult = buildShippedRows(allRows, shipParsed);
     shippedRows = shipResult.matched;
     reviewRows  = shipResult.review;
-
-    // Debug panel — shows raw column names so we can verify matching
-    const dbg = document.getElementById('sh-debug');
-    if (dbg) {
-      const shipCols = shipParsed[0] ? Object.keys(shipParsed[0]).filter(k => !k.startsWith('_')).join(', ') : '—';
-      const shippedJobs = allRows.filter(r => get(r,'Status').toLowerCase() === 'shipped');
-      const workCols = shippedJobs[0] ? Object.keys(shippedJobs[0]).filter(k => !k.startsWith('_')).join(', ') : '(no shipped jobs in workfile)';
-      const sample = shipParsed[0] || {};
-      dbg.innerHTML = `
-        <b>Shipping rows loaded:</b> ${shipParsed.length} &nbsp;|&nbsp; <b>Matched:</b> ${shippedRows.length} &nbsp;|&nbsp; <b>Workfile shipped jobs:</b> ${shippedJobs.length}<br>
-        <b>Shipping sheet columns:</b> ${shipCols}<br>
-        <b>Sample row — Datum:</b> "${getCI(sample,'datum')}" &nbsp;|&nbsp; <b>Referentie:</b> "${getCI(sample,'referentie')}" &nbsp;|&nbsp; <b>Bedrijfsnaam:</b> "${getCI(sample,'bedrijfsnaam')}"<br>
-        <b>Workfile columns:</b> ${workCols}
-      `;
-      dbg.style.display = 'block';
-    }
     shippingLoaded = true;
     fill('sh-owner', [...new Set(shippedRows.map(r => r.owner).filter(Boolean))].sort());
     renderShipping();
