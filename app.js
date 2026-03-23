@@ -1394,7 +1394,6 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const lid       = document.getElementById('nj-lid').value;
   const deadline  = document.getElementById('nj-deadline').value;
   const owner     = document.getElementById('nj-owner').value;
-  const planning  = document.getElementById('nj-planning').value;
   const tosleeve  = document.getElementById('nj-tosleeve').dataset.value;
   const mockupFile = document.getElementById('nj-mockup').files[0];
   const statusEl  = document.getElementById('nj-status');
