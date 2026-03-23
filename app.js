@@ -499,11 +499,11 @@ function renderActiveQueue() {
                 <td>
                   <button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button>
                   ${(() => {
-                    if (get(r,'To sleeve?') !== 'Yes') return '';
+                    const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
+                    if (sleeveVal !== 'yes') return '';
                     const st = get(r,'Status').toLowerCase();
-                    if (st === 'waiting') return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
                     if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`;
-                    return '';
+                    return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
                   })()}
                 </td>
               </tr>`;
