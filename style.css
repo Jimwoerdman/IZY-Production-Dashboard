@@ -770,6 +770,47 @@ footer {
   font-weight: 500;
 }
 
+/* Type filter tabs */
+#aq-type-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.aq-type-tab {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.aq-type-tab:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.aq-type-tab.active {
+  background: var(--tab-bg, var(--blue-dim));
+  border-color: var(--tab-color, var(--blue));
+  color: var(--tab-color, var(--blue));
+}
+.aq-tab-count {
+  background: rgba(0,0,0,0.08);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+.aq-type-tab.active .aq-tab-count {
+  background: rgba(0,0,0,0.12);
+}
+
 /* Cards grid */
 .aq-cards {
   display: grid;
