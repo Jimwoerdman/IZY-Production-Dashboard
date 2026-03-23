@@ -1442,6 +1442,11 @@ async function submitPrintUpdate() {
   const alreadyPrinted = num(modalJob,'Quantity printed ') || num(modalJob,'Quantity printed') || 0;
   const printed = alreadyPrinted + sessionPrinted;
 
+  const quantity = num(modalJob,'Quantity') || 0;
+  const stillLeft = quantity - printed;
+  const needsSleeve = (get(modalJob,'To sleeve?') || getCI(modalJob,'sleeve')).toLowerCase() === 'yes';
+  const autoStatus = stillLeft <= 0 ? (needsSleeve ? 'Waiting' : 'Ready to ship') : null;
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
   statusEl.textContent = '';
@@ -1461,6 +1466,7 @@ async function submitPrintUpdate() {
       quantityPrinted: printed,
       faultyPrints:    faulty,
       printer:         printer,
+      ...(autoStatus ? { status: autoStatus } : {}),
       imageBase64,
       imageMime,
       changedBy:       currentUser?.email,
