@@ -56,6 +56,10 @@ function splitLine(line) {
 
 // ── Helpers ───────────────────────────────────────────────────
 function get(row, key) { return (row[key] || '').trim(); }
+function getCI(row, keyword) {
+  const k = Object.keys(row).find(k => !k.startsWith('_') && k.toLowerCase().includes(keyword.toLowerCase()));
+  return k ? (row[k] || '').trim() : '';
+}
 function num(row, key) { return parseInt(row[key]) || 0; }
 
 function parseDate(str) {
@@ -331,7 +335,7 @@ function getAJFiltered() {
     if (status && get(r,'Status') !== status) return false;
     if (owner  && get(r,'Owner')  !== owner)  return false;
     if (color  && get(r,'Bottle color') !== color) return false;
-    if (sleeve && r['_col_V'] !== sleeve) return false;
+    if (sleeve && getCI(r,'sleeve') !== sleeve) return false;
     if (type   && get(r,'Soort') !== type)    return false;
     if (period && !inDateRange(r, dateField, period, dateFrom, dateTo)) return false;
     if (onlyActive && !isActive(r))           return false;
@@ -374,7 +378,7 @@ function renderAllJobs() {
           <td>${num(r,'Quantity printed ') || num(r,'Quantity printed') || '—'}</td>
           <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
           <td class="${faulty > 0 ? 'cell-warn' : ''}">${faulty > 0 ? faulty : '—'}</td>
-          <td>${r['_col_V'] || '—'}</td>
+          <td>${getCI(r,'sleeve') || '—'}</td>
         </tr>`;
       }).join('');
 }
@@ -495,11 +499,11 @@ function renderActiveQueue() {
                 <td>
                   <button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button>
                   ${(() => {
-                    const needsSleeve = (r['_col_V'] || '').toLowerCase() === 'yes';
-                    if (!needsSleeve) return '';
+                    if (get(r,'To sleeve?') !== 'Yes') return '';
                     const st = get(r,'Status').toLowerCase();
+                    if (st === 'waiting') return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
                     if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`;
-                    return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
+                    return '';
                   })()}
                 </td>
               </tr>`;
@@ -573,7 +577,7 @@ function renderReports() {
       }).join('');
 
   // Needs sleeving
-  const sleeve = base.filter(r => r['_col_V'] === 'Yes' && get(r,'Gesleeved?') !== 'Yes' && isActive(r));
+  const sleeve = base.filter(r => getCI(r,'sleeve').toLowerCase() === 'yes' && get(r,'Gesleeved?') !== 'Yes' && isActive(r));
   document.getElementById('rep-sleeve').innerHTML = sleeve.length === 0
     ? '<tr><td colspan="6" class="cell-ok">All sleeveable jobs are done!</td></tr>'
     : sleeve.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
@@ -602,7 +606,7 @@ function renderReports() {
   // Print ready, not shipped
   const readyToShip = base.filter(r => {
     const printReady = get(r,'Printing ready?') === 'Yes';
-    const sleeveOk   = r['_col_V'] !== 'Yes' || get(r,'Gesleeved?') === 'Yes';
+    const sleeveOk   = getCI(r,'sleeve').toLowerCase() !== 'yes' || get(r,'Gesleeved?') === 'Yes';
     return printReady && sleeveOk && isActive(r);
   });
   document.getElementById('rep-ready-ship').innerHTML = readyToShip.length === 0
@@ -610,7 +614,7 @@ function renderReports() {
     : readyToShip.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${num(r,'Quantity')}</td><td>${r['_col_V'] === 'Yes' ? '✅' : '—'}</td></tr>`).join('');
+        <td>${num(r,'Quantity')}</td><td>${getCI(r,'sleeve').toLowerCase() === 'yes' ? '✅' : '—'}</td></tr>`).join('');
 
   // Deadlines this week
   const thisWeek = base.filter(r => {
