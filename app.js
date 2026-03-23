@@ -864,7 +864,7 @@ function buildShippedRows(mainRows, shipRows) {
   const matchedJobKeys = new Set(); // Priority keys of jobs that got a shipment match
 
   shipRows.forEach(s => {
-    const shipDate = parseDateISO(get(s,'Datum'));
+    const shipDate = parseDate(get(s,'Datum'));
     if (!shipDate) return;
 
     // 1. Referentie = Priority (100% reliable)
