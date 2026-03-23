@@ -530,7 +530,7 @@ function renderActiveQueue() {
           : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
       const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
 
-      const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}">
+      const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}" style="--tc:${c.text};--tb:${c.bg}">
         <div class="aq-card-top">
           <div class="aq-card-left">
             <span class="aq-prio">#${get(r,'Priority')}</span>

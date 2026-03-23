@@ -759,18 +759,20 @@ footer {
 .aq-type-tab {
   display: flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 20px;
-  border: 1.5px solid var(--border); background: var(--surface);
-  color: var(--text-2); font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--tc, var(--border));
+  background: var(--surface);
+  color: var(--tc, var(--text-2));
+  font-size: 13px; font-weight: 600;
   font-family: inherit; cursor: pointer; transition: all 0.15s;
 }
-.aq-type-tab:hover { border-color: var(--blue); color: var(--blue); }
+.aq-type-tab:hover { opacity: 0.8; }
 .aq-type-tab.active {
   background: var(--tb, var(--blue-dim));
   border-color: var(--tc, var(--blue));
   color: var(--tc, var(--blue));
 }
 .aq-tab-count {
-  background: rgba(0,0,0,0.08); border-radius: 10px;
+  background: rgba(0,0,0,0.1); border-radius: 10px;
   padding: 1px 7px; font-size: 11px;
 }
 
@@ -788,19 +790,20 @@ footer {
 
 /* Mobile: cards, hide table */
 @media (max-width: 768px) {
-  .aq-cards { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .aq-cards { display: grid; grid-template-columns: 1fr; gap: 14px; }
   .aq-table-wrap { display: none; }
 }
 
 .aq-card {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-left: 4px solid var(--tc, var(--border));
   border-radius: var(--radius);
   padding: 16px;
   display: flex; flex-direction: column; gap: 10px;
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
-.aq-card.overdue { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.03); }
+.aq-card.overdue { border-color: rgba(239,68,68,0.5); border-left-color: #ef4444; background: rgba(239,68,68,0.03); }
 
 .aq-card-top {
   display: flex; align-items: center;
