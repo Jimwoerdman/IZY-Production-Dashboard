@@ -18,8 +18,32 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
+
+<!-- ─── LOGIN OVERLAY ─── -->
+<div id="login-overlay">
+  <div class="login-card">
+    <span class="logo">IZY</span>
+    <h2>Print Dashboard</h2>
+    <p class="login-subtitle">Sign in with your IZY account to continue</p>
+    <div id="g_id_onload"
+         data-client_id="1962434610-up34k4sjjcumsh2og08sde51nhvp9crv.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left">
+    </div>
+    <p id="login-error"></p>
+  </div>
+</div>
 
 <header>
   <div class="header-left">
@@ -29,6 +53,8 @@
   <div class="header-right">
     <span id="last-updated">Loading...</span>
     <button id="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+    <span id="user-name" class="user-name"></span>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
   </div>
 </header>
 

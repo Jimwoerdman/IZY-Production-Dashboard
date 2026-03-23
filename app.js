@@ -8,6 +8,46 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1LuTt6ySUIXR_Rp3f8
 // List your printers here:
 const PRINTERS = ['Bottle 1', 'Bottle 2', 'Mug 1', 'Travel Bottle 1'];
 
+// ── Auth ──────────────────────────────────────────────────────
+const ALLOWED_EMAILS = [
+  'daan@izybottles.com',
+  'jim@izybottles.com',
+  'biessenlevi@gmail.com',
+  'sharon@orderchamp.com',
+];
+
+let currentUser = null;
+
+function handleCredentialResponse(response) {
+  const payload = parseJwt(response.credential);
+  const email = (payload.email || '').toLowerCase();
+  if (!ALLOWED_EMAILS.includes(email)) {
+    document.getElementById('login-error').textContent = 'Access denied for: ' + payload.email;
+    return;
+  }
+  currentUser = { name: payload.given_name || payload.name, email: payload.email };
+  localStorage.setItem('izy_user', JSON.stringify(currentUser));
+  showApp();
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(atob(base64));
+}
+
+function showApp() {
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('user-name').textContent = currentUser.name;
+  refreshData();
+}
+
+function signOut() {
+  localStorage.removeItem('izy_user');
+  currentUser = null;
+  location.reload();
+}
+
+// ─────────────────────────────────────────────────────────────
 let allRows      = [];
 let shippedRows  = []; // confirmed matched shipping rows
 let reviewRows   = []; // unmatched / low-confidence rows for review
@@ -1299,7 +1339,7 @@ async function markSleeved(rowIdx, btn) {
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode:   'no-cors',
-      body:   JSON.stringify({ sheetRow: job['_sheetRow'], status: 'Ready to Ship' }),
+      body:   JSON.stringify({ sheetRow: job['_sheetRow'], status: 'Ready to Ship', changedBy: currentUser?.email }),
     });
     refreshData();
   } catch (err) {
@@ -1319,7 +1359,7 @@ async function unsleeveJob(rowIdx, btn) {
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode:   'no-cors',
-      body:   JSON.stringify({ sheetRow: job['_sheetRow'], status: 'Waiting' }),
+      body:   JSON.stringify({ sheetRow: job['_sheetRow'], status: 'Waiting', changedBy: currentUser?.email }),
     });
     refreshData();
   } catch (err) {
@@ -1343,6 +1383,7 @@ async function resetJob(rowIdx) {
         quantityPrinted: 0,
         faultyPrints:    0,
         printer:         '',
+        changedBy:       currentUser?.email,
       }),
     });
     refreshData();
@@ -1382,6 +1423,7 @@ async function submitPrintUpdate() {
       printer:         printer,
       imageBase64,
       imageMime,
+      changedBy:       currentUser?.email,
     };
 
     await fetch(SCRIPT_URL, {
@@ -1492,6 +1534,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         owner,
         tosleeve,
         mockupBase64,
+        changedBy: currentUser?.email,
         status:    'To Print',
       }),
     });
@@ -1511,4 +1554,13 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   this.disabled = false;
 });
 
-refreshData();
+// ── Boot: check auth before loading data ─────────────────────
+const _stored = localStorage.getItem('izy_user');
+if (_stored) {
+  try {
+    currentUser = JSON.parse(_stored);
+    showApp();
+  } catch (_) {
+    localStorage.removeItem('izy_user');
+  }
+}
