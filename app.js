@@ -820,10 +820,10 @@ function buildShippedRows(mainRows, shipRows) {
     for (const [normJob, jobs] of Object.entries(jobsByNorm)) {
       if (normShip.includes(normJob) || normJob.includes(normShip)) {
         jobs.forEach(job => {
-          const jobShipped = parseDate(get(job,'Shipped'));
-          if (!jobShipped) return;
-          const daysDiff = Math.abs((shipDate - jobShipped) / 86400000);
-          if (daysDiff <= maxDays) candidates.push({ job, normJob, daysDiff });
+          const jobShipped = parseDate(getCI(job,'shipped'));
+          // If no shipped date on job, allow name match with a high daysDiff (sorted last)
+          const daysDiff = jobShipped ? Math.abs((shipDate - jobShipped) / 86400000) : 999;
+          if (daysDiff <= maxDays || !jobShipped) candidates.push({ job, normJob, daysDiff });
         });
       }
     }
@@ -831,15 +831,19 @@ function buildShippedRows(mainRows, shipRows) {
     return candidates;
   }
 
+  function gs(s, key) { return getCI(s, key); } // shorthand for shipping row field access
+
   function buildRow(s, job, matchMethod, daysDiff, shipDate) {
     const addedDate  = parseDate(get(job,'Date added ') || get(job,'Date added'));
     const turnaround = addedDate ? Math.round((shipDate - addedDate) / 86400000) : null;
-    const priceRaw   = get(s,'Prijs').replace(',','.').replace(/[^0-9.]/g,'');
+    const priceRaw   = gs(s,'prijs').replace(',','.').replace(/[^0-9.]/g,'');
+    const plaats     = gs(s,'plaats');
+    const land       = gs(s,'land');
     return {
-      ordernummer:  get(s,'Ordernummer'),
+      ordernummer:  gs(s,'ordernummer'),
       priority:     get(job,'Priority'),
       company:      get(job,'Name_Company'),
-      recipient:    get(s,'Ontvanger bedrijfsnaam'),
+      recipient:    gs(s,'bedrijfsnaam'),
       printName:    get(job,'Name_Print'),
       owner:        get(job,'Owner'),
       dateAdded:    addedDate,
@@ -849,12 +853,12 @@ function buildShippedRows(mainRows, shipRows) {
       color:        get(job,'Bottle color'),
       quantity:     num(job,'Quantity'),
       faulty:       num(job,'Faulty prints'),
-      carrier:      get(s,'Vervoerder'),
-      destination:  [get(s,'Ontvanger plaats'), get(s,'Ontvanger land')].filter(Boolean).join(', '),
-      country:      get(s,'Ontvanger land'),
-      price:        parseFloat(get(s,'Prijs').replace(',','.').replace(/[^0-9.]/g,'')) || null,
-      tracking:     get(s,'AWB'),
-      status:       get(s,'Bericht'),
+      carrier:      gs(s,'vervoerder'),
+      destination:  [plaats, land].filter(Boolean).join(', '),
+      country:      land,
+      price:        parseFloat(priceRaw) || null,
+      tracking:     gs(s,'awb') || gs(s,'tracking'),
+      status:       gs(s,'bericht'),
       matchMethod,
       confidence:   calcConfidence(matchMethod, daysDiff),
     };
@@ -864,11 +868,11 @@ function buildShippedRows(mainRows, shipRows) {
   const matchedJobKeys = new Set(); // Priority keys of jobs that got a shipment match
 
   shipRows.forEach(s => {
-    const shipDate = parseDate(get(s,'Datum'));
+    const shipDate = parseDate(getCI(s,'datum'));
     if (!shipDate) return;
 
     // 1. Referentie = Priority (100% reliable)
-    const ref = get(s,'Referentie').trim();
+    const ref = getCI(s,'referentie').trim();
     if (ref && /^\d+$/.test(ref) && jobByPriority[ref]) {
       matched.push(buildRow(s, jobByPriority[ref], 'reference', 0, shipDate));
       matchedJobKeys.add(ref);
@@ -876,7 +880,7 @@ function buildShippedRows(mainRows, shipRows) {
     }
 
     // 2. Name match within 30 days → confirmed
-    const close = findCandidates(get(s,'Ontvanger bedrijfsnaam'), shipDate, 30);
+    const close = findCandidates(getCI(s,'bedrijfsnaam'), shipDate, 30);
     if (close.length) {
       matched.push(buildRow(s, close[0].job, 'name', close[0].daysDiff, shipDate));
       matchedJobKeys.add(get(close[0].job, 'Priority'));
