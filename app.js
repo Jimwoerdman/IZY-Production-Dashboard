@@ -494,7 +494,13 @@ function renderActiveQueue() {
                 <td>${daysCell(days)}</td>
                 <td>
                   <button class="btn-log" data-rowidx="${allRows.indexOf(r)}">✏️ Log</button>
-                  ${(() => { const st = get(r,'Status').toLowerCase(); if (st === 'waiting') return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`; if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`; return ''; })()}
+                  ${(() => {
+                    if (get(r,'To sleeve?') !== 'Yes') return '';
+                    const st = get(r,'Status').toLowerCase();
+                    if (st === 'waiting') return `<button class="btn-sleeve" data-rowidx="${allRows.indexOf(r)}">✕ Sleeve</button>`;
+                    if (st === 'ready to ship') return `<button class="btn-sleeve sleeved" data-rowidx="${allRows.indexOf(r)}" disabled>✓ Sleeved</button>`;
+                    return '';
+                  })()}
                 </td>
               </tr>`;
             }).join('')}</tbody>
