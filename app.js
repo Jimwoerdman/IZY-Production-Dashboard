@@ -1209,7 +1209,11 @@ async function loadShipping() {
   document.getElementById('sh-count').textContent = '…';
   try {
     const shipParsed = await fetch(SCRIPT_URL + '?sheet=shipping&t=' + Date.now()).then(r => r.json()).then(d => d.rows || []);
+    console.log('[Shipping] first row keys:', shipParsed[0] ? Object.keys(shipParsed[0]) : 'none');
+    console.log('[Shipping] first row values:', shipParsed[0]);
+    console.log('[Shipping] total rows:', shipParsed.length);
     const shipResult = buildShippedRows(allRows, shipParsed);
+    console.log('[Shipping] matched:', shipResult.matched.length, 'review:', shipResult.review.length);
     shippedRows = shipResult.matched;
     reviewRows  = shipResult.review;
     shippingLoaded = true;
