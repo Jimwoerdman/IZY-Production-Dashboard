@@ -1,9 +1,10 @@
 const CACHE_NAME = 'izy-print-v1';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js'
+  '/IZY-Production-Dashboard/',
+  '/IZY-Production-Dashboard/index.html',
+  '/IZY-Production-Dashboard/style.css',
+  '/IZY-Production-Dashboard/app.js',
+  '/IZY-Production-Dashboard/manifest.json'
 ];
 
 self.addEventListener('install', event => {
