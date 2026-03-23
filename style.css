@@ -801,7 +801,6 @@ footer {
 /* ─────────────────────────────────────────────
    ADD JOB FORM
 ───────────────────────────────────────────── */
-#tab-add-job,
 #tab-add-job.active {
   display: flex;
   justify-content: center;
