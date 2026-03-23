@@ -825,7 +825,7 @@ footer {
 }
 .aq-meta-item > span { font-size: 13px; color: var(--text); }
 
-.aq-card-actions { display: flex; gap: 8px; }
+.aq-card-actions { display: flex; gap: 10px; margin-top: 4px; }
 .btn-log, .btn-sleeve, .btn-reset {
   flex: 1; padding: 9px 6px;
   border-radius: var(--radius-sm);
