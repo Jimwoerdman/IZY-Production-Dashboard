@@ -518,46 +518,73 @@ function renderActiveQueue() {
     if (rows.length === 0) return '';
 
     const c = section.colors;
+    const rowsHtml = rows.map(r => {
+      const d     = parseDate(get(r,'Deadline'));
+      const days  = daysFrom(d);
+      const still = num(r,'Quantity still to print');
+      const idx   = allRows.indexOf(r);
+      const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
+      const sleeveBtn = sleeveVal !== 'yes' ? '' :
+        get(r,'Status').toLowerCase() === 'ready to ship'
+          ? `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`
+          : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
+      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+
+      const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}">
+        <div class="aq-card-top">
+          <div class="aq-card-left">
+            <span class="aq-prio">#${get(r,'Priority')}</span>
+            <span class="aq-company">${get(r,'Name_Company')}</span>
+          </div>
+          ${badge(get(r,'Status'))}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        <div class="aq-meta">
+          <div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline') || '—'}</span></div>
+          <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
+          <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
+          ${still > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to print</span><span class="cell-danger">${still}</span></div>` : ''}
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${r['_col_Q'] ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${r['_col_Q']}</span></div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+
+      const row = `<tr class="${isOverdue(r) ? 'row-overdue' : ''}">
+        <td>${get(r,'Priority')}</td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
+        <td>${badge(get(r,'Status'))}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${r['_col_Q'] || '—'}</td>
+        <td>${num(r,'Quantity') || '—'}</td>
+        <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
+        <td>${daysCell(days)}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+
+      return { card, row };
+    });
+
     return `
       <div class="aq-section">
         <div class="aq-section-title">
           <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
           <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
         </div>
-        <div class="aq-cards">${rows.map(r => {
-          const d     = parseDate(get(r,'Deadline'));
-          const days  = daysFrom(d);
-          const still = num(r,'Quantity still to print');
-          const idx   = allRows.indexOf(r);
-          const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
-          const sleeveBtn = sleeveVal !== 'yes' ? '' :
-            get(r,'Status').toLowerCase() === 'ready to ship'
-              ? `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`
-              : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
-          return `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}">
-            <div class="aq-card-top">
-              <div class="aq-card-left">
-                <span class="aq-prio">#${get(r,'Priority')}</span>
-                <span class="aq-company">${get(r,'Name_Company')}</span>
-              </div>
-              ${badge(get(r,'Status'))}
-            </div>
-            ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
-            <div class="aq-meta">
-              <div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline') || '—'}</span></div>
-              <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
-              <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
-              ${still > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to print</span><span class="cell-danger">${still}</span></div>` : ''}
-              ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
-              ${r['_col_Q'] ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${r['_col_Q']}</span></div>` : ''}
-            </div>
-            <div class="aq-card-actions">
-              <button class="btn-log" data-rowidx="${idx}">✏️ Log</button>
-              ${sleeveBtn}
-              <button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>
-            </div>
-          </div>`;
-        }).join('')}</div>
+        <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
+        <div class="aq-table-wrap table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
+              <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
+              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th></th>
+            </tr></thead>
+            <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+          </table>
+        </div>
       </div>`;
   }).join('');
 

@@ -782,12 +782,15 @@ footer {
 }
 .aq-section-count { font-size: 12px; color: var(--text-3); font-weight: 500; }
 
-.aq-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+/* Desktop: table, hide cards */
+.aq-cards { display: none; }
+.aq-table-wrap { display: block; border-radius: 0; box-shadow: none; border: none; }
+
+/* Mobile: cards, hide table */
+@media (max-width: 768px) {
+  .aq-cards { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .aq-table-wrap { display: none; }
 }
-@media (max-width: 600px) { .aq-cards { grid-template-columns: 1fr; } }
 
 .aq-card {
   background: var(--surface);
