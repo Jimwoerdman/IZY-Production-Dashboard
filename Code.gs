@@ -257,7 +257,7 @@ function doGet(e) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const tz    = ss.getSpreadsheetTimeZone();
   const sheet = e.parameter.sheet === 'shipping'
-    ? ss.getSheetByName('Shipping overview')
+    ? ss.getSheetByName('ShippingHistory')
     : ss.getSheetByName('Workfile');
 
   if (!sheet) return respondGet({ error: 'Sheet not found', availableSheets: ss.getSheets().map(s => s.getName()) });
