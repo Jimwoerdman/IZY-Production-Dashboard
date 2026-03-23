@@ -1432,7 +1432,6 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         lid,
         deadline,
         owner,
-        planning,
         tosleeve,
         mockupBase64,
         status:    'To Print',
