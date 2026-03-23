@@ -1186,7 +1186,7 @@ async function loadShipping() {
   if (shippingLoaded && shippedRows.length) return;
   document.getElementById('sh-count').textContent = '…';
   try {
-    const shipRaw    = await fetch(SHIP_URL + '&t=' + Date.now()).then(r => r.text());
+    const shipRaw    = await fetch(SHIP_URL + '&t=' + Date.now(), { credentials: 'omit' }).then(r => r.text());
     const shipParsed = parseCSV(shipRaw);
     const shipResult = buildShippedRows(allRows, shipParsed);
     shippedRows = shipResult.matched;
@@ -1217,7 +1217,7 @@ async function refreshData() {
 
   try {
     // Use Promise.race for timeout — works in all browsers without AbortController quirks
-    const fetchPromise = fetch(CSV_URL + '&t=' + Date.now()).then(r => r.text());
+    const fetchPromise = fetch(CSV_URL + '&t=' + Date.now(), { credentials: 'omit' }).then(r => r.text());
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), 35000)
     );
