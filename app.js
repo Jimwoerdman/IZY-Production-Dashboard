@@ -902,8 +902,27 @@ function buildShippedRows(mainRows, shipRows) {
       quantity:  num(job,'Quantity'),
     }));
 
+  // Merge multiple package rows for the same shipment into one
+  const shipmentMap = new Map();
+  matched.forEach(r => {
+    // Group key: ordernummer if present, else company + date
+    const key = r.ordernummer
+      ? r.ordernummer
+      : normalizeName(r.company) + '|' + r.shipDate.toDateString();
+    if (shipmentMap.has(key)) {
+      const existing = shipmentMap.get(key);
+      existing.price    = (existing.price || 0) + (r.price || 0);
+      existing.boxes    = (existing.boxes || 1) + 1;
+      // Keep best tracking/carrier if not already set
+      if (!existing.tracking && r.tracking) existing.tracking = r.tracking;
+    } else {
+      shipmentMap.set(key, { ...r, boxes: 1 });
+    }
+  });
+  const deduped = Array.from(shipmentMap.values());
+
   return {
-    matched: matched.sort((a,b) => b.shipDate - a.shipDate),
+    matched: deduped.sort((a,b) => b.shipDate - a.shipDate),
     review:  review.sort((a,b) => (b.shippedDate||0) - (a.shippedDate||0)),
   };
 }
@@ -1094,7 +1113,7 @@ function renderShipping() {
         <td>${fmtDate(r.shipDate)}</td>
         <td>${turnaroundColor(r.turnaround)}</td>
         <td>${r.destination || '—'}</td>
-        <td>${r.carrier ? r.carrier.split(' ')[0] : '—'}</td>
+        <td>${r.carrier ? r.carrier.split(' ')[0] : '—'}${r.boxes > 1 ? ` <span style="font-size:11px;color:var(--text-3);">(${r.boxes} boxes)</span>` : ''}</td>
         <td>${r.price ? '€'+r.price.toFixed(2) : '—'}</td>
         <td>${r.quantity || '—'}</td>
         <td>${confidenceBadge(r.confidence)}</td>
