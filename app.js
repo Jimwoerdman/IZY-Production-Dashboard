@@ -1379,11 +1379,10 @@ document.getElementById('nj-mockup').addEventListener('change', function() {
   }
 });
 
-// To Sleeve toggle
-document.getElementById('nj-tosleeve').addEventListener('click', function() {
-  const current = this.dataset.value === 'Yes';
-  this.dataset.value = current ? 'No' : 'Yes';
-  this.querySelector('.toggle-text').textContent = current ? 'No' : 'Yes';
+// To Sleeve segmented toggle
+document.getElementById('nj-tosleeve').addEventListener('click', function(e) {
+  const opt = e.target.closest('.sleeve-opt');
+  if (opt) this.dataset.value = opt.dataset.opt;
 });
 
 document.getElementById('nj-submit').addEventListener('click', async function() {
@@ -1447,7 +1446,6 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     document.getElementById('nj-mockup-label').classList.remove('has-file');
     document.getElementById('nj-mockup-name').textContent = 'Click to upload or drag & drop';
     document.getElementById('nj-tosleeve').dataset.value = 'No';
-    document.getElementById('nj-tosleeve').querySelector('.toggle-text').textContent = 'No';
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
   } catch (err) {
