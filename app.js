@@ -553,6 +553,11 @@ function renderActiveQueue() {
           : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
       const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
 
+      const aqFileUrl = getCI(r,'file') || getCI(r,'design');
+      const aqFileLink = aqFileUrl
+        ? `<a href="${aqFileUrl}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open attached file">📎 File</a>`
+        : '';
+
       const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}" style="--tc:${c.text};--tb:${c.bg}">
         <div class="aq-card-top">
           <div class="aq-card-left">
@@ -562,6 +567,7 @@ function renderActiveQueue() {
           ${badge(get(r,'Status'))}
         </div>
         ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
         <div class="aq-meta">
           <div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline') || '—'}</span></div>
           <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
@@ -585,6 +591,7 @@ function renderActiveQueue() {
         <td>${num(r,'Quantity') || '—'}</td>
         <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
         <td>${daysCell(days)}</td>
+        <td>${aqFileUrl ? `<a href="${aqFileUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;" title="Open file">📎</a>` : '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -2026,6 +2033,13 @@ document.getElementById('nj-soort').addEventListener('change', function() {
   hint.textContent = max > 0 ? `(max: ${max})` : '';
 });
 
+/// Design file: update label display
+document.getElementById('nj-file').addEventListener('change', function() {
+  document.getElementById('nj-file-name').textContent =
+    this.files && this.files[0] ? this.files[0].name : 'Click to upload design file';
+  document.getElementById('nj-file-label').classList.toggle('has-file', !!(this.files && this.files[0]));
+});
+
 // Mockup file: update label display
 document.getElementById('nj-mockup').addEventListener('change', function() {
   const label = document.getElementById('nj-mockup-label');
@@ -2057,6 +2071,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const tosleeve  = document.getElementById('nj-tosleeve').dataset.value;
   const notes     = document.getElementById('nj-notes').value.trim();
   const mockupFile = document.getElementById('nj-mockup').files[0];
+  const designFile = document.getElementById('nj-file').files[0];
   const statusEl  = document.getElementById('nj-status');
 
   if (!soort || !company || !printName || !quantity) {
@@ -2079,6 +2094,17 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     });
   }
 
+  // Read design file as base64 if provided
+  let designFileBase64 = null, designFileMime = null, designFileName = null;
+  if (designFile) {
+    try {
+      const f = await readFileAsBase64(designFile);
+      designFileBase64 = f.data;
+      designFileMime   = f.mime;
+      designFileName   = f.name;
+    } catch (_) {}
+  }
+
   try {
     await fetch(SCRIPT_URL, {
       method: 'POST',
@@ -2096,6 +2122,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         tosleeve,
         notes,
         mockupBase64,
+        designFileBase64, designFileMime, designFileName,
         changedBy: currentUser?.email,
         status:    'To Print',
       }),
@@ -2125,7 +2152,9 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     document.getElementById('add-job-form').reset();
     document.getElementById('nj-priority-hint').textContent = '';
     document.getElementById('nj-mockup-label').classList.remove('has-file');
-    document.getElementById('nj-mockup-name').textContent = 'Click to upload or drag & drop';
+    document.getElementById('nj-mockup-name').textContent = 'Click to upload image';
+    document.getElementById('nj-file-label').classList.remove('has-file');
+    document.getElementById('nj-file-name').textContent = 'Click to upload design file';
     document.getElementById('nj-tosleeve').dataset.value = 'No';
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
