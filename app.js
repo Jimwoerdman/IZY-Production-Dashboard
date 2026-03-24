@@ -1584,6 +1584,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const deadline  = document.getElementById('nj-deadline').value;
   const owner     = document.getElementById('nj-owner').value;
   const tosleeve  = document.getElementById('nj-tosleeve').dataset.value;
+  const notes     = document.getElementById('nj-notes').value.trim();
   const mockupFile = document.getElementById('nj-mockup').files[0];
   const statusEl  = document.getElementById('nj-status');
 
@@ -1622,6 +1623,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         deadline,
         owner,
         tosleeve,
+        notes,
         mockupBase64,
         changedBy: currentUser?.email,
         status:    'To Print',

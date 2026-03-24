@@ -348,6 +348,7 @@ function doPost(e) {
       // vals[18] = col S  — set via setFormula below
       // vals[19] = col T  — set via setFormula below
       vals[21] = data.tosleeve  || '';
+      vals[25] = data.notes     || '';
       vals[35] = data.changedBy || '';
       sheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
 
