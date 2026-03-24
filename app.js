@@ -2040,8 +2040,28 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         status:    'To Print',
       }),
     });
+    // If To Sleeve = Yes, also create a sleeve job automatically
+    if (tosleeve === 'Yes') {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode:   'no-cors',
+        body:   JSON.stringify({
+          action:    'add_sleeve_job',
+          soort:     soort,
+          company:   company,
+          printName: printName,
+          quantity:  parseInt(quantity),
+          deadline:  deadline,
+          owner:     owner,
+          notes:     notes,
+          changedBy: currentUser?.email,
+        }),
+      });
+      sleeveLoaded = false; // force reload next time Sleeves tab is opened
+    }
+
     statusEl.className = 'form-status success';
-    statusEl.textContent = '✓ Print job added!';
+    statusEl.textContent = tosleeve === 'Yes' ? '✓ Print job added + sleeve job created!' : '✓ Print job added!';
     document.getElementById('add-job-form').reset();
     document.getElementById('nj-priority-hint').textContent = '';
     document.getElementById('nj-mockup-label').classList.remove('has-file');
