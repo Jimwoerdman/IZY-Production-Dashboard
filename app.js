@@ -147,6 +147,7 @@ function badge(status) {
   if (s === 'shipped')          return `<span class="badge b-shipped">Shipped</span>`;
   if (s === 'to print')         return `<span class="badge b-to-print">To Print</span>`;
   if (s === 'to sleeve')        return `<span class="badge b-to-print">To Sleeve</span>`;
+  if (s === 'to make')          return `<span class="badge b-to-print">To make</span>`;
   if (s === 'waiting')          return `<span class="badge b-waiting">Waiting</span>`;
   if (s.includes('progress'))   return `<span class="badge b-progress">In Progress</span>`;
   if (s === 'ready to ship')    return `<span class="badge b-ready-ship">Ready to Ship</span>`;
@@ -1423,6 +1424,7 @@ function closeSleeveModal() {
   document.getElementById('sleeve-modal-overlay').style.display = 'none';
   document.getElementById('sv-modal-file').value = '';
   document.getElementById('sv-modal-file-status').textContent = '';
+  document.getElementById('sv-modal-status-select').value = '';
   sleeveModalJob = null;
 }
 
@@ -1442,10 +1444,12 @@ async function submitSleeveUpdate() {
     return;
   }
 
-  const alreadySleeved = parseInt(getCI(sleeveModalJob,'sleeved')) || 0;
-  const totalSleeved   = alreadySleeved + sessionSleeved;
-  const qty            = num(sleeveModalJob,'Quantity');
-  const autoStatus     = totalSleeved >= qty ? 'Done' : 'In Progress';
+  const alreadySleeved  = parseInt(getCI(sleeveModalJob,'sleeved')) || 0;
+  const totalSleeved    = alreadySleeved + sessionSleeved;
+  const qty             = num(sleeveModalJob,'Quantity');
+  const manualStatus    = document.getElementById('sv-modal-status-select').value;
+  const autoStatus      = totalSleeved >= qty ? 'Done' : 'In Progress';
+  const chosenStatus    = manualStatus || autoStatus;
 
   submitBtn.disabled    = true;
   submitBtn.textContent = 'Submitting…';
@@ -1476,7 +1480,7 @@ async function submitSleeveUpdate() {
         action:           'update_sleeve',
         sheetRow:         sleeveModalJob['_sheetRow'],
         quantitySleeved:  totalSleeved,
-        status:           autoStatus,
+        status:           chosenStatus,
         sleeveFileBase64, sleeveFileMime, sleeveFileName,
         changedBy:        currentUser?.email,
       }),
@@ -2141,6 +2145,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
           action:    'add_sleeve_job',
           soort:     soort,
           priority:  sleevePriority,
+          status:    'To make',
           company:   company,
           printName: printName,
           quantity:  parseInt(quantity),
