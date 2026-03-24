@@ -1332,12 +1332,25 @@ function openPrintModal(rowIdx) {
   document.getElementById('modal-printed').value = '';
   document.getElementById('modal-faulty').value  = num(modalJob,'Faulty prints') || 0;
 
-  // Populate printers
+  // Printer field — shown only for bottles; auto-assigned for other types
+  const soort = get(modalJob,'Soort').toLowerCase();
+  const printerField = document.getElementById('modal-printer-field');
   const sel = document.getElementById('modal-printer');
-  sel.innerHTML = '<option value="">Select printer...</option>' +
-    PRINTERS.map(p => `<option value="${p}">${p}</option>`).join('');
-  const cur = get(modalJob,'Printer');
-  if (cur) sel.value = cur;
+  const isBottle = soort.includes('bottle') && !soort.includes('travel');
+
+  if (isBottle) {
+    printerField.style.display = '';
+    sel.innerHTML = '<option value="">Select printer...</option>' +
+      ['Bottle 1','Bottle 2'].map(p => `<option value="${p}">${p}</option>`).join('');
+    const cur = get(modalJob,'Printer');
+    if (cur) sel.value = cur;
+  } else {
+    printerField.style.display = 'none';
+    // Auto-assign printer based on type
+    if (soort.includes('travel')) sel.value = 'Travel Bottle 1';
+    else if (soort.includes('mug') || soort.includes('tumbler')) sel.value = 'Mug 1';
+    else sel.value = '';
+  }
 
   // Reset photo
   document.getElementById('modal-photo').value = '';
