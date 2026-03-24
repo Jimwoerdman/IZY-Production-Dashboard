@@ -1565,20 +1565,19 @@ function readFileAsBase64(file, onProgress) {
   });
 }
 
-function postWithProgress(url, body, onUploadProgress) {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url);
-    xhr.setRequestHeader('Content-Type', 'text/plain');
-    if (onUploadProgress) {
-      xhr.upload.onprogress = e => { if (e.lengthComputable) onUploadProgress(e.loaded / e.total); };
-    }
-    // Resolve on both load and error — Apps Script doesn't return CORS headers
-    // so the browser blocks the response, but the POST itself was sent and processed.
-    // This mirrors the behaviour of fetch mode: 'no-cors'.
-    xhr.onloadend = () => resolve();
-    xhr.send(body);
-  });
+async function postWithProgress(url, body, onProgress) {
+  // Apps Script redirects POST→GET with XHR, so we must use fetch no-cors.
+  // Real upload progress isn't available; animate smoothly toward 95% instead.
+  let p = 0;
+  const timer = onProgress ? setInterval(() => {
+    p = Math.min(0.93, p + (0.93 - p) * 0.12);
+    onProgress(p);
+  }, 250) : null;
+  try {
+    await fetch(url, { method: 'POST', mode: 'no-cors', body });
+  } finally {
+    if (timer) clearInterval(timer);
+  }
 }
 
 document.getElementById('sv-submit').addEventListener('click', async function() {
