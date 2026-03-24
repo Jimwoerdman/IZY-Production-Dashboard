@@ -826,6 +826,13 @@ footer {
 .aq-meta-item > span { font-size: 13px; color: var(--text); }
 
 .aq-card-actions { display: flex; gap: 10px; margin-top: 4px; }
+
+/* Desktop table action cell: space between buttons */
+.aq-table-wrap td .btn-log,
+.aq-table-wrap td .btn-sleeve,
+.aq-table-wrap td .btn-reset { margin-right: 6px; }
+.aq-table-wrap td .btn-reset { margin-right: 0; }
+
 .btn-log, .btn-sleeve, .btn-reset {
   flex: 1; padding: 9px 6px;
   border-radius: var(--radius-sm);
