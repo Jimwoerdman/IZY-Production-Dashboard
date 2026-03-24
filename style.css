@@ -659,6 +659,27 @@ footer {
 }
 .btn-add-file:hover { background: var(--hover); }
 
+/* ── Upload progress bar ─────────────────────────────────────── */
+.upload-bar-track {
+  height: 7px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.upload-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--blue);
+  border-radius: 4px;
+  transition: width 0.18s ease;
+}
+.upload-bar-label {
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: center;
+  margin-top: 5px;
+}
+
 /* ── Print Log Modal ─────────────────────────────────────────── */
 #print-modal-overlay {
   display: none;

@@ -1555,12 +1555,27 @@ document.getElementById('sv-file').addEventListener('change', function() {
   document.getElementById('sv-file-label').classList.toggle('has-file', !!(this.files && this.files[0]));
 });
 
-function readFileAsBase64(file) {
+function readFileAsBase64(file, onProgress) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    if (onProgress) reader.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
     reader.onload  = e => resolve({ data: e.target.result, name: file.name, mime: file.type || 'application/octet-stream' });
     reader.onerror = () => reject(new Error('Could not read file'));
     reader.readAsDataURL(file);
+  });
+}
+
+function postWithProgress(url, body, onUploadProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    if (onUploadProgress) {
+      xhr.upload.onprogress = e => { if (e.lengthComputable) onUploadProgress(e.loaded / e.total); };
+    }
+    xhr.onload  = () => resolve();
+    xhr.onerror = () => reject(new Error('Upload failed'));
+    xhr.send(body);
   });
 }
 
@@ -2088,51 +2103,57 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
 
   this.disabled = true;
   statusEl.className = 'form-status';
-  statusEl.textContent = 'Saving…';
+  statusEl.textContent = '';
 
-  // Read mockup as base64 if provided
+  // Progress helpers
+  const progressWrap  = document.getElementById('nj-upload-progress');
+  const progressFill  = document.getElementById('nj-upload-fill');
+  const progressLabel = document.getElementById('nj-upload-label');
+  const setProgress = (pct, label) => {
+    progressWrap.style.display = 'block';
+    progressFill.style.width   = Math.round(pct * 100) + '%';
+    progressLabel.textContent  = label;
+  };
+  const hideProgress = () => { progressWrap.style.display = 'none'; progressFill.style.width = '0%'; };
+
+  // Collect files to read
+  const filesToRead = [];
+  if (mockupFile) filesToRead.push({ file: mockupFile, role: 'mockup' });
+  for (const inp of designFileInputs) { if (inp.files && inp.files[0]) filesToRead.push({ file: inp.files[0], role: 'design' }); }
+
+  // Read all files with progress
   let mockupBase64 = null;
-  if (mockupFile) {
-    mockupBase64 = await new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.readAsDataURL(mockupFile);
-    });
+  const designFiles = [];
+  for (let i = 0; i < filesToRead.length; i++) {
+    const { file, role } = filesToRead[i];
+    const baseProgress = i / filesToRead.length;
+    setProgress(baseProgress * 0.4, `Reading file ${i + 1} of ${filesToRead.length}…`);
+    try {
+      const f = await readFileAsBase64(file, p => setProgress((baseProgress + p / filesToRead.length) * 0.4, `Reading file ${i + 1} of ${filesToRead.length}… ${Math.round(p * 100)}%`));
+      if (role === 'mockup') mockupBase64 = f.data;
+      else designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+    } catch (_) {}
   }
 
-  // Read all design files as base64
-  const designFiles = [];
-  for (const inp of designFileInputs) {
-    if (inp.files && inp.files[0]) {
-      try {
-        const f = await readFileAsBase64(inp.files[0]);
-        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
-      } catch (_) {}
-    }
-  }
+  if (filesToRead.length === 0) setProgress(0, 'Uploading…');
+  else setProgress(0.4, 'Uploading…');
 
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify({
+    await postWithProgress(
+      SCRIPT_URL,
+      JSON.stringify({
         action:    'add_job',
-        soort,
-        company,
-        printName,
+        soort, company, printName,
         quantity:  parseInt(quantity),
-        color,
-        lid,
-        deadline,
-        owner,
-        tosleeve,
-        notes,
-        mockupBase64,
-        designFiles,
+        color, lid, deadline, owner, tosleeve, notes,
+        mockupBase64, designFiles,
         changedBy: currentUser?.email,
         status:    'To Print',
       }),
-    });
+      p => setProgress(0.4 + p * 0.55, `Uploading… ${Math.round(p * 100)}%`)
+    );
+    setProgress(1, 'Done!');
+
     // If To Sleeve = Yes, also create a sleeve job automatically
     if (tosleeve === 'Yes') {
       // Match the priority of the print job (max existing same-soort priority + 1)
@@ -2162,6 +2183,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
 
     statusEl.className = 'form-status success';
     statusEl.textContent = tosleeve === 'Yes' ? '✓ Print job added + sleeve job created!' : '✓ Print job added!';
+    setTimeout(() => hideProgress(), 1500);
     document.getElementById('add-job-form').reset();
     document.getElementById('nj-priority-hint').textContent = '';
     document.getElementById('nj-mockup-label').classList.remove('has-file');
@@ -2172,6 +2194,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
   } catch (err) {
+    hideProgress();
     statusEl.className = 'form-status error';
     statusEl.textContent = 'Error: ' + err.message;
   }
