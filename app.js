@@ -2129,12 +2129,18 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     });
     // If To Sleeve = Yes, also create a sleeve job automatically
     if (tosleeve === 'Yes') {
+      // Match the priority of the print job (max existing same-soort priority + 1)
+      const existingPriority = Math.max(0, ...allRows
+        .filter(r => get(r,'Soort').toLowerCase() === soort.toLowerCase())
+        .map(r => parseInt(get(r,'Priority')) || 0));
+      const sleevePriority = existingPriority + 1;
       await fetch(SCRIPT_URL, {
         method: 'POST',
         mode:   'no-cors',
         body:   JSON.stringify({
           action:    'add_sleeve_job',
           soort:     soort,
+          priority:  sleevePriority,
           company:   company,
           printName: printName,
           quantity:  parseInt(quantity),

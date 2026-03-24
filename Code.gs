@@ -492,12 +492,17 @@ function doPost(e) {
 
       const findIdx = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
 
-      // Count existing rows of same soort for priority
-      let priority = 1;
-      const soortIdx = findIdx('soort');
-      if (lastRow > 1 && soortIdx >= 0) {
-        const soortVals = svSheet.getRange(2, soortIdx + 1, lastRow - 1, 1).getValues();
-        priority = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
+      // Use passed priority if provided (e.g. from add_job auto-create), otherwise calculate
+      let priority;
+      if (data.priority !== undefined && data.priority !== null && data.priority !== '') {
+        priority = parseInt(data.priority);
+      } else {
+        priority = 1;
+        const soortIdx = findIdx('soort');
+        if (lastRow > 1 && soortIdx >= 0) {
+          const soortVals = svSheet.getRange(2, soortIdx + 1, lastRow - 1, 1).getValues();
+          priority = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
+        }
       }
 
       const vals = new Array(svHeaders.length).fill('');
