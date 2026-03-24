@@ -56,16 +56,34 @@
     let imageBase64 = null;
 
     document.getElementById('photo-input').addEventListener('change', function() {
-      if (!this.files[0]) return;
+      const file = this.files[0];
+      if (!file) return;
+
+      // Show upload button immediately so Samsung/Android users aren't stuck
       status.textContent = 'Processing…';
-      compressImage(this.files[0]).then(b64 => {
-        imageBase64 = b64;
-        preview.src = b64;
-        preview.style.display = 'block';
-        uploadBtn.style.display = 'block';
-        takeLabel.textContent = '📷 Retake Photo';
-        status.textContent = '';
-      });
+      uploadBtn.style.display = 'block';
+      takeLabel.textContent = '📷 Retake Photo';
+
+      // Try to compress; fall back to raw FileReader if canvas fails
+      compressImage(file)
+        .then(b64 => {
+          imageBase64 = b64;
+          preview.src = b64;
+          preview.style.display = 'block';
+          status.textContent = '';
+        })
+        .catch(() => {
+          // Fallback: use raw base64 without compression
+          const reader = new FileReader();
+          reader.onload = e => {
+            imageBase64 = e.target.result;
+            preview.src = imageBase64;
+            preview.style.display = 'block';
+            status.textContent = '';
+          };
+          reader.onerror = () => { status.textContent = 'Could not read photo. Try again.'; };
+          reader.readAsDataURL(file);
+        });
     });
 
     uploadBtn.addEventListener('click', async function() {
