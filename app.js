@@ -1566,15 +1566,17 @@ function readFileAsBase64(file, onProgress) {
 }
 
 function postWithProgress(url, body, onUploadProgress) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
     xhr.setRequestHeader('Content-Type', 'text/plain');
     if (onUploadProgress) {
       xhr.upload.onprogress = e => { if (e.lengthComputable) onUploadProgress(e.loaded / e.total); };
     }
-    xhr.onload  = () => resolve();
-    xhr.onerror = () => reject(new Error('Upload failed'));
+    // Resolve on both load and error — Apps Script doesn't return CORS headers
+    // so the browser blocks the response, but the POST itself was sent and processed.
+    // This mirrors the behaviour of fetch mode: 'no-cors'.
+    xhr.onloadend = () => resolve();
     xhr.send(body);
   });
 }
