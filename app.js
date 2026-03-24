@@ -14,7 +14,11 @@ const ALLOWED_EMAILS = [
   'jim@izybottles.com',
   'biessenlevi@gmail.com',
   'sharon@orderchamp.com',
+  'ivan@izybottles.com',
 ];
+
+// Emails that only see the Active Queue tab
+const ACTIVE_QUEUE_ONLY = ['ivan@izybottles.com'];
 
 let currentUser = null;
 
@@ -38,6 +42,13 @@ function parseJwt(token) {
 function showApp() {
   document.getElementById('login-overlay').style.display = 'none';
   document.getElementById('user-name').textContent = currentUser.name;
+
+  // Restrict tabs for limited users
+  if (ACTIVE_QUEUE_ONLY.includes((currentUser.email || '').toLowerCase())) {
+    document.querySelectorAll('.tab-btn:not([data-tab="active-queue"])').forEach(b => b.style.display = 'none');
+    activateTab('active-queue');
+  }
+
   refreshData();
 }
 
