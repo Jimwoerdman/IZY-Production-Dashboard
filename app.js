@@ -20,7 +20,9 @@ const ALLOWED_EMAILS = [
 // Emails that only see the Active Queue tab
 const ACTIVE_QUEUE_ONLY = ['ivan@izybottles.com'];
 
-let currentUser = null;
+let currentUser  = null;
+let sleeveRows   = [];
+let sleeveLoaded = false;
 
 function handleCredentialResponse(response) {
   const payload = parseJwt(response.credential);
@@ -144,9 +146,11 @@ function badge(status) {
   const s = (status || '').toLowerCase();
   if (s === 'shipped')          return `<span class="badge b-shipped">Shipped</span>`;
   if (s === 'to print')         return `<span class="badge b-to-print">To Print</span>`;
+  if (s === 'to sleeve')        return `<span class="badge b-to-print">To Sleeve</span>`;
   if (s === 'waiting')          return `<span class="badge b-waiting">Waiting</span>`;
   if (s.includes('progress'))   return `<span class="badge b-progress">In Progress</span>`;
   if (s === 'ready to ship')    return `<span class="badge b-ready-ship">Ready to Ship</span>`;
+  if (s === 'done')             return `<span class="badge b-shipped">Done</span>`;
   if (!status)                  return '';
   return `<span class="badge b-default">${status}</span>`;
 }
@@ -177,6 +181,7 @@ function activateTab(tabName) {
   if (content) content.classList.add('active');
   if (tabName === 'shipping') loadShipping();
   if (tabName === 'add-job') populateAddJobOwners();
+  if (tabName === 'sleeves') { populateSleeveOwners(); loadSleeves(); }
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1199,6 +1204,359 @@ function renderReview() {
         <td><button onclick="dismissJob('${r.priority}')" style="background:none;border:1px solid #e2e8f0;border-radius:6px;padding:2px 8px;font-size:11px;color:#94a3b8;cursor:pointer;" title="Remove from this list">✕ Dismiss</button></td>
       </tr>`).join('');
 }
+
+// ── Sleeve Queue ──────────────────────────────────────────────
+
+let svTypeFilter = '';
+
+function sleeveSortOrder(r) {
+  const s = get(r,'Status').toLowerCase();
+  if (s.includes('progress')) return 0;
+  if (s === 'to sleeve')      return 1;
+  if (s === 'done')           return 2;
+  return 3;
+}
+
+function populateSleeveOwners() {
+  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const sel = document.getElementById('sv-owner');
+  sel.innerHTML = '<option value="">Select owner…</option>' +
+    owners.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
+function populateSleeveStatusFilter() {
+  const statuses = [...new Set(sleeveRows.map(r => get(r,'Status')).filter(Boolean))].sort();
+  fill('sv-status', statuses);
+}
+
+async function loadSleeves() {
+  if (sleeveLoaded && sleeveRows.length) { renderSleeves(); return; }
+  document.getElementById('sv-sections').innerHTML =
+    '<p style="color:#94a3b8;padding:20px;">Loading sleeve data…</p>';
+  try {
+    const data = await fetch(SCRIPT_URL + '?sheet=sleeves&t=' + Date.now()).then(r => r.json());
+    sleeveRows   = (data.rows || []).filter(r => get(r,'Name_Company') || get(r,'Status'));
+    sleeveLoaded = true;
+    populateSleeveStatusFilter();
+    renderSleeves();
+  } catch (err) {
+    document.getElementById('sv-sections').innerHTML =
+      '<p style="color:var(--red);padding:20px;">Error loading sleeve data — check your connection.</p>';
+  }
+}
+
+function refreshSleeves() {
+  sleeveLoaded = false;
+  loadSleeves();
+}
+
+function renderSleeves() {
+  const search   = document.getElementById('sv-search').value.toLowerCase();
+  const status   = document.getElementById('sv-status').value;
+  const hideDone = document.getElementById('sv-hide-done').checked;
+
+  const filtered = sleeveRows.filter(r => {
+    if (hideDone && get(r,'Status').toLowerCase() === 'done') return false;
+    if (status && get(r,'Status') !== status) return false;
+    if (search && !(
+      get(r,'Name_Company').toLowerCase().includes(search) ||
+      (get(r,'Name_Print') || '').toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  // Type filter pills (reuse AQ_SECTIONS)
+  const tabsEl = document.getElementById('sv-type-tabs');
+  tabsEl.innerHTML =
+    `<button class="aq-type-tab${svTypeFilter === '' ? ' active' : ''}" data-svtype="">All <span class="aq-tab-count">${filtered.length}</span></button>` +
+    AQ_SECTIONS.map(s => {
+      const n = filtered.filter(r => s.match(get(r,'Soort').toLowerCase())).length;
+      if (!n) return '';
+      return `<button class="aq-type-tab${svTypeFilter === s.label ? ' active' : ''}" data-svtype="${s.label}" style="--tc:${s.colors.text};--tb:${s.colors.bg}">${s.label} <span class="aq-tab-count">${n}</span></button>`;
+    }).join('');
+
+  const html = AQ_SECTIONS.filter(s => !svTypeFilter || s.label === svTypeFilter).map(section => {
+    const rows = filtered
+      .filter(r => section.match(get(r,'Soort').toLowerCase()))
+      .sort((a,b) => sleeveSortOrder(a) - sleeveSortOrder(b));
+
+    if (rows.length === 0) return '';
+
+    const c = section.colors;
+    const rowsHtml = rows.map(r => {
+      const idx            = sleeveRows.indexOf(r);
+      const alreadySleeved = parseInt(getCI(r,'sleeved')) || 0;
+      const qty            = num(r,'Quantity');
+      const stillToSleeve  = Math.max(0, qty - alreadySleeved);
+      const d              = parseDate(get(r,'Deadline'));
+      const days           = daysFrom(d);
+      const isDone         = get(r,'Status').toLowerCase() === 'done';
+
+      const actionBtns = isDone
+        ? `<button class="btn-reset sv-btn-reset" data-svidx="${idx}">↺ Reset</button>`
+        : `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Log</button><button class="btn-sleeve sv-btn-done" data-svidx="${idx}">✓ Done</button><button class="btn-reset sv-btn-reset" data-svidx="${idx}">↺ Reset</button>`;
+
+      const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}" style="--tc:${c.text};--tb:${c.bg}">
+        <div class="aq-card-top">
+          <div class="aq-card-left">
+            <span class="aq-prio">#${get(r,'Priority')}</span>
+            <span class="aq-company">${get(r,'Name_Company')}</span>
+          </div>
+          ${badge(get(r,'Status'))}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        <div class="aq-meta">
+          <div class="aq-meta-item"><span class="aq-meta-label">Total Qty</span><span>${qty || '—'}</span></div>
+          <div class="aq-meta-item"><span class="aq-meta-label">Sleeved</span><span>${alreadySleeved}</span></div>
+          ${stillToSleeve > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to sleeve</span><span class="cell-danger">${stillToSleeve}</span></div>` : ''}
+          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
+          ${days !== null ? `<div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+
+      const row = `<tr class="${isDone ? 'row-shipped' : ''}">
+        <td>${get(r,'Priority')}</td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
+        <td>${badge(get(r,'Status'))}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${qty || '—'}</td>
+        <td>${alreadySleeved || 0}</td>
+        <td class="${stillToSleeve > 0 ? 'cell-danger' : ''}">${stillToSleeve > 0 ? stillToSleeve : '—'}</td>
+        <td>${daysCell(days)}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+
+      return { card, row };
+    });
+
+    return `
+      <div class="aq-section">
+        <div class="aq-section-title">
+          <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
+          <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
+        <div class="aq-table-wrap table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Company</th><th>Product</th><th>Status</th>
+              <th>Type</th><th>Deadline</th><th>Qty</th><th>Sleeved</th>
+              <th>Still to Sleeve</th><th>Days Left</th><th></th>
+            </tr></thead>
+            <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('sv-sections').innerHTML = html ||
+    '<p style="color:#94a3b8;padding:20px;">No sleeve jobs match the current filters.</p>';
+}
+
+['sv-search','sv-status','sv-hide-done'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(id === 'sv-hide-done' ? 'change' : 'input', renderSleeves);
+  el.addEventListener('change', renderSleeves);
+});
+
+document.getElementById('sv-type-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.aq-type-tab');
+  if (btn) { svTypeFilter = btn.dataset.svtype; renderSleeves(); }
+});
+
+// Sleeve tab button delegation
+document.getElementById('tab-sleeves').addEventListener('click', function(e) {
+  const logBtn  = e.target.closest('.sv-btn-log');
+  const doneBtn = e.target.closest('.sv-btn-done');
+  const resetBtn = e.target.closest('.sv-btn-reset');
+  if (logBtn)   openSleeveModal(parseInt(logBtn.dataset.svidx));
+  if (doneBtn)  markSleeveDone(parseInt(doneBtn.dataset.svidx));
+  if (resetBtn) resetSleeveJob(parseInt(resetBtn.dataset.svidx));
+});
+
+// ── Sleeve Modal ──────────────────────────────────────────────
+
+let sleeveModalJob = null;
+
+function openSleeveModal(rowIdx) {
+  sleeveModalJob = sleeveRows[rowIdx];
+  if (!sleeveModalJob) return;
+
+  const alreadySleeved = parseInt(getCI(sleeveModalJob,'sleeved')) || 0;
+  const qty = num(sleeveModalJob,'Quantity');
+
+  document.getElementById('sv-modal-job-info').innerHTML = `
+    <div class="modal-job-card">
+      <div><span class="modal-label">Job</span><strong>#${get(sleeveModalJob,'Priority')} — ${get(sleeveModalJob,'Name_Company')}</strong></div>
+      <div><span class="modal-label">Product</span>${get(sleeveModalJob,'Name_Print') || '—'}</div>
+      <div><span class="modal-label">Type</span>${typeBadge(get(sleeveModalJob,'Soort'))}</div>
+      <div><span class="modal-label">Total Qty</span>${qty}</div>
+      <div><span class="modal-label">Already Sleeved</span>${alreadySleeved}</div>
+      ${qty - alreadySleeved > 0 ? `<div><span class="modal-label">Still to Sleeve</span><span class="cell-danger">${qty - alreadySleeved}</span></div>` : ''}
+    </div>`;
+
+  document.getElementById('sv-modal-sleeved').value = '';
+  document.getElementById('sv-modal-status').textContent = '';
+
+  document.getElementById('sleeve-modal-overlay').style.display = 'flex';
+  document.getElementById('sv-modal-sleeved').focus();
+}
+
+function closeSleeveModal() {
+  document.getElementById('sleeve-modal-overlay').style.display = 'none';
+  sleeveModalJob = null;
+}
+
+document.getElementById('sleeve-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSleeveModal();
+});
+
+async function submitSleeveUpdate() {
+  const statusEl  = document.getElementById('sv-modal-status');
+  const submitBtn = document.getElementById('sv-modal-submit');
+  const sessionSleeved = parseInt(document.getElementById('sv-modal-sleeved').value);
+
+  if (isNaN(sessionSleeved) || sessionSleeved < 0) {
+    statusEl.textContent = 'Please enter a valid quantity.';
+    statusEl.className   = 'modal-error';
+    return;
+  }
+
+  const alreadySleeved = parseInt(getCI(sleeveModalJob,'sleeved')) || 0;
+  const totalSleeved   = alreadySleeved + sessionSleeved;
+  const qty            = num(sleeveModalJob,'Quantity');
+  const autoStatus     = totalSleeved >= qty ? 'Done' : 'In Progress';
+
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Submitting…';
+  statusEl.textContent  = '';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:           'update_sleeve',
+        sheetRow:         sleeveModalJob['_sheetRow'],
+        quantitySleeved:  totalSleeved,
+        status:           autoStatus,
+        changedBy:        currentUser?.email,
+      }),
+    });
+    submitBtn.textContent = 'Submit';
+    submitBtn.disabled    = false;
+    statusEl.textContent  = '✅ Saved! The sheet will update within a few seconds.';
+    statusEl.className    = 'modal-success';
+    setTimeout(() => { closeSleeveModal(); sleeveLoaded = false; loadSleeves(); }, 2200);
+  } catch (err) {
+    submitBtn.textContent = 'Submit';
+    submitBtn.disabled    = false;
+    statusEl.textContent  = '❌ Error: ' + err.message;
+    statusEl.className    = 'modal-error';
+  }
+}
+
+async function markSleeveDone(rowIdx) {
+  const job = sleeveRows[rowIdx];
+  if (!job) return;
+  if (!confirm(`Mark "${get(job,'Name_Company')} #${get(job,'Priority')}" as Done?`)) return;
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:    'update_sleeve',
+        sheetRow:  job['_sheetRow'],
+        status:    'Done',
+        changedBy: currentUser?.email,
+      }),
+    });
+    sleeveLoaded = false;
+    loadSleeves();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
+}
+
+async function resetSleeveJob(rowIdx) {
+  const job = sleeveRows[rowIdx];
+  if (!job) return;
+  if (!confirm(`Reset "${get(job,'Name_Company')} #${get(job,'Priority')}" back to "To Sleeve"?`)) return;
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:           'update_sleeve',
+        sheetRow:         job['_sheetRow'],
+        quantitySleeved:  0,
+        status:           'To Sleeve',
+        changedBy:        currentUser?.email,
+      }),
+    });
+    sleeveLoaded = false;
+    loadSleeves();
+  } catch (err) {
+    alert('Could not reset: ' + err.message);
+  }
+}
+
+// ── Add Sleeve Job ────────────────────────────────────────────
+
+function toggleAddSleeveForm() {
+  const wrap = document.getElementById('add-sleeve-form-wrap');
+  const isVisible = wrap.style.display !== 'none';
+  wrap.style.display = isVisible ? 'none' : 'block';
+  if (!isVisible) populateSleeveOwners();
+}
+
+document.getElementById('sv-submit').addEventListener('click', async function() {
+  const soort     = document.getElementById('sv-soort').value;
+  const company   = document.getElementById('sv-company').value.trim();
+  const printName = document.getElementById('sv-print-name').value.trim();
+  const quantity  = document.getElementById('sv-quantity').value;
+  const deadline  = document.getElementById('sv-deadline').value;
+  const owner     = document.getElementById('sv-owner').value;
+  const notes     = document.getElementById('sv-notes').value.trim();
+  const statusEl  = document.getElementById('sv-form-status');
+
+  if (!soort || !company || !printName || !quantity) {
+    statusEl.className   = 'form-status error';
+    statusEl.textContent = 'Please fill in all required fields.';
+    return;
+  }
+
+  this.disabled        = true;
+  statusEl.className   = 'form-status';
+  statusEl.textContent = 'Saving…';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:    'add_sleeve_job',
+        soort, company, printName,
+        quantity:  parseInt(quantity),
+        deadline, owner, notes,
+        changedBy: currentUser?.email,
+      }),
+    });
+    statusEl.className   = 'form-status success';
+    statusEl.textContent = '✓ Sleeve job added!';
+    document.getElementById('add-sleeve-form').reset();
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    sleeveLoaded = false;
+    loadSleeves();
+  } catch (err) {
+    statusEl.className   = 'form-status error';
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+  this.disabled = false;
+});
 
 // ── Cache helpers ─────────────────────────────────────────────
 const MAIN_CACHE_KEY = 'izy_main_cache_v2';

@@ -86,24 +86,42 @@
         });
     });
 
-    uploadBtn.addEventListener('click', async function() {
+    uploadBtn.addEventListener('click', function() {
       if (!imageBase64 || !session) return;
-      this.disabled = true;
+      uploadBtn.disabled = true;
       status.textContent = 'Uploading…';
       status.className = 'status';
-      try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode:   'no-cors',
-          body:   JSON.stringify({ action: 'upload_photo', sessionKey: session, imageBase64 }),
-        });
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', SCRIPT_URL, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain');
+
+      xhr.onload = function() {
         status.textContent = '✅ Photo sent! You can close this page.';
         status.className = 'status success';
         uploadBtn.style.display = 'none';
+      };
+
+      xhr.onerror = function() {
+        status.textContent = '❌ Upload failed. Check your connection and try again.';
+        status.className = 'status error';
+        uploadBtn.disabled = false;
+      };
+
+      xhr.ontimeout = function() {
+        status.textContent = '❌ Timed out. Try again.';
+        status.className = 'status error';
+        uploadBtn.disabled = false;
+      };
+
+      xhr.timeout = 30000;
+
+      try {
+        xhr.send(JSON.stringify({ action: 'upload_photo', sessionKey: session, imageBase64 }));
       } catch (err) {
         status.textContent = '❌ Error: ' + err.message;
         status.className = 'status error';
-        this.disabled = false;
+        uploadBtn.disabled = false;
       }
     });
 

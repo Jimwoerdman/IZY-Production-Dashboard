@@ -258,7 +258,9 @@ function doGet(e) {
   const tz    = ss.getSpreadsheetTimeZone();
   const sheet = e.parameter.sheet === 'shipping'
     ? ss.getSheetByName('ShippingHistory')
-    : ss.getSheetByName('Workfile');
+    : e.parameter.sheet === 'sleeves'
+      ? ss.getSheetByName('Sleeves')
+      : ss.getSheetByName('Workfile');
 
   // Phone photo poll
   if (e.parameter.photosession) {
@@ -417,6 +419,71 @@ function doPost(e) {
       }
 
       Logger.log('add_job: wrote row ' + newRow);
+      return respond({ success: true, newRow });
+    }
+
+    // Update sleeve job (Sleeves sheet)
+    if (data.action === 'update_sleeve') {
+      const svSheet = ss.getSheetByName('Sleeves');
+      const svHeaders = svSheet.getRange(1, 1, 1, svSheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const rowIndex  = data.sheetRow ? parseInt(data.sheetRow) : -1;
+      if (rowIndex < 2) return respond({ error: 'Invalid sheet row: ' + data.sheetRow });
+
+      const findCol = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())) + 1;
+      const exactCol = name => svHeaders.findIndex(h => h.toLowerCase() === name.toLowerCase()) + 1;
+
+      if (data.quantitySleeved !== undefined) {
+        const c = findCol('sleeved');
+        if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.quantitySleeved);
+      }
+      if (data.status) {
+        const c = exactCol('status');
+        if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.status);
+      }
+      if (data.changedBy) {
+        const c = findCol('changed');
+        if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.changedBy);
+      }
+      return respond({ success: true });
+    }
+
+    // Add sleeve job (Sleeves sheet)
+    if (data.action === 'add_sleeve_job') {
+      const svSheet   = ss.getSheetByName('Sleeves');
+      const lastRow   = svSheet.getLastRow();
+      const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 12)).getValues()[0].map(h => String(h).trim());
+      const newRow    = lastRow + 1;
+      const tz        = ss.getSpreadsheetTimeZone();
+
+      const findIdx = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+
+      // Count existing rows of same soort for priority
+      let priority = 1;
+      const soortIdx = findIdx('soort');
+      if (lastRow > 1 && soortIdx >= 0) {
+        const soortVals = svSheet.getRange(2, soortIdx + 1, lastRow - 1, 1).getValues();
+        priority = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
+      }
+
+      const vals = new Array(svHeaders.length).fill('');
+      const set  = (kw, value) => { const i = findIdx(kw); if (i >= 0) vals[i] = value; };
+
+      set('priority', priority);
+      set('soort',    data.soort     || '');
+      set('date',     Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+      set('company',  data.company   || '');
+      set('print',    data.printName || '');
+      // exact match for 'Quantity' to avoid hitting 'Quantity sleeved'
+      const qIdx = svHeaders.findIndex(h => h.toLowerCase() === 'quantity');
+      if (qIdx >= 0) vals[qIdx] = data.quantity ? parseInt(data.quantity) : '';
+      set('status',   'To Sleeve');
+      set('owner',    data.owner    || '');
+      set('deadline', data.deadline || '');
+      set('notes',    data.notes    || '');
+      set('changed',  data.changedBy || '');
+
+      svSheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
+      Logger.log('add_sleeve_job: wrote row ' + newRow);
       return respond({ success: true, newRow });
     }
 

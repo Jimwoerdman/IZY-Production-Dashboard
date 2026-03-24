@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IZY Print Dashboard</title>
 
@@ -16,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=5" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
@@ -62,6 +64,7 @@
   <button class="tab-btn active" data-tab="overview">Overview</button>
   <button class="tab-btn" data-tab="all-jobs">All Jobs</button>
   <button class="tab-btn" data-tab="active-queue">Active Queue</button>
+  <button class="tab-btn" data-tab="sleeves">Sleeves</button>
 
   <button class="tab-btn" data-tab="reports">Reports</button>
   <button class="tab-btn" data-tab="shipping">Shipping History</button>
@@ -497,6 +500,90 @@
 
   </section>
 
+  <!-- ─── SLEEVES ─── -->
+  <section id="tab-sleeves" class="tab-content">
+    <h2 class="section-title">Sleeve Queue <span class="subtitle">— Jobs to be sleeved</span></h2>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <button class="btn-add-sv" onclick="toggleAddSleeveForm()">+ Add Sleeve Job</button>
+      <button onclick="refreshSleeves()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;color:var(--text-2);cursor:pointer;">↻ Refresh</button>
+    </div>
+
+    <!-- Inline add-sleeve form -->
+    <div id="add-sleeve-form-wrap" style="display:none;">
+      <div class="add-job-card" style="margin-bottom:24px;">
+        <div class="add-job-header">
+          <div class="add-job-header-icon">🧴</div>
+          <div>
+            <div class="add-job-title">New Sleeve Job</div>
+            <div class="add-job-subtitle">Add a job to the Sleeve Queue</div>
+          </div>
+        </div>
+        <form id="add-sleeve-form" onsubmit="return false;">
+          <div class="form-section">
+            <div class="form-grid form-grid-3">
+              <div class="form-group">
+                <label>Product Type <span class="req">*</span></label>
+                <select id="sv-soort" required>
+                  <option value="">Select type…</option>
+                  <option value="Bottle">Bottle</option>
+                  <option value="Mug">Mug</option>
+                  <option value="Travel Bottle">Travel Bottle</option>
+                  <option value="Tumbler">Tumbler</option>
+                  <option value="Sample Bottle">Sample Bottle</option>
+                  <option value="Sample Mug">Sample Mug</option>
+                  <option value="Sample Travel Bottle">Sample Travel Bottle</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Owner</label>
+                <select id="sv-owner"><option value="">Select owner…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Quantity <span class="req">*</span></label>
+                <input type="number" id="sv-quantity" required min="1" placeholder="e.g. 100" />
+              </div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label>Company <span class="req">*</span></label>
+                <input type="text" id="sv-company" required placeholder="Company name" />
+              </div>
+              <div class="form-group">
+                <label>Product Name <span class="req">*</span></label>
+                <input type="text" id="sv-print-name" required placeholder="Product / print name" />
+              </div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" id="sv-deadline" />
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-label">Notes</div>
+            <div class="form-group">
+              <textarea id="sv-notes" rows="2" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="sv-submit" class="btn-nj-submit">Add Sleeve Job</button>
+            <span id="sv-form-status" class="form-status"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <input type="text" id="sv-search" placeholder="Search company or product..." />
+      <select id="sv-status"><option value="">All Statuses</option></select>
+      <label class="check-label"><input type="checkbox" id="sv-hide-done" /> Hide Done</label>
+    </div>
+    <div id="sv-type-tabs"></div>
+    <div id="sv-sections"></div>
+  </section>
+
 </main>
 
 <footer>
@@ -546,6 +633,29 @@
       <div class="modal-actions">
         <button class="modal-btn-cancel" onclick="closeModal()">Cancel</button>
         <button class="modal-btn-submit" id="modal-submit" onclick="submitPrintUpdate()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SLEEVE LOG MODAL ─── -->
+<div id="sleeve-modal-overlay">
+  <div id="sleeve-modal">
+    <div class="modal-header">
+      <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
+      <h2>Log Sleeve Update</h2>
+      <button class="modal-close" onclick="closeSleeveModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="sv-modal-job-info"></div>
+      <div class="modal-field">
+        <label>Pieces sleeved this session</label>
+        <input type="number" id="sv-modal-sleeved" min="0" placeholder="e.g. 50" />
+      </div>
+      <div id="sv-modal-status"></div>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" onclick="closeSleeveModal()">Cancel</button>
+        <button class="modal-btn-submit" id="sv-modal-submit" onclick="submitSleeveUpdate()">Submit</button>
       </div>
     </div>
   </div>
@@ -673,7 +783,7 @@
   </div>
 </section>
 
-<script src="app.js"></script>
+<script src="app.js?v=5"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
