@@ -1093,14 +1093,10 @@ footer {
   header h1 { font-size: 13px; }
   #last-updated { display: none; }
 
-  /* Tab nav */
-  #tab-nav {
-    padding: 0 8px;
-  }
-  .tab-btn {
-    padding: 10px 12px;
-    font-size: 12px;
-  }
+  /* Tab nav — mobile: only show Active Queue */
+  #tab-nav { padding: 0 8px; }
+  .tab-btn:not([data-tab="active-queue"]) { display: none; }
+  .tab-btn { padding: 10px 12px; font-size: 12px; }
   .tab-btn::after { left: 12px; right: 12px; }
 
   /* Main content */

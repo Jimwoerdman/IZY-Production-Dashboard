@@ -157,16 +157,23 @@ function isOverdue(row) {
 }
 
 // ── Tab switching ─────────────────────────────────────────────
+function activateTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  if (btn) btn.classList.add('active');
+  const content = document.getElementById('tab-' + tabName);
+  if (content) content.classList.add('active');
+  if (tabName === 'shipping') loadShipping();
+  if (tabName === 'add-job') populateAddJobOwners();
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'shipping') loadShipping();
-    if (btn.dataset.tab === 'add-job') populateAddJobOwners();
-  });
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
 });
+
+// On mobile, always start on Active Queue
+if (window.innerWidth <= 768) activateTab('active-queue');
 
 // ── Stats ─────────────────────────────────────────────────────
 function renderStats(rows) {
