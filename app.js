@@ -556,9 +556,9 @@ function renderActiveQueue() {
           : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
       const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
 
-      const aqFileUrl = getCI(r,'file') || getCI(r,'design');
-      const aqFileLink = aqFileUrl
-        ? `<a href="${aqFileUrl}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open attached file">📎 File</a>`
+      const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const aqFileLink = aqFileUrls.length
+        ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open file">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
         : '';
 
       const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}" style="--tc:${c.text};--tb:${c.bg}">
@@ -594,7 +594,7 @@ function renderActiveQueue() {
         <td>${num(r,'Quantity') || '—'}</td>
         <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
         <td>${daysCell(days)}</td>
-        <td>${aqFileUrl ? `<a href="${aqFileUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;" title="Open file">📎</a>` : '—'}</td>
+        <td>${aqFileUrls.length ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${aqFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ') : '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
