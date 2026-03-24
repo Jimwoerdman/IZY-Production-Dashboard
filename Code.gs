@@ -444,6 +444,23 @@ function doPost(e) {
         const c = findCol('changed');
         if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.changedBy);
       }
+      // Upload attached file to Drive and store URL
+      if (data.sleeveFileBase64) {
+        try {
+          const raw      = data.sleeveFileBase64.includes(',') ? data.sleeveFileBase64.split(',')[1] : data.sleeveFileBase64;
+          const mime     = data.sleeveFileMime || 'application/octet-stream';
+          const fname    = data.sleeveFileName || ('sleeve_file_' + Date.now());
+          const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const blob     = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+          const file     = folder.createFile(blob);
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          const fileUrl  = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+          const fc = findCol('file');
+          if (fc > 0) svSheet.getRange(rowIndex, fc).setValue(fileUrl);
+        } catch (fileErr) {
+          Logger.log('Sleeve file upload failed: ' + fileErr.message);
+        }
+      }
       return respond({ success: true });
     }
 
@@ -483,6 +500,25 @@ function doPost(e) {
       set('changed',  data.changedBy || '');
 
       svSheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
+
+      // Upload attached file to Drive and store URL
+      if (data.sleeveFileBase64) {
+        try {
+          const raw      = data.sleeveFileBase64.includes(',') ? data.sleeveFileBase64.split(',')[1] : data.sleeveFileBase64;
+          const mime     = data.sleeveFileMime || 'application/octet-stream';
+          const fname    = data.sleeveFileName || ('sleeve_file_' + Date.now());
+          const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const blob     = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+          const file     = folder.createFile(blob);
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          const fileUrl  = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+          const fc = findIdx('file');
+          if (fc >= 0) svSheet.getRange(newRow, fc + 1).setValue(fileUrl);
+        } catch (fileErr) {
+          Logger.log('Sleeve file upload failed: ' + fileErr.message);
+        }
+      }
+
       Logger.log('add_sleeve_job: wrote row ' + newRow);
       return respond({ success: true, newRow });
     }
