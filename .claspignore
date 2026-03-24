@@ -1,0 +1,13 @@
+# Push only Code.gs and appsscript.json to Apps Script
+app.js
+style.css
+index.html
+photo.html
+sw.js
+manifest.json
+generate-icons.html
+README.md
+*.png
+.git/**
+.clasp.json
+.claspignore
