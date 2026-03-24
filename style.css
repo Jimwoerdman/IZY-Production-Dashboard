@@ -754,6 +754,14 @@ footer {
 .modal-success { color: var(--green);  font-size: 13px; font-weight: 500; }
 .modal-error   { color: var(--red);    font-size: 13px; font-weight: 500; }
 
+.btn-qr {
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.3);
+  color: var(--blue); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: background 0.15s;
+}
+.btn-qr:hover { background: var(--blue); color: white; }
+
 /* Active Queue type pills */
 #aq-type-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .aq-type-tab {

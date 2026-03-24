@@ -1368,13 +1368,54 @@ function openPrintModal(rowIdx) {
   document.getElementById('modal-preview').style.display = 'none';
   document.getElementById('modal-status').textContent = '';
 
+  // Phone camera QR — show on desktop only
+  const phoneSection = document.getElementById('modal-phone-section');
+  phoneSection.style.display = window.innerWidth > 768 ? '' : 'none';
+  document.getElementById('modal-qr-wrap').style.display = 'none';
+  document.getElementById('modal-qr-status').textContent = '';
+  window._phonePhotoUrl = null;
+  clearInterval(window._photoSessionInterval);
+
   document.getElementById('print-modal-overlay').style.display = 'flex';
   document.getElementById('modal-printed').focus();
 }
 
 function closeModal() {
+  clearInterval(window._photoSessionInterval);
+  window._phonePhotoUrl = null;
   document.getElementById('print-modal-overlay').style.display = 'none';
   modalJob = null;
+}
+
+function startPhonePhotoSession() {
+  const sessionKey = 'izy_' + Date.now();
+  const priority   = get(modalJob, 'Priority');
+  const company    = encodeURIComponent(get(modalJob, 'Name_Company'));
+  const base       = location.href.replace(/[?#].*$/, '').replace(/\/[^/]*$/, '/');
+  const photoUrl   = `${base}photo.html?session=${sessionKey}&priority=${priority}&company=${company}`;
+  const qrSrc      = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=1d4ed8&bgcolor=ffffff&data=${encodeURIComponent(photoUrl)}`;
+
+  document.getElementById('modal-qr-img').src = qrSrc;
+  document.getElementById('modal-qr-wrap').style.display = 'block';
+  document.getElementById('modal-qr-status').textContent = '⏳ Waiting for photo…';
+  document.getElementById('modal-qr-status').style.color = 'var(--text-3)';
+
+  clearInterval(window._photoSessionInterval);
+  window._photoSessionInterval = setInterval(async () => {
+    try {
+      const res  = await fetch(SCRIPT_URL + '?photosession=' + sessionKey + '&t=' + Date.now());
+      const data = await res.json();
+      if (data.photoUrl) {
+        clearInterval(window._photoSessionInterval);
+        window._phonePhotoUrl = data.photoUrl;
+        const preview = document.getElementById('modal-preview');
+        preview.src = data.photoUrl;
+        preview.style.display = 'block';
+        document.getElementById('modal-qr-status').textContent = '✅ Photo received!';
+        document.getElementById('modal-qr-status').style.color = '#22c55e';
+      }
+    } catch (_) {}
+  }, 3000);
 }
 
 // Close on overlay click
@@ -1523,6 +1564,7 @@ async function submitPrintUpdate() {
       ...(autoStatus ? { status: autoStatus } : {}),
       imageBase64,
       imageMime,
+      phonePhotoUrl:   window._phonePhotoUrl || null,
       changedBy:       currentUser?.email,
     };
 

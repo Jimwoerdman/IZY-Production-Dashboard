@@ -531,6 +531,15 @@
         <input type="file" id="modal-photo" accept="image/*" capture="environment" onchange="handlePhotoPreview(this)" />
         <img id="modal-preview" style="display:none;margin-top:10px;max-width:100%;max-height:200px;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0;" />
       </div>
+      <div class="modal-field" id="modal-phone-section" style="display:none;">
+        <label>📱 Take photo with phone</label>
+        <button type="button" class="btn-qr" onclick="startPhonePhotoSession()">Show QR Code</button>
+        <div id="modal-qr-wrap" style="display:none;text-align:center;margin-top:12px;">
+          <img id="modal-qr-img" src="" alt="QR Code" style="width:180px;height:180px;border-radius:8px;background:#f1f5f9;" />
+          <p style="font-size:12px;color:var(--text-2);margin-top:8px;">Scan with your phone to take a photo</p>
+          <p id="modal-qr-status" style="font-size:13px;margin-top:4px;"></p>
+        </div>
+      </div>
 
       <div id="modal-status"></div>
 

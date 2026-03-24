@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>IZY — Upload Photo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #1e293b; border-radius: 16px; padding: 28px 24px; max-width: 400px; width: 100%; text-align: center; }
+    .logo { font-size: 26px; font-weight: 800; color: #3b82f6; letter-spacing: -1px; margin-bottom: 6px; }
+    h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .job-info { font-size: 13px; color: #94a3b8; margin-bottom: 28px; }
+    #preview { width: 100%; border-radius: 10px; margin-bottom: 16px; display: none; border: 1px solid #334155; }
+    .btn { display: block; width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; margin-bottom: 12px; }
+    .btn-take  { background: #1d4ed8; color: white; }
+    .btn-upload { background: #15803d; color: white; display: none; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { font-size: 14px; margin-top: 8px; min-height: 20px; }
+    .success { color: #4ade80; }
+    .error   { color: #f87171; }
+    input[type=file] { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">IZY</div>
+    <h2>Upload Print Photo</h2>
+    <p class="job-info" id="job-info">—</p>
+
+    <img id="preview" alt="Preview" />
+
+    <label for="photo-input" class="btn btn-take" id="take-label">📷 Take Photo</label>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" />
+
+    <button class="btn btn-upload" id="upload-btn">⬆️ Send to Dashboard</button>
+
+    <p class="status" id="status"></p>
+  </div>
+
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1LuTt6ySUIXR_Rp3f8EyE4nV1XNW3hmK8YqirpxN_6HwzXFvvtyuVl_7Pj8_eNICs/exec';
+    const params  = new URLSearchParams(location.search);
+    const session = params.get('session');
+    const priority = params.get('priority');
+    const company  = decodeURIComponent(params.get('company') || '');
+
+    const jobInfo   = document.getElementById('job-info');
+    const preview   = document.getElementById('preview');
+    const uploadBtn = document.getElementById('upload-btn');
+    const takeLabel = document.getElementById('take-label');
+    const status    = document.getElementById('status');
+
+    jobInfo.textContent = priority ? `Job #${priority}${company ? ' — ' + company : ''}` : 'Print photo upload';
+
+    let imageBase64 = null;
+
+    document.getElementById('photo-input').addEventListener('change', function() {
+      if (!this.files[0]) return;
+      status.textContent = 'Processing…';
+      compressImage(this.files[0]).then(b64 => {
+        imageBase64 = b64;
+        preview.src = b64;
+        preview.style.display = 'block';
+        uploadBtn.style.display = 'block';
+        takeLabel.textContent = '📷 Retake Photo';
+        status.textContent = '';
+      });
+    });
+
+    uploadBtn.addEventListener('click', async function() {
+      if (!imageBase64 || !session) return;
+      this.disabled = true;
+      status.textContent = 'Uploading…';
+      status.className = 'status';
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode:   'no-cors',
+          body:   JSON.stringify({ action: 'upload_photo', sessionKey: session, imageBase64 }),
+        });
+        status.textContent = '✅ Photo sent! You can close this page.';
+        status.className = 'status success';
+        uploadBtn.style.display = 'none';
+      } catch (err) {
+        status.textContent = '❌ Error: ' + err.message;
+        status.className = 'status error';
+        this.disabled = false;
+      }
+    });
+
+    function compressImage(file) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const maxSize = 1200;
+            let w = img.width, h = img.height;
+            if (w > maxSize || h > maxSize) {
+              if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+              else       { w = Math.round(w * maxSize / h); h = maxSize; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>

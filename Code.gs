@@ -260,6 +260,15 @@ function doGet(e) {
     ? ss.getSheetByName('ShippingHistory')
     : ss.getSheetByName('Workfile');
 
+  // Phone photo poll
+  if (e.parameter.photosession) {
+    const key   = e.parameter.photosession;
+    const props = PropertiesService.getScriptProperties();
+    const url   = props.getProperty('photo_' + key);
+    if (url) props.deleteProperty('photo_' + key); // clean up after delivery
+    return respondGet({ photoUrl: url || null });
+  }
+
   if (!sheet) return respondGet({ error: 'Sheet not found', availableSheets: ss.getSheets().map(s => s.getName()) });
   const values = sheet.getDataRange().getValues();
   const headers = values[0].map(h => String(h).trim());
@@ -311,6 +320,22 @@ function doPost(e) {
     const printerCol = 35; // Column AI
 
     if (priorityCol === -1) return respond({ error: 'Priority column not found' });
+
+    // Phone photo upload — save to Drive, store URL in ScriptProperties for polling
+    if (data.action === 'upload_photo') {
+      try {
+        const base64Data = data.imageBase64.includes(',') ? data.imageBase64.split(',')[1] : data.imageBase64;
+        const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+        const blob     = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/jpeg', 'phone_' + data.sessionKey + '.jpg');
+        const file     = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        const url = 'https://drive.google.com/uc?id=' + file.getId();
+        PropertiesService.getScriptProperties().setProperty('photo_' + data.sessionKey, url);
+        return respond({ success: true });
+      } catch (err) {
+        return respond({ error: err.message });
+      }
+    }
 
     // Add new job (must be before rowIndex check — no sheetRow for new jobs)
     if (data.action === 'add_job') {
@@ -424,6 +449,11 @@ function doPost(e) {
     // Log who made the change (column AJ = 36)
     if (data.changedBy) {
       sheet.getRange(rowIndex, 36).setValue(data.changedBy);
+    }
+
+    // Phone photo already uploaded — just save the URL to column H
+    if (data.phonePhotoUrl) {
+      sheet.getRange(rowIndex, photoCol).setValue(data.phonePhotoUrl);
     }
 
     // Upload photo to Google Drive and store URL in column H
