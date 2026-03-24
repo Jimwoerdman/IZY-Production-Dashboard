@@ -148,6 +148,8 @@ function badge(status) {
   if (s === 'to print')         return `<span class="badge b-to-print">To Print</span>`;
   if (s === 'to sleeve')        return `<span class="badge b-to-print">To Sleeve</span>`;
   if (s === 'to make')          return `<span class="badge b-to-print">To make</span>`;
+  if (s === 'changes needed')   return `<span class="badge b-waiting">Changes needed</span>`;
+  if (s === 'ordered')          return `<span class="badge b-progress">Ordered</span>`;
   if (s === 'waiting')          return `<span class="badge b-waiting">Waiting</span>`;
   if (s.includes('progress'))   return `<span class="badge b-progress">In Progress</span>`;
   if (s === 'ready to ship')    return `<span class="badge b-ready-ship">Ready to Ship</span>`;
@@ -1292,21 +1294,15 @@ function renderSleeves() {
 
     const c = section.colors;
     const rowsHtml = rows.map(r => {
-      const idx            = sleeveRows.indexOf(r);
-      const alreadySleeved = parseInt(getCI(r,'sleeved')) || 0;
-      const qty            = num(r,'Quantity');
-      const stillToSleeve  = Math.max(0, qty - alreadySleeved);
-      const d              = parseDate(get(r,'Deadline'));
-      const days           = daysFrom(d);
-      const isDone         = get(r,'Status').toLowerCase() === 'done';
+      const idx    = sleeveRows.indexOf(r);
+      const isDone = get(r,'Status').toLowerCase() === 'done';
 
-      const actionBtns = isDone
-        ? `<button class="btn-reset sv-btn-reset" data-svidx="${idx}">↺ Reset</button>`
-        : `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Log</button><button class="btn-sleeve sv-btn-done" data-svidx="${idx}">✓ Done</button><button class="btn-reset sv-btn-reset" data-svidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Update</button>`;
 
-      const fileUrl = getCI(r,'file') || getCI(r,'design');
-      const fileLink = fileUrl
-        ? `<a href="${fileUrl}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open attached file">📎 File</a>`
+      // Support multiple file URLs (newline or comma separated)
+      const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const fileLinks = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open file">📎 File${rawFileUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join(' ')
         : '';
 
       const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}" style="--tc:${c.text};--tb:${c.bg}">
@@ -1318,16 +1314,18 @@ function renderSleeves() {
           ${badge(get(r,'Status'))}
         </div>
         ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
-        ${fileLink ? `<div style="margin:4px 0 2px;">${fileLink}</div>` : ''}
+        ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
         <div class="aq-meta">
-          <div class="aq-meta-item"><span class="aq-meta-label">Total Qty</span><span>${qty || '—'}</span></div>
-          <div class="aq-meta-item"><span class="aq-meta-label">Sleeved</span><span>${alreadySleeved}</span></div>
-          ${stillToSleeve > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to sleeve</span><span class="cell-danger">${stillToSleeve}</span></div>` : ''}
+          ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
           ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          ${days !== null ? `<div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>` : ''}
+          ${get(r,'Notes') ? `<div class="aq-meta-item"><span class="aq-meta-label">Notes</span><span>${get(r,'Notes')}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
+
+      const fileCell = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
+        : '—';
 
       const row = `<tr class="${isDone ? 'row-shipped' : ''}">
         <td>${get(r,'Priority')}</td>
@@ -1335,12 +1333,9 @@ function renderSleeves() {
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
-        <td>${qty || '—'}</td>
-        <td>${alreadySleeved || 0}</td>
-        <td class="${stillToSleeve > 0 ? 'cell-danger' : ''}">${stillToSleeve > 0 ? stillToSleeve : '—'}</td>
-        <td>${daysCell(days)}</td>
-        <td>${fileUrl ? `<a href="${fileUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;" title="Open file">📎</a>` : '—'}</td>
+        <td>${fileCell}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -1358,8 +1353,7 @@ function renderSleeves() {
           <table>
             <thead><tr>
               <th>#</th><th>Company</th><th>Product</th><th>Status</th>
-              <th>Type</th><th>Deadline</th><th>Qty</th><th>Sleeved</th>
-              <th>Still to Sleeve</th><th>Days Left</th><th>File</th><th></th>
+              <th>Type</th><th>Owner</th><th>Deadline</th><th>Files</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
@@ -1384,47 +1378,56 @@ document.getElementById('sv-type-tabs').addEventListener('click', e => {
 
 // Sleeve tab button delegation
 document.getElementById('tab-sleeves').addEventListener('click', function(e) {
-  const logBtn  = e.target.closest('.sv-btn-log');
-  const doneBtn = e.target.closest('.sv-btn-done');
-  const resetBtn = e.target.closest('.sv-btn-reset');
-  if (logBtn)   openSleeveModal(parseInt(logBtn.dataset.svidx));
-  if (doneBtn)  markSleeveDone(parseInt(doneBtn.dataset.svidx));
-  if (resetBtn) resetSleeveJob(parseInt(resetBtn.dataset.svidx));
+  const logBtn = e.target.closest('.sv-btn-log');
+  if (logBtn) openSleeveModal(parseInt(logBtn.dataset.svidx));
 });
 
 // ── Sleeve Modal ──────────────────────────────────────────────
 
 let sleeveModalJob = null;
 
+function addSleeveFileRow() {
+  const container = document.getElementById('sv-modal-files');
+  const row = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.innerHTML = `<input type="file" accept="*/*" /><button type="button" class="btn-remove-file" title="Remove">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+
 function openSleeveModal(rowIdx) {
   sleeveModalJob = sleeveRows[rowIdx];
   if (!sleeveModalJob) return;
-
-  const alreadySleeved = parseInt(getCI(sleeveModalJob,'sleeved')) || 0;
-  const qty = num(sleeveModalJob,'Quantity');
 
   document.getElementById('sv-modal-job-info').innerHTML = `
     <div class="modal-job-card">
       <div><span class="modal-label">Job</span><strong>#${get(sleeveModalJob,'Priority')} — ${get(sleeveModalJob,'Name_Company')}</strong></div>
       <div><span class="modal-label">Product</span>${get(sleeveModalJob,'Name_Print') || '—'}</div>
       <div><span class="modal-label">Type</span>${typeBadge(get(sleeveModalJob,'Soort'))}</div>
-      <div><span class="modal-label">Total Qty</span>${qty}</div>
-      <div><span class="modal-label">Already Sleeved</span>${alreadySleeved}</div>
-      ${qty - alreadySleeved > 0 ? `<div><span class="modal-label">Still to Sleeve</span><span class="cell-danger">${qty - alreadySleeved}</span></div>` : ''}
+      ${get(sleeveModalJob,'Deadline') ? `<div><span class="modal-label">Deadline</span>${get(sleeveModalJob,'Deadline')}</div>` : ''}
     </div>`;
 
-  document.getElementById('sv-modal-sleeved').value = '';
+  // Pre-select current status
+  const sel = document.getElementById('sv-modal-status-select');
+  const currentStatus = get(sleeveModalJob,'Status');
+  sel.value = currentStatus || '';
+
+  // Reset file list to one empty row
+  document.getElementById('sv-modal-files').innerHTML = '';
+  addSleeveFileRow();
+  document.getElementById('sv-modal-file-status').textContent = '';
   document.getElementById('sv-modal-status').textContent = '';
 
   document.getElementById('sleeve-modal-overlay').style.display = 'flex';
-  document.getElementById('sv-modal-sleeved').focus();
+  sel.focus();
 }
 
 function closeSleeveModal() {
   document.getElementById('sleeve-modal-overlay').style.display = 'none';
-  document.getElementById('sv-modal-file').value = '';
+  document.getElementById('sv-modal-files').innerHTML = '';
   document.getElementById('sv-modal-file-status').textContent = '';
   document.getElementById('sv-modal-status-select').value = '';
+  document.getElementById('sv-modal-status').textContent = '';
   sleeveModalJob = null;
 }
 
@@ -1432,44 +1435,39 @@ document.getElementById('sleeve-modal-overlay').addEventListener('click', functi
   if (e.target === this) closeSleeveModal();
 });
 
-async function submitSleeveUpdate() {
-  const statusEl  = document.getElementById('sv-modal-status');
-  const submitBtn = document.getElementById('sv-modal-submit');
-  const fileStatusEl = document.getElementById('sv-modal-file-status');
-  const sessionSleeved = parseInt(document.getElementById('sv-modal-sleeved').value);
+document.getElementById('sv-modal-add-file').addEventListener('click', addSleeveFileRow);
 
-  if (isNaN(sessionSleeved) || sessionSleeved < 0) {
-    statusEl.textContent = 'Please enter a valid quantity.';
+async function submitSleeveUpdate() {
+  const statusEl     = document.getElementById('sv-modal-status');
+  const submitBtn    = document.getElementById('sv-modal-submit');
+  const fileStatusEl = document.getElementById('sv-modal-file-status');
+  const chosenStatus = document.getElementById('sv-modal-status-select').value;
+
+  if (!chosenStatus) {
+    statusEl.textContent = 'Please select a status.';
     statusEl.className   = 'modal-error';
     return;
   }
-
-  const alreadySleeved  = parseInt(getCI(sleeveModalJob,'sleeved')) || 0;
-  const totalSleeved    = alreadySleeved + sessionSleeved;
-  const qty             = num(sleeveModalJob,'Quantity');
-  const manualStatus    = document.getElementById('sv-modal-status-select').value;
-  const autoStatus      = totalSleeved >= qty ? 'Done' : 'In Progress';
-  const chosenStatus    = manualStatus || autoStatus;
 
   submitBtn.disabled    = true;
   submitBtn.textContent = 'Submitting…';
   statusEl.textContent  = '';
 
-  let sleeveFileBase64 = null;
-  let sleeveFileMime   = null;
-  let sleeveFileName   = null;
-  const fileInput = document.getElementById('sv-modal-file');
-  if (fileInput.files && fileInput.files[0]) {
-    fileStatusEl.textContent = 'Reading file…';
-    try {
-      const f = await readFileAsBase64(fileInput.files[0]);
-      sleeveFileBase64 = f.data;
-      sleeveFileMime   = f.mime;
-      sleeveFileName   = f.name;
-      fileStatusEl.textContent = '';
-    } catch (_) {
-      fileStatusEl.textContent = 'Could not read file — continuing without it.';
+  // Collect and encode all selected files
+  const fileRows = document.getElementById('sv-modal-files').querySelectorAll('.sv-file-row input[type="file"]');
+  const sleeveFiles = [];
+  const hasFiles = Array.from(fileRows).some(inp => inp.files && inp.files[0]);
+  if (hasFiles) {
+    fileStatusEl.textContent = 'Reading files…';
+    for (const inp of fileRows) {
+      if (inp.files && inp.files[0]) {
+        try {
+          const f = await readFileAsBase64(inp.files[0]);
+          sleeveFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+        } catch (_) {}
+      }
     }
+    fileStatusEl.textContent = '';
   }
 
   try {
@@ -1477,19 +1475,18 @@ async function submitSleeveUpdate() {
       method: 'POST',
       mode:   'no-cors',
       body:   JSON.stringify({
-        action:           'update_sleeve',
-        sheetRow:         sleeveModalJob['_sheetRow'],
-        quantitySleeved:  totalSleeved,
-        status:           chosenStatus,
-        sleeveFileBase64, sleeveFileMime, sleeveFileName,
-        changedBy:        currentUser?.email,
+        action:      'update_sleeve',
+        sheetRow:    sleeveModalJob['_sheetRow'],
+        status:      chosenStatus,
+        sleeveFiles,
+        changedBy:   currentUser?.email,
       }),
     });
     submitBtn.textContent = 'Submit';
     submitBtn.disabled    = false;
-    statusEl.textContent  = '✅ Saved! The sheet will update within a few seconds.';
+    statusEl.textContent  = '✅ Saved!';
     statusEl.className    = 'modal-success';
-    setTimeout(() => { closeSleeveModal(); sleeveLoaded = false; loadSleeves(); }, 2200);
+    setTimeout(() => { closeSleeveModal(); sleeveLoaded = false; loadSleeves(); }, 1800);
   } catch (err) {
     submitBtn.textContent = 'Submit';
     submitBtn.disabled    = false;
@@ -1523,17 +1520,16 @@ async function markSleeveDone(rowIdx) {
 async function resetSleeveJob(rowIdx) {
   const job = sleeveRows[rowIdx];
   if (!job) return;
-  if (!confirm(`Reset "${get(job,'Name_Company')} #${get(job,'Priority')}" back to "To Sleeve"?`)) return;
+  if (!confirm(`Reset "${get(job,'Name_Company')} #${get(job,'Priority')}" back to "To make"?`)) return;
   try {
     await fetch(SCRIPT_URL, {
       method: 'POST',
       mode:   'no-cors',
       body:   JSON.stringify({
-        action:           'update_sleeve',
-        sheetRow:         job['_sheetRow'],
-        quantitySleeved:  0,
-        status:           'To Sleeve',
-        changedBy:        currentUser?.email,
+        action:    'update_sleeve',
+        sheetRow:  job['_sheetRow'],
+        status:    'To make',
+        changedBy: currentUser?.email,
       }),
     });
     sleeveLoaded = false;

@@ -450,10 +450,6 @@ function doPost(e) {
       const findCol = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())) + 1;
       const exactCol = name => svHeaders.findIndex(h => h.toLowerCase() === name.toLowerCase()) + 1;
 
-      if (data.quantitySleeved !== undefined) {
-        const c = findCol('sleeved');
-        if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.quantitySleeved);
-      }
       if (data.status) {
         const c = exactCol('status');
         if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.status);
@@ -462,21 +458,30 @@ function doPost(e) {
         const c = findCol('changed');
         if (c > 0) svSheet.getRange(rowIndex, c).setValue(data.changedBy);
       }
-      // Upload attached file to Drive and store URL
-      if (data.sleeveFileBase64) {
+      // Upload multiple files to Drive and append URLs (newline-separated)
+      if (data.sleeveFiles && data.sleeveFiles.length > 0) {
         try {
-          const raw      = data.sleeveFileBase64.includes(',') ? data.sleeveFileBase64.split(',')[1] : data.sleeveFileBase64;
-          const mime     = data.sleeveFileMime || 'application/octet-stream';
-          const fname    = data.sleeveFileName || ('sleeve_file_' + Date.now());
           const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-          const blob     = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
-          const file     = folder.createFile(blob);
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          const fileUrl  = 'https://drive.google.com/file/d/' + file.getId() + '/view';
-          const fc = findCol('file');
-          if (fc > 0) svSheet.getRange(rowIndex, fc).setValue(fileUrl);
+          const fc       = findCol('file');
+          const newUrls  = [];
+          data.sleeveFiles.forEach(function(sf) {
+            try {
+              const raw   = sf.base64.includes(',') ? sf.base64.split(',')[1] : sf.base64;
+              const mime  = sf.mime || 'application/octet-stream';
+              const fname = sf.name || ('sleeve_file_' + Date.now());
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch (e) { Logger.log('File upload error: ' + e.message); }
+          });
+          if (fc > 0 && newUrls.length > 0) {
+            const existing = String(svSheet.getRange(rowIndex, fc).getValue() || '').trim();
+            const combined = [existing, ...newUrls].filter(Boolean).join('\n');
+            svSheet.getRange(rowIndex, fc).setValue(combined);
+          }
         } catch (fileErr) {
-          Logger.log('Sleeve file upload failed: ' + fileErr.message);
+          Logger.log('Sleeve files upload failed: ' + fileErr.message);
         }
       }
       return respond({ success: true });

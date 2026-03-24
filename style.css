@@ -629,6 +629,36 @@ footer {
   overflow: hidden;
 }
 
+/* Multi-file rows in sleeve modal */
+.sv-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sv-file-row input[type="file"] { flex: 1; font-size: 13px; }
+.sv-file-row .btn-remove-file {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
+}
+.sv-file-row .btn-remove-file:hover { color: var(--danger); }
+.btn-add-file {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--blue);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 2px;
+}
+.btn-add-file:hover { background: var(--hover); }
+
 /* ── Print Log Modal ─────────────────────────────────────────── */
 #print-modal-overlay {
   display: none;
