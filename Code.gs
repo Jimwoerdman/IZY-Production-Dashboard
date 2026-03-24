@@ -450,7 +450,7 @@ function doPost(e) {
     // Update sleeve job (Sleeves sheet)
     if (data.action === 'update_sleeve') {
       const svSheet = ss.getSheetByName('Sleeves');
-      const svHeaders = svSheet.getRange(1, 1, 1, svSheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
       const rowIndex  = data.sheetRow ? parseInt(data.sheetRow) : -1;
       if (rowIndex < 2) return respond({ error: 'Invalid sheet row: ' + data.sheetRow });
 
@@ -528,7 +528,7 @@ function doPost(e) {
       // exact match for 'Quantity' to avoid hitting 'Quantity sleeved'
       const qIdx = svHeaders.findIndex(h => h.toLowerCase() === 'quantity');
       if (qIdx >= 0) vals[qIdx] = data.quantity ? parseInt(data.quantity) : '';
-      set('status',   'To Sleeve');
+      set('status',   data.status || 'To Sleeve');
       set('owner',    data.owner    || '');
       set('deadline', data.deadline || '');
       set('notes',    data.notes    || '');
