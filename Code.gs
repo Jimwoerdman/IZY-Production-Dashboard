@@ -418,21 +418,28 @@ function doPost(e) {
         }
       }
 
-      // Upload design file to Drive and store URL in 'File' column
-      if (data.designFileBase64) {
+      // Upload design files to Drive and store URLs (newline-separated) in 'File' column
+      if (data.designFiles && data.designFiles.length > 0) {
         try {
-          const raw      = data.designFileBase64.includes(',') ? data.designFileBase64.split(',')[1] : data.designFileBase64;
-          const mime     = data.designFileMime || 'application/octet-stream';
-          const fname    = data.designFileName || ('design_file_' + Date.now());
           const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-          const blob     = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
-          const file     = folder.createFile(blob);
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          const fileUrl  = 'https://drive.google.com/file/d/' + file.getId() + '/view';
           const fileCol  = headers.findIndex(h => h.toLowerCase() === 'file');
-          if (fileCol >= 0) sheet.getRange(newRow, fileCol + 1).setValue(fileUrl);
+          const newUrls  = [];
+          data.designFiles.forEach(function(df) {
+            try {
+              const raw   = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
+              const mime  = df.mime || 'application/octet-stream';
+              const fname = df.name || ('design_file_' + Date.now());
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch (e) { Logger.log('Design file upload error: ' + e.message); }
+          });
+          if (fileCol >= 0 && newUrls.length > 0) {
+            sheet.getRange(newRow, fileCol + 1).setValue(newUrls.join('\n'));
+          }
         } catch (fileErr) {
-          Logger.log('Design file upload failed: ' + fileErr.message);
+          Logger.log('Design files upload failed: ' + fileErr.message);
         }
       }
 

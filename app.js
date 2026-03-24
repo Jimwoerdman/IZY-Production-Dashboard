@@ -2033,12 +2033,18 @@ document.getElementById('nj-soort').addEventListener('change', function() {
   hint.textContent = max > 0 ? `(max: ${max})` : '';
 });
 
-/// Design file: update label display
-document.getElementById('nj-file').addEventListener('change', function() {
-  document.getElementById('nj-file-name').textContent =
-    this.files && this.files[0] ? this.files[0].name : 'Click to upload design file';
-  document.getElementById('nj-file-label').classList.toggle('has-file', !!(this.files && this.files[0]));
-});
+//// Design files: dynamic multi-file rows
+function addNjFileRow() {
+  const container = document.getElementById('nj-files-list');
+  const row = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.innerHTML = `<input type="file" accept="*/*" /><button type="button" class="btn-remove-file" title="Remove">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+document.getElementById('nj-add-file').addEventListener('click', addNjFileRow);
+// Start with one row when the form is first shown
+addNjFileRow();
 
 // Mockup file: update label display
 document.getElementById('nj-mockup').addEventListener('change', function() {
@@ -2071,7 +2077,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const tosleeve  = document.getElementById('nj-tosleeve').dataset.value;
   const notes     = document.getElementById('nj-notes').value.trim();
   const mockupFile = document.getElementById('nj-mockup').files[0];
-  const designFile = document.getElementById('nj-file').files[0];
+  const designFileInputs = document.getElementById('nj-files-list').querySelectorAll('input[type="file"]');
   const statusEl  = document.getElementById('nj-status');
 
   if (!soort || !company || !printName || !quantity) {
@@ -2094,15 +2100,15 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     });
   }
 
-  // Read design file as base64 if provided
-  let designFileBase64 = null, designFileMime = null, designFileName = null;
-  if (designFile) {
-    try {
-      const f = await readFileAsBase64(designFile);
-      designFileBase64 = f.data;
-      designFileMime   = f.mime;
-      designFileName   = f.name;
-    } catch (_) {}
+  // Read all design files as base64
+  const designFiles = [];
+  for (const inp of designFileInputs) {
+    if (inp.files && inp.files[0]) {
+      try {
+        const f = await readFileAsBase64(inp.files[0]);
+        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+      } catch (_) {}
+    }
   }
 
   try {
@@ -2122,7 +2128,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         tosleeve,
         notes,
         mockupBase64,
-        designFileBase64, designFileMime, designFileName,
+        designFiles,
         changedBy: currentUser?.email,
         status:    'To Print',
       }),
@@ -2160,8 +2166,8 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     document.getElementById('nj-priority-hint').textContent = '';
     document.getElementById('nj-mockup-label').classList.remove('has-file');
     document.getElementById('nj-mockup-name').textContent = 'Click to upload image';
-    document.getElementById('nj-file-label').classList.remove('has-file');
-    document.getElementById('nj-file-name').textContent = 'Click to upload design file';
+    document.getElementById('nj-files-list').innerHTML = '';
+    addNjFileRow();
     document.getElementById('nj-tosleeve').dataset.value = 'No';
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
