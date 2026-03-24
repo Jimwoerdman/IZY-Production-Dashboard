@@ -2106,16 +2106,19 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   statusEl.className = 'form-status';
   statusEl.textContent = '';
 
-  // Progress helpers
+  // Progress helpers (null-safe in case HTML hasn't refreshed yet)
   const progressWrap  = document.getElementById('nj-upload-progress');
   const progressFill  = document.getElementById('nj-upload-fill');
   const progressLabel = document.getElementById('nj-upload-label');
   const setProgress = (pct, label) => {
-    progressWrap.style.display = 'block';
-    progressFill.style.width   = Math.round(pct * 100) + '%';
-    progressLabel.textContent  = label;
+    if (progressWrap)  progressWrap.style.display  = 'block';
+    if (progressFill)  progressFill.style.width    = Math.round(pct * 100) + '%';
+    if (progressLabel) progressLabel.textContent   = label;
   };
-  const hideProgress = () => { progressWrap.style.display = 'none'; progressFill.style.width = '0%'; };
+  const hideProgress = () => {
+    if (progressWrap) progressWrap.style.display = 'none';
+    if (progressFill) progressFill.style.width   = '0%';
+  };
 
   // Collect files to read
   const filesToRead = [];
