@@ -649,6 +649,25 @@ footer {
   line-height: 1;
 }
 .sv-file-row .btn-remove-file:hover { color: var(--danger); }
+
+/* ── Notes truncation ────────────────────────────────────────── */
+td.notes-cell {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+.aq-meta-notes { flex: 1 1 100%; }
+.aq-meta-notes .notes-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  max-width: 100%;
+  cursor: help;
+}
 .btn-add-file {
   background: none;
   border: 1px dashed var(--border);

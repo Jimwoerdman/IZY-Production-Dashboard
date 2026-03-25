@@ -8,6 +8,12 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1LuTt6ySUIXR_Rp3f8
 // List your printers here:
 const PRINTERS = ['Bottle 1', 'Bottle 2', 'Mug 1', 'Travel Bottle 1'];
 
+function todayStr() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+function withDate(note) { return note ? `[${todayStr()}] ${note}` : ''; }
+
 // ── Auth ──────────────────────────────────────────────────────
 const ALLOWED_EMAILS = [
   'daan@izybottles.com',
@@ -1412,7 +1418,7 @@ function renderSleeves() {
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
           ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          ${get(r,'Notes') ? `<div class="aq-meta-item"><span class="aq-meta-label">Notes</span><span>${get(r,'Notes')}</span></div>` : ''}
+          ${get(r,'Notes') ? `<div class="aq-meta-item aq-meta-notes"><span class="aq-meta-label">Notes</span><span class="notes-cell" title="${(get(r,'Notes')).replace(/"/g,"'")}">${get(r,'Notes')}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
@@ -1431,7 +1437,7 @@ function renderSleeves() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
-        <td>${get(r,'Notes') || '—'}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -1693,7 +1699,7 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   const owner        = document.getElementById('sv-owner').value;
   const bottleColor  = document.getElementById('sv-bottle-color').value.trim();
   const lidColor     = document.getElementById('sv-lid-color').value.trim();
-  const notes        = document.getElementById('sv-notes').value.trim();
+  const notes        = withDate(document.getElementById('sv-notes').value.trim());
   const statusEl  = document.getElementById('sv-form-status');
 
   if (!soort || !company || !printName || !quantity) {
@@ -1765,7 +1771,8 @@ function openEditJobModal(rowIdx, type) {
   document.getElementById('ej-bottle-color').value = get(editJobRow, 'Bottle color') || '';
   document.getElementById('ej-lid-color').value   = get(editJobRow, 'Lid')          || '';
   document.getElementById('ej-quantity').value    = get(editJobRow, 'Quantity')      || '';
-  document.getElementById('ej-notes').value       = get(editJobRow, 'Notes')         || '';
+  document.getElementById('ej-notes-display').textContent = get(editJobRow, 'Notes') || '—';
+  document.getElementById('ej-new-note').value = '';
 
   // Convert DD/MM/YYYY deadline to YYYY-MM-DD for date input
   const dl = get(editJobRow, 'Deadline') || '';
@@ -1831,7 +1838,13 @@ async function submitEditJob() {
         quantity:    document.getElementById('ej-quantity').value || '',
         deadline,
         owner:       document.getElementById('ej-owner').value,
-        notes:       document.getElementById('ej-notes').value.trim(),
+        notes:       (() => {
+          const existing = document.getElementById('ej-notes-display').textContent.trim();
+          const existingVal = existing === '—' ? '' : existing;
+          const newNote = document.getElementById('ej-new-note').value.trim();
+          if (!newNote) return existingVal;
+          return existingVal ? `${existingVal}\n${withDate(newNote)}` : withDate(newNote);
+        })(),
         changedBy:   currentUser?.email,
       }),
     });
@@ -1884,7 +1897,7 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
   const owner        = document.getElementById('mk-form-owner').value;
   const bottleColor  = document.getElementById('mk-bottle-color').value.trim();
   const lidColor     = document.getElementById('mk-lid-color').value.trim();
-  const notes        = document.getElementById('mk-notes').value.trim();
+  const notes        = withDate(document.getElementById('mk-notes').value.trim());
   const statusEl  = document.getElementById('mk-form-status');
 
   if (!soort || !company || !printName) {
@@ -2021,7 +2034,7 @@ function renderMockups() {
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
           ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          ${get(r,'Notes') ? `<div class="aq-meta-item"><span class="aq-meta-label">Notes</span><span>${get(r,'Notes')}</span></div>` : ''}
+          ${get(r,'Notes') ? `<div class="aq-meta-item aq-meta-notes"><span class="aq-meta-label">Notes</span><span class="notes-cell" title="${(get(r,'Notes')).replace(/"/g,"'")}">${get(r,'Notes')}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
@@ -2040,7 +2053,7 @@ function renderMockups() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
-        <td>${get(r,'Notes') || '—'}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -2675,7 +2688,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const owner     = document.getElementById('nj-owner').value;
   const needmockup = document.getElementById('nj-needmockup').dataset.value;
   const tosleeve   = document.getElementById('nj-tosleeve').dataset.value;
-  const notes     = document.getElementById('nj-notes').value.trim();
+  const notes     = withDate(document.getElementById('nj-notes').value.trim());
   const mockupFile = document.getElementById('nj-mockup').files[0];
   const designFileInputs = document.getElementById('nj-files-list').querySelectorAll('input[type="file"]');
   const statusEl  = document.getElementById('nj-status');

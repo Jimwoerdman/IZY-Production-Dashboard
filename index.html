@@ -849,8 +849,12 @@
         </div>
       </div>
       <div class="form-group" style="margin-top:8px;">
-        <label>Notes</label>
-        <textarea id="ej-notes" rows="2" style="width:100%;resize:vertical;"></textarea>
+        <label>Existing notes</label>
+        <div id="ej-notes-display" style="font-size:13px;color:var(--text-2);background:var(--hover);border-radius:var(--radius-sm);padding:8px 10px;min-height:32px;white-space:pre-wrap;word-break:break-word;"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <label>Add note <span style="font-weight:400;color:#94a3b8;">(today's date is added automatically)</span></label>
+        <textarea id="ej-new-note" rows="2" style="width:100%;resize:vertical;" placeholder="Type a new note to append…"></textarea>
       </div>
       <div id="ej-status" style="margin-top:8px;font-size:13px;"></div>
       <div class="modal-actions">
