@@ -924,15 +924,19 @@ function renderPrintedReport() {
 
   document.getElementById('rep-printed').innerHTML = rows.length === 0
     ? '<tr><td colspan="7" style="text-align:center;color:var(--text-2);padding:20px;">Geen geprinte jobs voor deze periode.</td></tr>'
-    : rows.map(r => `<tr>
-        <td>${r['Priority'] || '—'}</td>
-        <td>${r['Company'] || '—'}</td>
-        <td class="print-name">${r['Print Name'] || '—'}</td>
-        <td>${r['Owner'] || '—'}</td>
-        <td>${typeBadge(r['Type'] || '')}</td>
-        <td>${r['Date'] || '—'}</td>
-        <td>${parseInt(r['Quantity']) || 0}</td>
-      </tr>`).join('');
+    : rows.map(r => {
+        const qty     = parseInt(r['Quantity']) || 0;
+        const isReset = qty < 0 || (r['Logged By'] || '').includes('[reset]');
+        return `<tr style="${isReset ? 'opacity:0.5;' : ''}">
+          <td>${r['Priority'] || '—'}</td>
+          <td>${r['Company'] || '—'}</td>
+          <td class="print-name">${r['Print Name'] || '—'}</td>
+          <td>${r['Owner'] || '—'}</td>
+          <td>${isReset ? '<span style="color:var(--orange);font-size:11px;">↩ reset</span>' : typeBadge(r['Type'] || '')}</td>
+          <td>${r['Date'] || '—'}</td>
+          <td style="${qty < 0 ? 'color:var(--orange);' : ''}">${qty < 0 ? qty : qty}</td>
+        </tr>`;
+      }).join('');
 }
 
 // ── Populate filter dropdowns ─────────────────────────────────

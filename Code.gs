@@ -927,15 +927,24 @@ function doPost(e) {
 
     // Append to PrintLog (always, independent of quantityPrintedCol)
     const sessionQty = parseInt(data.sessionPrinted);
-    Logger.log('sessionQty=' + sessionQty);
-    if (sessionQty > 0) {
-      const rowData = values[rowIndex - 1]; // 0-based: row 2 → index 1
-      const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
-      let logSheet = ss.getSheetByName('PrintLog');
-      if (!logSheet) {
-        logSheet = ss.insertSheet('PrintLog');
-        logSheet.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By']);
+    const isReset    = data.quantityPrinted === 0 && !data.sessionPrinted;
+    Logger.log('sessionQty=' + sessionQty + ' isReset=' + isReset);
+
+    const rowData = values[rowIndex - 1]; // 0-based: row 2 → index 1
+    const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
+
+    // Get or create PrintLog sheet
+    const ensureLogSheet = () => {
+      let ls = ss.getSheetByName('PrintLog');
+      if (!ls) {
+        ls = ss.insertSheet('PrintLog');
+        ls.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By']);
       }
+      return ls;
+    };
+
+    if (sessionQty > 0) {
+      const logSheet = ensureLogSheet();
       logSheet.appendRow([
         Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'),
         g('company') || g('name_company'),
@@ -947,6 +956,25 @@ function doPost(e) {
         data.changedBy || ''
       ]);
       Logger.log('PrintLog row appended for sessionQty=' + sessionQty);
+    }
+
+    // On reset: append a negative correction row so totals stay correct
+    if (isReset && quantityPrintedCol >= 0) {
+      const prevQty = parseInt(rowData[quantityPrintedCol]) || 0;
+      if (prevQty > 0) {
+        const logSheet = ensureLogSheet();
+        logSheet.appendRow([
+          Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'),
+          g('company') || g('name_company'),
+          g('name_print') || g('print'),
+          g('owner'),
+          g('soort'),
+          -prevQty,  // negative to cancel out earlier entries
+          g('priority'),
+          (data.changedBy || '') + ' [reset]'
+        ]);
+        Logger.log('PrintLog correction row appended: -' + prevQty);
+      }
     }
 
     // Update Faulty Prints
