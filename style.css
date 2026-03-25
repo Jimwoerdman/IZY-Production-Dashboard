@@ -852,7 +852,7 @@ footer {
 .btn-qr:hover { background: var(--blue); color: white; }
 
 /* Active Queue type pills */
-#aq-type-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+#aq-type-tabs, #sv-type-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .aq-type-tab {
   display: flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 20px;
