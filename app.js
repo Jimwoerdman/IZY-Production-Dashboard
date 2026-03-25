@@ -627,10 +627,10 @@ function renderActiveQueue() {
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
           <table>
-            <thead><tr style="background:${c.text};background-image:none;">
+            <thead style="background:${c.text};background-image:none;"><tr>
               <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
               <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th></th>
+              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
@@ -699,10 +699,10 @@ function renderActiveQueue() {
       <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
       <div class="aq-table-wrap table-wrap">
         <table>
-          <thead><tr style="background:#15803d;background-image:none;">
+          <thead style="background:#15803d;background-image:none;"><tr>
             <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
             <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-            <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th></th>
+            <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
           </tr></thead>
           <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
         </table>
