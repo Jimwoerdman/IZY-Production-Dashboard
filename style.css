@@ -525,6 +525,47 @@ td.cell-ok      { color: var(--green);  font-weight: 600; }
 .b-default    { background: #f1f5f9; color: #475569; }
 .b-default::before    { background: #94a3b8; }
 
+/* ── Printed Report ── */
+.printed-report-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.printed-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(135deg, #f0f4ff 0%, white 100%);
+}
+.printed-report-header h3 { font-size: 15px; font-weight: 700; color: var(--text-1); margin: 0 0 2px; }
+.printed-report-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.printed-summary {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.pr-stat {
+  flex: 1;
+  padding: 14px 20px;
+  border-right: 1px solid var(--border-soft);
+  text-align: center;
+}
+.pr-stat:last-child { border-right: none; }
+.pr-stat-value { font-size: 26px; font-weight: 800; color: var(--blue); }
+.pr-stat-label { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
 /* ── Report Cards ── */
 .report-grid {
   display: grid;

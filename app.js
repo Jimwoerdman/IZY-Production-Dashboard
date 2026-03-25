@@ -868,6 +868,57 @@ function renderReports() {
         <td>${get(r,'Shipped') || '—'}</td><td>${num(r,'Quantity')}</td></tr>`).join('');
 }
 
+// ── Printed Report ────────────────────────────────────────────
+function renderPrintedReport() {
+  const period = document.getElementById('pr-period').value;
+  const from   = document.getElementById('pr-date-from').value;
+  const to     = document.getElementById('pr-date-to').value;
+  const owner  = document.getElementById('pr-owner').value;
+
+  const PRINTED_STATUSES = ['printed', 'printing ready', 'print ready', 'shipped', 'done'];
+
+  const printed = allRows.filter(r => {
+    const status = get(r, 'Status').toLowerCase();
+    if (!PRINTED_STATUSES.some(s => status.includes(s))) return false;
+    if (owner && get(r, 'Owner') !== owner) return false;
+    if (period && !inDateRange(r, 'Date added ', period, from, to)) return false;
+    return true;
+  }).sort((a, b) => {
+    const da = parseDate(get(a, 'Date added ')), db = parseDate(get(b, 'Date added '));
+    return (db || 0) - (da || 0);
+  });
+
+  const totalJobs  = printed.length;
+  const totalItems = printed.reduce((s, r) => s + num(r, 'Quantity'), 0);
+  const byOwner    = {};
+  printed.forEach(r => {
+    const o = get(r, 'Owner') || 'Unknown';
+    byOwner[o] = (byOwner[o] || 0) + num(r, 'Quantity');
+  });
+  const topOwner = Object.entries(byOwner).sort((a, b) => b[1] - a[1])[0];
+
+  document.getElementById('pr-summary').innerHTML =
+    `<div class="pr-stat"><div class="pr-stat-value">${totalJobs}</div><div class="pr-stat-label">Jobs Printed</div></div>` +
+    `<div class="pr-stat"><div class="pr-stat-value">${totalItems.toLocaleString()}</div><div class="pr-stat-label">Items Printed</div></div>` +
+    (topOwner ? `<div class="pr-stat"><div class="pr-stat-value">${topOwner[1].toLocaleString()}</div><div class="pr-stat-label">Most by ${topOwner[0]}</div></div>` : '') +
+    Object.entries(byOwner).sort((a, b) => b[1] - a[1]).map(([o, q]) =>
+      `<div class="pr-stat"><div class="pr-stat-value" style="font-size:20px;">${q.toLocaleString()}</div><div class="pr-stat-label">${o}</div></div>`
+    ).join('');
+
+  document.getElementById('rep-printed').innerHTML = printed.length === 0
+    ? '<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:20px;">No printed jobs found for this period.</td></tr>'
+    : printed.map(r => `<tr>
+        <td>${get(r,'Priority')}</td>
+        <td>${get(r,'Name_Company')}</td>
+        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
+        <td>${get(r,'Owner')}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Date added ') || '—'}</td>
+        <td>${num(r,'Quantity')}</td>
+      </tr>`).join('');
+}
+
 // ── Populate filter dropdowns ─────────────────────────────────
 function populateSecondaryFilters(rows) {
   const active   = rows.filter(r => isActive(r));
@@ -875,6 +926,7 @@ function populateSecondaryFilters(rows) {
   const owners   = [...new Set(rows.map(r => get(r,'Owner')).filter(Boolean))].sort();
   fill('aq-status', statuses);
   fill('rp-owner',  owners);
+  fill('pr-owner',  owners);
 }
 
 ['rp-owner','rp-period','rp-date-from','rp-date-to'].forEach(id => {
@@ -883,6 +935,15 @@ function populateSecondaryFilters(rows) {
 });
 document.getElementById('rp-period').addEventListener('change', function() {
   document.getElementById('rp-custom-range').style.display = this.value === 'custom' ? 'inline-flex' : 'none';
+});
+
+// Printed report event listeners
+document.getElementById('pr-period').addEventListener('change', function() {
+  document.getElementById('pr-custom-range').style.display = this.value === 'custom' ? 'inline-flex' : 'none';
+  renderPrintedReport();
+});
+['pr-date-from','pr-date-to','pr-owner'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderPrintedReport);
 });
 
 // ── Shipping History ──────────────────────────────────────────
@@ -2315,6 +2376,7 @@ function renderMain() {
   populateSecondaryFilters(allRows);
   renderActiveQueue();
   renderReports();
+  renderPrintedReport();
 }
 
 // ── Init & Refresh ────────────────────────────────────────────

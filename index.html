@@ -267,6 +267,39 @@
       </span>
     </div>
 
+    <!-- ─── Printed Report ─── -->
+    <div class="printed-report-card">
+      <div class="printed-report-header">
+        <div>
+          <h3>🖨️ Printed Jobs</h3>
+          <p class="report-desc">Jobs that have been printed — filter by date added</p>
+        </div>
+        <div class="printed-report-filters">
+          <select id="pr-period">
+            <option value="">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <span id="pr-custom-range" style="display:none;gap:6px;align-items:center;">
+            <input type="date" id="pr-date-from" style="min-width:unset;width:130px;" />
+            <span style="color:var(--text-2);">→</span>
+            <input type="date" id="pr-date-to" style="min-width:unset;width:130px;" />
+          </span>
+          <select id="pr-owner"><option value="">All Owners</option></select>
+        </div>
+      </div>
+      <div class="printed-summary" id="pr-summary"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Type</th><th>Color</th><th>Date Added</th><th>Qty</th></tr></thead>
+          <tbody id="rep-printed"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="report-grid">
 
       <div class="report-card accent-red">
@@ -1079,7 +1112,7 @@
   </div>
 </section>
 
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
