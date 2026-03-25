@@ -554,10 +554,12 @@ function renderActiveQueue() {
       const d     = parseDate(get(r,'Deadline'));
       const days  = daysFrom(d);
       const still = num(r,'Quantity still to print');
+      const isSample = get(r,'Soort').toLowerCase().includes('sample');
+      const displayStatus = (isSample && still <= 0) ? 'Ready to Ship' : get(r,'Status');
       const idx   = allRows.indexOf(r);
       const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
       const sleeveBtn = sleeveVal !== 'yes' ? '' :
-        get(r,'Status').toLowerCase() === 'ready to ship'
+        displayStatus.toLowerCase() === 'ready to ship'
           ? `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`
           : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
       const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
@@ -573,7 +575,7 @@ function renderActiveQueue() {
             <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
-          ${badge(get(r,'Status'))}
+          ${badge(displayStatus)}
         </div>
         ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
         ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
@@ -592,7 +594,7 @@ function renderActiveQueue() {
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
-        <td>${badge(get(r,'Status'))}</td>
+        <td>${badge(displayStatus)}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
