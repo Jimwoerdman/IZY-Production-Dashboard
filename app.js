@@ -2306,9 +2306,10 @@ async function shipJob(rowIdx, btn) {
       method: 'POST',
       mode:   'no-cors',
       body:   JSON.stringify({
-        sheetRow:  job['_sheetRow'],
-        status:    'Shipped',
-        changedBy: currentUser?.email,
+        sheetRow:     job['_sheetRow'],
+        status:       'Shipped',
+        shippingDate: new Date().toLocaleDateString('en-GB'),
+        changedBy:    currentUser?.email,
       }),
     });
     refreshData();
