@@ -61,21 +61,21 @@
 </header>
 
 <nav id="tab-nav">
-  <button class="tab-btn active" data-tab="overview">Overview</button>
   <button class="tab-btn" data-tab="all-jobs" style="display:none">All Jobs</button>
-  <button class="tab-btn" data-tab="active-queue">Active Queue</button>
+  <button class="tab-btn active" data-tab="active-queue">Active Queue</button>
   <button class="tab-btn" data-tab="sleeves">Sleeves</button>
   <button class="tab-btn" data-tab="mockups">Mockups</button>
-  <button class="tab-btn" data-tab="shipping">Shipping History</button>
   <button class="tab-btn" data-tab="add-job">+ Add Job</button>
+  <button class="tab-btn" data-tab="overview" style="margin-left:auto">Overview</button>
+  <button class="tab-btn" data-tab="shipping">Shipping</button>
   <button class="tab-btn" data-tab="stock">Stock</button>
-  <button class="tab-btn" data-tab="reports" style="margin-left:auto">Reports</button>
+  <button class="tab-btn" data-tab="reports">Reports</button>
 </nav>
 
 <main>
 
   <!-- ─── OVERVIEW ─── -->
-  <section id="tab-overview" class="tab-content active">
+  <section id="tab-overview" class="tab-content">
 
     <div class="overview-filters">
       <label for="overview-period">Period:</label>
@@ -224,7 +224,7 @@
   </section>
 
   <!-- ─── ACTIVE QUEUE ─── -->
-  <section id="tab-active-queue" class="tab-content">
+  <section id="tab-active-queue" class="tab-content active">
     <h2 class="section-title">Active Queue <span class="subtitle">— Jobs not yet shipped</span></h2>
     <div class="filters-bar">
       <input type="text" id="aq-search" placeholder="Search..." />
@@ -1167,7 +1167,7 @@
   </div>
 </section>
 
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
