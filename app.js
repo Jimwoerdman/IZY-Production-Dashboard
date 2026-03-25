@@ -1647,12 +1647,17 @@ function toggleAddSleeveForm() {
   if (!isVisible) populateSleeveOwners();
 }
 
-// File label display
-document.getElementById('sv-file').addEventListener('change', function() {
-  document.getElementById('sv-file-name').textContent =
-    this.files && this.files[0] ? this.files[0].name : 'Click to upload sleeve design file';
-  document.getElementById('sv-file-label').classList.toggle('has-file', !!(this.files && this.files[0]));
-});
+// Sleeve add-form: multi-file rows
+function addSvFileRow() {
+  const container = document.getElementById('sv-files-list');
+  const row = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.innerHTML = `<input type="file" accept="*/*" /><button type="button" class="btn-remove-file" title="Remove">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+document.getElementById('sv-add-file').addEventListener('click', addSvFileRow);
+addSvFileRow();
 
 function readFileAsBase64(file, onProgress) {
   return new Promise((resolve, reject) => {
@@ -1689,7 +1694,6 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   const bottleColor  = document.getElementById('sv-bottle-color').value.trim();
   const lidColor     = document.getElementById('sv-lid-color').value.trim();
   const notes        = document.getElementById('sv-notes').value.trim();
-  const fileInput = document.getElementById('sv-file');
   const statusEl  = document.getElementById('sv-form-status');
 
   if (!soort || !company || !printName || !quantity) {
@@ -1702,16 +1706,15 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   statusEl.className   = 'form-status';
   statusEl.textContent = 'Saving…';
 
-  let sleeveFileBase64 = null;
-  let sleeveFileMime   = null;
-  let sleeveFileName   = null;
-  if (fileInput.files && fileInput.files[0]) {
-    try {
-      const f = await readFileAsBase64(fileInput.files[0]);
-      sleeveFileBase64 = f.data;
-      sleeveFileMime   = f.mime;
-      sleeveFileName   = f.name;
-    } catch (_) {}
+  const svFileInputs = document.getElementById('sv-files-list').querySelectorAll('input[type="file"]');
+  const designFiles  = [];
+  for (const inp of svFileInputs) {
+    if (inp.files && inp.files[0]) {
+      try {
+        const f = await readFileAsBase64(inp.files[0]);
+        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+      } catch (_) {}
+    }
   }
 
   try {
@@ -1723,15 +1726,15 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
         soort, company, printName,
         quantity:  parseInt(quantity),
         deadline, owner, bottleColor, lidColor, notes,
-        sleeveFileBase64, sleeveFileMime, sleeveFileName,
+        designFiles,
         changedBy: currentUser?.email,
       }),
     });
     statusEl.className   = 'form-status success';
     statusEl.textContent = '✓ Sleeve job added!';
     document.getElementById('add-sleeve-form').reset();
-    document.getElementById('sv-file-name').textContent = 'Click to upload sleeve design file';
-    document.getElementById('sv-file-label').classList.remove('has-file');
+    document.getElementById('sv-files-list').innerHTML = '';
+    addSvFileRow();
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     sleeveLoaded = false;
     loadSleeves();
@@ -1860,11 +1863,17 @@ function toggleAddMockupForm() {
   if (!isVisible) populateMockupOwners();
 }
 
-document.getElementById('mk-file').addEventListener('change', function() {
-  document.getElementById('mk-file-name').textContent =
-    this.files && this.files[0] ? this.files[0].name : 'Click to upload mockup design file';
-  document.getElementById('mk-file-label').classList.toggle('has-file', !!(this.files && this.files[0]));
-});
+// Mockup add-form: multi-file rows
+function addMkFileRow() {
+  const container = document.getElementById('mk-files-list');
+  const row = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.innerHTML = `<input type="file" accept="*/*" /><button type="button" class="btn-remove-file" title="Remove">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+document.getElementById('mk-add-file').addEventListener('click', addMkFileRow);
+addMkFileRow();
 
 document.getElementById('mk-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('mk-soort').value;
@@ -1876,7 +1885,6 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
   const bottleColor  = document.getElementById('mk-bottle-color').value.trim();
   const lidColor     = document.getElementById('mk-lid-color').value.trim();
   const notes        = document.getElementById('mk-notes').value.trim();
-  const fileInput = document.getElementById('mk-file');
   const statusEl  = document.getElementById('mk-form-status');
 
   if (!soort || !company || !printName) {
@@ -1889,16 +1897,15 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
   statusEl.className   = 'form-status';
   statusEl.textContent = 'Saving…';
 
-  let mockupFileBase64 = null;
-  let mockupFileMime   = null;
-  let mockupFileName   = null;
-  if (fileInput.files && fileInput.files[0]) {
-    try {
-      const f = await readFileAsBase64(fileInput.files[0]);
-      mockupFileBase64 = f.data;
-      mockupFileMime   = f.mime;
-      mockupFileName   = f.name;
-    } catch (_) {}
+  const mkFileInputs = document.getElementById('mk-files-list').querySelectorAll('input[type="file"]');
+  const designFiles  = [];
+  for (const inp of mkFileInputs) {
+    if (inp.files && inp.files[0]) {
+      try {
+        const f = await readFileAsBase64(inp.files[0]);
+        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+      } catch (_) {}
+    }
   }
 
   try {
@@ -1910,15 +1917,15 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
         soort, company, printName,
         quantity:  quantity ? parseInt(quantity) : '',
         deadline, owner, bottleColor, lidColor, notes,
-        mockupFileBase64, mockupFileMime, mockupFileName,
+        designFiles,
         changedBy: currentUser?.email,
       }),
     });
     statusEl.className   = 'form-status success';
     statusEl.textContent = '✓ Mockup job added!';
     document.getElementById('add-mockup-form').reset();
-    document.getElementById('mk-file-name').textContent = 'Click to upload mockup design file';
-    document.getElementById('mk-file-label').classList.remove('has-file');
+    document.getElementById('mk-files-list').innerHTML = '';
+    addMkFileRow();
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     mockupLoaded = false;
     loadMockups();

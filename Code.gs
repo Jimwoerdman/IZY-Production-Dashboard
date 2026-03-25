@@ -620,21 +620,26 @@ function doPost(e) {
 
       svSheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
 
-      // Upload attached file to Drive and store URL
-      if (data.sleeveFileBase64) {
+      // Upload design files to Drive and store URLs (newline-separated) in 'File' column
+      if (data.designFiles && data.designFiles.length > 0) {
         try {
-          const raw      = data.sleeveFileBase64.includes(',') ? data.sleeveFileBase64.split(',')[1] : data.sleeveFileBase64;
-          const mime     = data.sleeveFileMime || 'application/octet-stream';
-          const fname    = data.sleeveFileName || ('sleeve_file_' + Date.now());
-          const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-          const blob     = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
-          const file     = folder.createFile(blob);
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          const fileUrl  = 'https://drive.google.com/file/d/' + file.getId() + '/view';
-          const fc = findIdx('file');
-          if (fc >= 0) svSheet.getRange(newRow, fc + 1).setValue(fileUrl);
+          const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const fileCol = findIdx('file');
+          const urls    = [];
+          data.designFiles.forEach(function(df) {
+            try {
+              const raw   = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
+              const mime  = df.mime || 'application/octet-stream';
+              const fname = df.name || ('sleeve_file_' + Date.now());
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              urls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch (e) { Logger.log('Sleeve file upload error: ' + e.message); }
+          });
+          if (fileCol >= 0 && urls.length > 0) svSheet.getRange(newRow, fileCol + 1).setValue(urls.join('\n'));
         } catch (fileErr) {
-          Logger.log('Sleeve file upload failed: ' + fileErr.message);
+          Logger.log('Sleeve files upload failed: ' + fileErr.message);
         }
       }
 
@@ -726,21 +731,26 @@ function doPost(e) {
 
       mkSheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
 
-      // Upload attached file to Drive and store URL
-      if (data.mockupFileBase64) {
+      // Upload design files to Drive and store URLs (newline-separated) in 'File' column
+      if (data.designFiles && data.designFiles.length > 0) {
         try {
-          const raw    = data.mockupFileBase64.includes(',') ? data.mockupFileBase64.split(',')[1] : data.mockupFileBase64;
-          const mime   = data.mockupFileMime || 'application/octet-stream';
-          const fname  = data.mockupFileName || ('mockup_file_' + Date.now());
-          const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-          const blob   = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
-          const file   = folder.createFile(blob);
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          const fileUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
-          const fc = findIdx('file');
-          if (fc >= 0) mkSheet.getRange(newRow, fc + 1).setValue(fileUrl);
+          const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const fileCol = findIdx('file');
+          const urls    = [];
+          data.designFiles.forEach(function(df) {
+            try {
+              const raw   = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
+              const mime  = df.mime || 'application/octet-stream';
+              const fname = df.name || ('mockup_file_' + Date.now());
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              urls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch (e) { Logger.log('Mockup file upload error: ' + e.message); }
+          });
+          if (fileCol >= 0 && urls.length > 0) mkSheet.getRange(newRow, fileCol + 1).setValue(urls.join('\n'));
         } catch (fileErr) {
-          Logger.log('Mockup file upload failed: ' + fileErr.message);
+          Logger.log('Mockup files upload failed: ' + fileErr.message);
         }
       }
 
