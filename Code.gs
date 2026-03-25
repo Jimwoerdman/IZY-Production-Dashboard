@@ -260,7 +260,9 @@ function doGet(e) {
     ? ss.getSheetByName('ShippingHistory')
     : e.parameter.sheet === 'sleeves'
       ? ss.getSheetByName('Sleeves')
-      : ss.getSheetByName('Workfile');
+      : e.parameter.sheet === 'mockups'
+        ? ss.getSheetByName('Mockups')
+        : ss.getSheetByName('Workfile');
 
   // Phone photo poll
   if (e.parameter.photosession) {
@@ -355,8 +357,10 @@ function doPost(e) {
       const soortVals = sheet.getRange(2, 2, lastDataRow - 1, 1).getValues();
       const priority  = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
 
-      const vals   = new Array(35).fill('');
       const tz     = ss.getSpreadsheetTimeZone();
+      const wfLen  = Math.max(headers.length, 36);
+      const vals   = new Array(wfLen).fill('');
+      const setW   = (kw, value) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); if (i >= 0) vals[i] = value; };
       vals[0]  = priority;
       vals[1]  = data.soort     || '';
       vals[2]  = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
@@ -369,8 +373,8 @@ function doPost(e) {
       vals[12] = data.deadline  || '';
       // vals[13] = col N  — set via setFormula below
       // vals[14] = col O  — set via setFormula below
-      vals[15] = data.color     || '';
-      vals[16] = data.lid       || '';
+      { const i = headers.findIndex(h => h.toLowerCase() === 'bottle color'); if (i >= 0) vals[i] = data.color || ''; }
+      { const i = headers.findIndex(h => h.toLowerCase().includes('lid'));   if (i >= 0) vals[i] = data.lid   || ''; }
       vals[17] = data.quantity  ? parseInt(data.quantity) : '';
       // vals[18] = col S  — set via setFormula below
       // vals[19] = col T  — set via setFormula below
@@ -398,6 +402,7 @@ function doPost(e) {
       }
 
       // Upload mockup image to Drive and store URL in col G
+      let mockupUrl = null;
       if (data.mockupBase64) {
         try {
           const base64Data = data.mockupBase64.includes(',')
@@ -410,20 +415,19 @@ function doPost(e) {
           );
           const file = folder.createFile(blob);
           file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          sheet.getRange(newRow, 7).setValue(
-            'https://drive.google.com/uc?id=' + file.getId()
-          );
+          mockupUrl = 'https://drive.google.com/uc?id=' + file.getId();
+          sheet.getRange(newRow, 7).setValue(mockupUrl);
         } catch (imgErr) {
           Logger.log('Mockup upload failed: ' + imgErr.message);
         }
       }
 
       // Upload design files to Drive and store URLs (newline-separated) in 'File' column
+      let designFileUrls = [];
       if (data.designFiles && data.designFiles.length > 0) {
         try {
           const folder   = DriveApp.getFolderById(DRIVE_FOLDER_ID);
           const fileCol  = headers.findIndex(h => h.toLowerCase() === 'file');
-          const newUrls  = [];
           data.designFiles.forEach(function(df) {
             try {
               const raw   = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
@@ -432,14 +436,90 @@ function doPost(e) {
               const blob  = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
               const file  = folder.createFile(blob);
               file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+              designFileUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
             } catch (e) { Logger.log('Design file upload error: ' + e.message); }
           });
-          if (fileCol >= 0 && newUrls.length > 0) {
-            sheet.getRange(newRow, fileCol + 1).setValue(newUrls.join('\n'));
+          if (fileCol >= 0 && designFileUrls.length > 0) {
+            sheet.getRange(newRow, fileCol + 1).setValue(designFileUrls.join('\n'));
           }
         } catch (fileErr) {
           Logger.log('Design files upload failed: ' + fileErr.message);
+        }
+      }
+
+      // Auto-create sleeve job in Sleeves sheet (backend handles it so Drive URLs are available)
+      if (data.tosleeve === 'Yes') {
+        try {
+          const svSheet   = ss.getSheetByName('Sleeves');
+          const lastSvRow = svSheet.getLastRow();
+          const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
+          const newSvRow  = lastSvRow + 1;
+          const findSvIdx = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+          const svVals    = new Array(svHeaders.length).fill('');
+          const setS      = (kw, value) => { const i = findSvIdx(kw); if (i >= 0) svVals[i] = value; };
+
+          setS('priority', priority);
+          setS('soort',    data.soort     || '');
+          setS('date',     Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+          setS('company',  data.company   || '');
+          setS('print',    data.printName || '');
+          const svQIdx = svHeaders.findIndex(h => h.toLowerCase() === 'quantity');
+          if (svQIdx >= 0) svVals[svQIdx] = data.quantity ? parseInt(data.quantity) : '';
+          setS('status',   'To make');
+          setS('owner',    data.owner    || '');
+          setS('deadline', data.deadline || '');
+          setS('notes',    data.notes    || '');
+          setS('changed',  data.changedBy || '');
+          setS('bottle',   data.color    || '');
+          setS('lid',      data.lid      || '');
+          setS('mockup',   mockupUrl     || '');
+          const svFileIdx = findSvIdx('file');
+          if (svFileIdx >= 0 && designFileUrls.length > 0) {
+            svVals[svFileIdx] = designFileUrls.join('\n');
+          }
+
+          svSheet.getRange(newSvRow, 1, 1, svVals.length).setValues([svVals]);
+          Logger.log('add_job: auto-created sleeve row ' + newSvRow);
+        } catch (svErr) {
+          Logger.log('Auto sleeve job creation failed: ' + svErr.message);
+        }
+      }
+
+      // Auto-create mockup job in Mockups sheet when needmockup = Yes
+      if (data.needmockup === 'Yes') {
+        try {
+          const mkSheet   = ss.getSheetByName('Mockups');
+          const lastMkRow = mkSheet.getLastRow();
+          const mkHeaders = mkSheet.getRange(1, 1, 1, Math.max(mkSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
+          const newMkRow  = lastMkRow + 1;
+          const findMkIdx = kw => mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+          const mkVals    = new Array(mkHeaders.length).fill('');
+          const setMk     = (kw, value) => { const i = findMkIdx(kw); if (i >= 0) mkVals[i] = value; };
+
+          setMk('priority', priority);
+          setMk('soort',    data.soort     || '');
+          setMk('date',     Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+          setMk('company',  data.company   || '');
+          setMk('print',    data.printName || '');
+          const mkQIdx = mkHeaders.findIndex(h => h.toLowerCase() === 'quantity');
+          if (mkQIdx >= 0) mkVals[mkQIdx] = data.quantity ? parseInt(data.quantity) : '';
+          setMk('status',   'To make');
+          setMk('owner',    data.owner    || '');
+          setMk('deadline', data.deadline || '');
+          setMk('notes',    data.notes    || '');
+          setMk('changed',  data.changedBy || '');
+          setMk('bottle',   data.color    || '');
+          setMk('lid',      data.lid      || '');
+          setMk('mockup',   mockupUrl     || '');
+          const mkFileIdx = findMkIdx('file');
+          if (mkFileIdx >= 0 && designFileUrls.length > 0) {
+            mkVals[mkFileIdx] = designFileUrls.join('\n');
+          }
+
+          mkSheet.getRange(newMkRow, 1, 1, mkVals.length).setValues([mkVals]);
+          Logger.log('add_job: auto-created mockup row ' + newMkRow);
+        } catch (mkErr) {
+          Logger.log('Auto mockup job creation failed: ' + mkErr.message);
         }
       }
 
@@ -558,6 +638,108 @@ function doPost(e) {
       return respond({ success: true, newRow });
     }
 
+    // Update mockup job (Mockups sheet)
+    if (data.action === 'update_mockup') {
+      const mkSheet   = ss.getSheetByName('Mockups');
+      const mkHeaders = mkSheet.getRange(1, 1, 1, Math.max(mkSheet.getLastColumn(), 30)).getValues()[0].map(h => String(h).trim());
+      const rowIndex  = data.sheetRow ? parseInt(data.sheetRow) : -1;
+      if (rowIndex < 2) return respond({ error: 'Invalid sheet row: ' + data.sheetRow });
+
+      const findCol  = kw => mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())) + 1;
+      const exactCol = name => mkHeaders.findIndex(h => h.toLowerCase() === name.toLowerCase()) + 1;
+
+      if (data.status) {
+        const c = exactCol('status');
+        if (c > 0) mkSheet.getRange(rowIndex, c).setValue(data.status);
+      }
+      if (data.changedBy) {
+        const c = findCol('changed');
+        if (c > 0) mkSheet.getRange(rowIndex, c).setValue(data.changedBy);
+      }
+      if (data.mockupFiles && data.mockupFiles.length > 0) {
+        try {
+          const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const fc      = findCol('file');
+          const newUrls = [];
+          data.mockupFiles.forEach(function(mf) {
+            try {
+              const raw   = mf.base64.includes(',') ? mf.base64.split(',')[1] : mf.base64;
+              const mime  = mf.mime || 'application/octet-stream';
+              const fname = mf.name || ('mockup_file_' + Date.now());
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch (e) { Logger.log('Mockup file upload error: ' + e.message); }
+          });
+          if (fc > 0 && newUrls.length > 0) {
+            const existing = String(mkSheet.getRange(rowIndex, fc).getValue() || '').trim();
+            const combined = [existing, ...newUrls].filter(Boolean).join('\n');
+            mkSheet.getRange(rowIndex, fc).setValue(combined);
+          }
+        } catch (fileErr) {
+          Logger.log('Mockup files upload failed: ' + fileErr.message);
+        }
+      }
+      return respond({ success: true });
+    }
+
+    // Add mockup job (Mockups sheet)
+    if (data.action === 'add_mockup_job') {
+      const mkSheet   = ss.getSheetByName('Mockups');
+      const lastRow   = mkSheet.getLastRow();
+      const mkHeaders = mkSheet.getRange(1, 1, 1, Math.max(mkSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
+      const newRow    = lastRow + 1;
+      const tz        = ss.getSpreadsheetTimeZone();
+      const findIdx   = kw => mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+
+      let priority = 1;
+      const soortIdx = findIdx('soort');
+      if (lastRow > 1 && soortIdx >= 0) {
+        const soortVals = mkSheet.getRange(2, soortIdx + 1, lastRow - 1, 1).getValues();
+        priority = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
+      }
+
+      const vals = new Array(mkHeaders.length).fill('');
+      const set  = (kw, value) => { const i = findIdx(kw); if (i >= 0) vals[i] = value; };
+
+      set('priority', priority);
+      set('soort',    data.soort     || '');
+      set('date',     Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+      set('company',  data.company   || '');
+      set('print',    data.printName || '');
+      const qIdx = mkHeaders.findIndex(h => h.toLowerCase() === 'quantity');
+      if (qIdx >= 0) vals[qIdx] = data.quantity ? parseInt(data.quantity) : '';
+      set('status',   data.status || 'To make');
+      set('owner',    data.owner    || '');
+      set('deadline', data.deadline || '');
+      set('notes',    data.notes    || '');
+      set('changed',  data.changedBy || '');
+
+      mkSheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
+
+      // Upload attached file to Drive and store URL
+      if (data.mockupFileBase64) {
+        try {
+          const raw    = data.mockupFileBase64.includes(',') ? data.mockupFileBase64.split(',')[1] : data.mockupFileBase64;
+          const mime   = data.mockupFileMime || 'application/octet-stream';
+          const fname  = data.mockupFileName || ('mockup_file_' + Date.now());
+          const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const blob   = Utilities.newBlob(Utilities.base64Decode(raw), mime, fname);
+          const file   = folder.createFile(blob);
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          const fileUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+          const fc = findIdx('file');
+          if (fc >= 0) mkSheet.getRange(newRow, fc + 1).setValue(fileUrl);
+        } catch (fileErr) {
+          Logger.log('Mockup file upload failed: ' + fileErr.message);
+        }
+      }
+
+      Logger.log('add_mockup_job: wrote row ' + newRow);
+      return respond({ success: true, newRow });
+    }
+
     // Use the exact sheet row number sent by the dashboard (most reliable — no search needed)
     const rowIndex = data.sheetRow ? parseInt(data.sheetRow) : -1;
     Logger.log('rowIndex=' + rowIndex);
@@ -577,6 +759,11 @@ function doPost(e) {
     if (data.status) {
       Logger.log('Updating status col Q=' + statusCol + ' to: ' + data.status);
       sheet.getRange(rowIndex, statusCol).setValue(data.status);
+    }
+
+    // Write shipping date to column J when status is set to Shipped
+    if (data.shippingDate) {
+      sheet.getRange(rowIndex, 10).setValue(data.shippingDate);
     }
 
     // Update Printer Used (column AI = 35)

@@ -505,7 +505,84 @@
     <h2 class="section-title">Mockup Queue <span class="subtitle">— Mockups to be made</span></h2>
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <button class="btn-add-sv" onclick="toggleAddMockupForm()">+ Add Mockup Job</button>
       <button onclick="refreshMockups()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;color:var(--text-2);cursor:pointer;">↻ Refresh</button>
+    </div>
+
+    <!-- Inline add-mockup form -->
+    <div id="add-mockup-form-wrap" style="display:none;">
+      <div class="add-job-card" style="margin-bottom:24px;">
+        <div class="add-job-header">
+          <div class="add-job-header-icon">🎨</div>
+          <div>
+            <div class="add-job-title">New Mockup Job</div>
+            <div class="add-job-subtitle">Add a job to the Mockup Queue</div>
+          </div>
+        </div>
+        <form id="add-mockup-form" onsubmit="return false;">
+          <div class="form-section">
+            <div class="form-grid form-grid-3">
+              <div class="form-group">
+                <label>Product Type <span class="req">*</span></label>
+                <select id="mk-soort" required>
+                  <option value="">Select type…</option>
+                  <option value="Bottle">Bottle</option>
+                  <option value="Mug">Mug</option>
+                  <option value="Travel Bottle">Travel Bottle</option>
+                  <option value="Tumbler">Tumbler</option>
+                  <option value="Sample Bottle">Sample Bottle</option>
+                  <option value="Sample Mug">Sample Mug</option>
+                  <option value="Sample Travel Bottle">Sample Travel Bottle</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Owner</label>
+                <select id="mk-form-owner"><option value="">Select owner…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" id="mk-quantity" min="1" placeholder="e.g. 100" />
+              </div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label>Company <span class="req">*</span></label>
+                <input type="text" id="mk-company" required placeholder="Company name" />
+              </div>
+              <div class="form-group">
+                <label>Product Name <span class="req">*</span></label>
+                <input type="text" id="mk-print-name" required placeholder="Product / print name" />
+              </div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" id="mk-deadline" />
+              </div>
+            </div>
+            <div class="form-grid form-grid-1">
+              <div class="form-group">
+                <label>Design File <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI, image…)</span></label>
+                <label class="file-upload-area" id="mk-file-label" for="mk-file">
+                  <span class="file-upload-icon">📎</span>
+                  <span id="mk-file-name">Click to upload mockup design file</span>
+                  <input type="file" id="mk-file" accept="*/*" style="display:none;" />
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-label">Notes</div>
+            <div class="form-group">
+              <textarea id="mk-notes" rows="2" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="mk-submit" class="btn-nj-submit">Add Mockup Job</button>
+            <span id="mk-form-status" class="form-status"></span>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="filters-bar">

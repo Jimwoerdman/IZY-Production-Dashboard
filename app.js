@@ -1737,6 +1737,89 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   this.disabled = false;
 });
 
+// ── Add Mockup Job ────────────────────────────────────────────
+
+function populateMockupOwners() {
+  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const sel = document.getElementById('mk-form-owner');
+  sel.innerHTML = '<option value="">Select owner…</option>' +
+    owners.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
+function toggleAddMockupForm() {
+  const wrap = document.getElementById('add-mockup-form-wrap');
+  const isVisible = wrap.style.display !== 'none';
+  wrap.style.display = isVisible ? 'none' : 'block';
+  if (!isVisible) populateMockupOwners();
+}
+
+document.getElementById('mk-file').addEventListener('change', function() {
+  document.getElementById('mk-file-name').textContent =
+    this.files && this.files[0] ? this.files[0].name : 'Click to upload mockup design file';
+  document.getElementById('mk-file-label').classList.toggle('has-file', !!(this.files && this.files[0]));
+});
+
+document.getElementById('mk-submit').addEventListener('click', async function() {
+  const soort     = document.getElementById('mk-soort').value;
+  const company   = document.getElementById('mk-company').value.trim();
+  const printName = document.getElementById('mk-print-name').value.trim();
+  const quantity  = document.getElementById('mk-quantity').value;
+  const deadline  = document.getElementById('mk-deadline').value;
+  const owner     = document.getElementById('mk-form-owner').value;
+  const notes     = document.getElementById('mk-notes').value.trim();
+  const fileInput = document.getElementById('mk-file');
+  const statusEl  = document.getElementById('mk-form-status');
+
+  if (!soort || !company || !printName) {
+    statusEl.className   = 'form-status error';
+    statusEl.textContent = 'Please fill in all required fields.';
+    return;
+  }
+
+  this.disabled        = true;
+  statusEl.className   = 'form-status';
+  statusEl.textContent = 'Saving…';
+
+  let mockupFileBase64 = null;
+  let mockupFileMime   = null;
+  let mockupFileName   = null;
+  if (fileInput.files && fileInput.files[0]) {
+    try {
+      const f = await readFileAsBase64(fileInput.files[0]);
+      mockupFileBase64 = f.data;
+      mockupFileMime   = f.mime;
+      mockupFileName   = f.name;
+    } catch (_) {}
+  }
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:    'add_mockup_job',
+        soort, company, printName,
+        quantity:  quantity ? parseInt(quantity) : '',
+        deadline, owner, notes,
+        mockupFileBase64, mockupFileMime, mockupFileName,
+        changedBy: currentUser?.email,
+      }),
+    });
+    statusEl.className   = 'form-status success';
+    statusEl.textContent = '✓ Mockup job added!';
+    document.getElementById('add-mockup-form').reset();
+    document.getElementById('mk-file-name').textContent = 'Click to upload mockup design file';
+    document.getElementById('mk-file-label').classList.remove('has-file');
+    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    mockupLoaded = false;
+    loadMockups();
+  } catch (err) {
+    statusEl.className   = 'form-status error';
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+  this.disabled = false;
+});
+
 // ── Mockups Tab ───────────────────────────────────────────────
 
 function populateMockupStatusFilter() {
