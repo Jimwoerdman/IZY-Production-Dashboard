@@ -262,7 +262,9 @@ function doGet(e) {
       ? ss.getSheetByName('Sleeves')
       : e.parameter.sheet === 'mockups'
         ? ss.getSheetByName('Mockups')
-        : ss.getSheetByName('Workfile');
+        : e.parameter.sheet === 'stock'
+          ? ss.getSheetByName('Stock')
+          : ss.getSheetByName('Workfile');
 
   // Phone photo poll
   if (e.parameter.photosession) {
@@ -971,6 +973,50 @@ function doPost(e) {
           }
         }
         Logger.log('PrintLog rows deleted for sheetRow=' + rowIndex);
+      }
+    }
+
+    // Deduct from Stock sheet when prints are logged
+    if (sessionQty > 0) {
+      const stockSheet = ss.getSheetByName('Stock');
+      if (stockSheet && stockSheet.getLastRow() > 1) {
+        const stockVals    = stockSheet.getDataRange().getValues();
+        const stockHeaders = stockVals[0].map(h => String(h).trim().toLowerCase());
+        const stTypeCol    = stockHeaders.indexOf('type');
+        const stColorCol   = stockHeaders.indexOf('color');
+        const stQtyCol     = stockHeaders.indexOf('quantity');
+
+        if (stTypeCol >= 0 && stColorCol >= 0 && stQtyCol >= 0) {
+          const bottleColor  = g('bottle color');
+          const lidColor     = g('lid');
+          const soort        = g('soort');
+          const totalDeduct  = sessionQty + (parseInt(data.faultyPrints) || 0);
+
+          const deductStock = (typeName, colorName, amount) => {
+            if (!typeName || !colorName || amount <= 0) return;
+            const tl = typeName.trim().toLowerCase();
+            const cl = colorName.trim().toLowerCase();
+            for (var si = 1; si < stockVals.length; si++) {
+              if (String(stockVals[si][stTypeCol] ?? '').trim().toLowerCase() === tl &&
+                  String(stockVals[si][stColorCol] ?? '').trim().toLowerCase() === cl) {
+                const current = parseInt(stockVals[si][stQtyCol]) || 0;
+                stockSheet.getRange(si + 1, stQtyCol + 1).setValue(Math.max(0, current - amount));
+                Logger.log('Stock deducted: ' + typeName + '/' + colorName + ' -' + amount);
+                break;
+              }
+            }
+          };
+
+          // Deduct product stock
+          deductStock(soort, bottleColor, totalDeduct);
+
+          // Deduct lid stock
+          if (lidColor) {
+            const soortLower = soort.toLowerCase();
+            const lidType = (soortLower.includes('mug') || soortLower.includes('tumbler')) ? 'Mug lids' : 'Bottle lids';
+            deductStock(lidType, lidColor, totalDeduct);
+          }
+        }
       }
     }
 

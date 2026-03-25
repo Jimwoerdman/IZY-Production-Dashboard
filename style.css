@@ -623,6 +623,77 @@ td.cell-ok      { color: var(--green);  font-weight: 600; }
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* ── Stock Tab ── */
+.stock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.stock-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+#stock-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.stock-group {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.stock-group-title {
+  background: var(--navy-light);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.stock-rows {
+  padding: 8px 0;
+}
+.stock-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+.stock-row:last-child { border-bottom: none; }
+.stock-color {
+  flex: 1;
+  color: var(--text);
+  font-weight: 500;
+}
+.stock-qty {
+  font-weight: 700;
+  font-size: 14px;
+  min-width: 40px;
+  text-align: right;
+}
+.stock-qty.ok      { color: var(--green); }
+.stock-qty.warning { color: var(--orange); }
+.stock-qty.danger  { color: var(--red); }
+.stock-levering {
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.loading-msg {
+  color: var(--text-3);
+  font-style: italic;
+  font-size: 14px;
+  padding: 20px 0;
+  grid-column: 1 / -1;
+}
+
 /* ── Footer ── */
 footer {
   text-align: center;

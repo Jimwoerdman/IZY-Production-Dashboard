@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
@@ -68,6 +68,7 @@
   <button class="tab-btn" data-tab="mockups">Mockups</button>
   <button class="tab-btn" data-tab="shipping">Shipping History</button>
   <button class="tab-btn" data-tab="add-job">+ Add Job</button>
+  <button class="tab-btn" data-tab="stock">Stock</button>
   <button class="tab-btn" data-tab="reports" style="margin-left:auto">Reports</button>
 </nav>
 
@@ -366,6 +367,17 @@
         </div>
       </div>
 
+    </div>
+  </section>
+
+  <!-- ─── STOCK ─── -->
+  <section id="tab-stock" class="tab-content">
+    <div class="stock-header">
+      <h2>Inventory</h2>
+      <button class="btn-secondary" onclick="loadStock()">↻ Refresh</button>
+    </div>
+    <div id="stock-content">
+      <div class="loading-msg">Loading stock…</div>
     </div>
   </section>
 
@@ -1112,7 +1124,7 @@
   </div>
 </section>
 
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

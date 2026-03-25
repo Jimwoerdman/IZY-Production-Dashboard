@@ -199,6 +199,7 @@ function activateTab(tabName) {
   if (tabName === 'add-job') populateAddJobOwners();
   if (tabName === 'sleeves') { populateSleeveOwners(); loadSleeves(); }
   if (tabName === 'mockups') loadMockups();
+  if (tabName === 'stock') loadStock();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -2415,6 +2416,62 @@ async function loadShipping() {
   } catch (err) {
     document.getElementById('sh-count').textContent = 'Error';
   }
+}
+
+// ── Stock ──────────────────────────────────────────────────────
+let stockRows = [];
+
+async function loadStock() {
+  const container = document.getElementById('stock-content');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-msg">Loading stock…</div>';
+  try {
+    const raw = await fetch(SCRIPT_URL + '?sheet=stock&t=' + Date.now()).then(r => r.json());
+    stockRows = raw.rows || [];
+    renderStock();
+  } catch (err) {
+    container.innerHTML = '<div class="loading-msg">Error loading stock.</div>';
+  }
+}
+
+function renderStock() {
+  const container = document.getElementById('stock-content');
+  if (!container) return;
+  if (!stockRows.length) { container.innerHTML = '<div class="loading-msg">No stock data found.</div>'; return; }
+
+  // Group by Type
+  const groups = {};
+  stockRows.forEach(r => {
+    const type = r['Type'] || 'Unknown';
+    if (!groups[type]) groups[type] = [];
+    groups[type].push(r);
+  });
+
+  const typeOrder = ['Bottle', 'Mug', 'Travel Bottle', 'Tumbler', 'Bottle lids', 'Mug lids'];
+  const orderedTypes = [...typeOrder.filter(t => groups[t]), ...Object.keys(groups).filter(t => !typeOrder.includes(t))];
+
+  const stockQtyClass = (qty) => {
+    const n = parseInt(qty) || 0;
+    if (n <= 0)  return 'stock-qty danger';
+    if (n < 100) return 'stock-qty warning';
+    return 'stock-qty ok';
+  };
+
+  container.innerHTML = orderedTypes.map(type => {
+    const rows = groups[type];
+    const rowsHtml = rows.map(r => {
+      const qty = parseInt(r['Quantity']) || 0;
+      return `<div class="stock-row">
+        <span class="stock-color">${r['Color'] || '—'}</span>
+        <span class="${stockQtyClass(qty)}">${qty}</span>
+        ${r['Levering'] ? `<span class="stock-levering">${r['Levering']}</span>` : ''}
+      </div>`;
+    }).join('');
+    return `<div class="stock-group">
+      <div class="stock-group-title">${type}</div>
+      <div class="stock-rows">${rowsHtml}</div>
+    </div>`;
+  }).join('');
 }
 
 async function refreshData() {
