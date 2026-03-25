@@ -2739,6 +2739,7 @@ async function submitPrintUpdate() {
       priority:        get(modalJob,'Priority'),
       soort:           get(modalJob,'Soort'),
       quantityPrinted: printed,
+      sessionPrinted:  sessionPrinted, // just this session — for the PrintLog
       faultyPrints:    faulty,
       printer:         printer,
       ...(autoStatus ? { status: autoStatus } : {}),

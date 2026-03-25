@@ -927,7 +927,8 @@ function doPost(e) {
       sheet.getRange(rowIndex, quantityPrintedCol + 1).setValue(data.quantityPrinted);
 
       // Append a log entry so we can track prints over time
-      if (data.quantityPrinted > 0) {
+      const sessionQty = parseInt(data.sessionPrinted);
+      if (sessionQty > 0) {
         const rowData = values[rowIndex - 1]; // 0-based
         const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
         let logSheet = ss.getSheetByName('PrintLog');
@@ -941,7 +942,7 @@ function doPost(e) {
           g('name_print') || g('print'),
           g('owner'),
           g('soort'),
-          parseInt(data.quantityPrinted),
+          sessionQty,
           g('priority'),
           data.changedBy || ''
         ]);
