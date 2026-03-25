@@ -481,10 +481,18 @@ document.querySelectorAll('#all-jobs-table thead th[data-sort]').forEach(th => {
   });
 });
 
-document.getElementById('overview-period').addEventListener('change', () => {
+document.getElementById('overview-period').addEventListener('change', function() {
+  document.getElementById('overview-custom-range').style.display = this.value === 'custom' ? 'inline-flex' : 'none';
   const overviewRows = getOverviewRows();
   renderStats(overviewRows);
   renderCharts(overviewRows);
+});
+['overview-date-from','overview-date-to'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    const overviewRows = getOverviewRows();
+    renderStats(overviewRows);
+    renderCharts(overviewRows);
+  });
 });
 
 ['aj-search','aj-status','aj-owner','aj-color','aj-sleeve','aj-type','aj-date-field','aj-period','aj-date-from','aj-date-to','aj-only-active','aj-only-faulty'].forEach(id => {
@@ -2260,7 +2268,33 @@ function loadMainCache() {
 function getOverviewRows() {
   const period = document.getElementById('overview-period')?.value || 'all';
   if (period === 'all') return allRows;
-  const now = new Date();
+
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (period === 'today') {
+    const end = new Date(today.getTime() + 86399999);
+    return allRows.filter(r => { const d = parseDate(get(r,'Date added')); return d && d >= today && d <= end; });
+  }
+  if (period === 'yesterday') {
+    const yStart = new Date(today); yStart.setDate(today.getDate() - 1);
+    const yEnd   = new Date(yStart.getTime() + 86399999);
+    return allRows.filter(r => { const d = parseDate(get(r,'Date added')); return d && d >= yStart && d <= yEnd; });
+  }
+  if (period === 'custom') {
+    const from = document.getElementById('overview-date-from')?.value;
+    const to   = document.getElementById('overview-date-to')?.value;
+    const f = from ? new Date(from) : null;
+    const t = to   ? new Date(to + 'T23:59:59') : null;
+    return allRows.filter(r => {
+      const d = parseDate(get(r,'Date added'));
+      if (!d) return false;
+      if (f && d < f) return false;
+      if (t && d > t) return false;
+      return true;
+    });
+  }
+
   const cutoff = new Date();
   if (period === 'week')    cutoff.setDate(now.getDate() - 7);
   if (period === 'month')   cutoff.setMonth(now.getMonth() - 1);
