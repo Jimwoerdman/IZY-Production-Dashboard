@@ -611,6 +611,10 @@ function doPost(e) {
       set('status',   data.status || 'To Sleeve');
       set('owner',    data.owner    || '');
       set('deadline', data.deadline || '');
+      const svBottleIdx = svHeaders.findIndex(h => h.toLowerCase() === 'bottle color');
+      if (svBottleIdx >= 0) vals[svBottleIdx] = data.bottleColor || '';
+      const svLidIdx = svHeaders.findIndex(h => h.toLowerCase() === 'lid');
+      if (svLidIdx >= 0) vals[svLidIdx] = data.lidColor || '';
       set('notes',    data.notes    || '');
       set('changed',  data.changedBy || '');
 
@@ -713,6 +717,10 @@ function doPost(e) {
       set('status',   data.status || 'To make');
       set('owner',    data.owner    || '');
       set('deadline', data.deadline || '');
+      const mkBottleIdx = mkHeaders.findIndex(h => h.toLowerCase() === 'bottle color');
+      if (mkBottleIdx >= 0) vals[mkBottleIdx] = data.bottleColor || '';
+      const mkLidIdx = mkHeaders.findIndex(h => h.toLowerCase() === 'lid');
+      if (mkLidIdx >= 0) vals[mkLidIdx] = data.lidColor || '';
       set('notes',    data.notes    || '');
       set('changed',  data.changedBy || '');
 

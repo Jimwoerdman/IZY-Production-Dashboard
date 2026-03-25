@@ -1682,9 +1682,11 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   const company   = document.getElementById('sv-company').value.trim();
   const printName = document.getElementById('sv-print-name').value.trim();
   const quantity  = document.getElementById('sv-quantity').value;
-  const deadline  = document.getElementById('sv-deadline').value;
-  const owner     = document.getElementById('sv-owner').value;
-  const notes     = document.getElementById('sv-notes').value.trim();
+  const deadline     = document.getElementById('sv-deadline').value;
+  const owner        = document.getElementById('sv-owner').value;
+  const bottleColor  = document.getElementById('sv-bottle-color').value.trim();
+  const lidColor     = document.getElementById('sv-lid-color').value.trim();
+  const notes        = document.getElementById('sv-notes').value.trim();
   const fileInput = document.getElementById('sv-file');
   const statusEl  = document.getElementById('sv-form-status');
 
@@ -1718,7 +1720,7 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
         action:    'add_sleeve_job',
         soort, company, printName,
         quantity:  parseInt(quantity),
-        deadline, owner, notes,
+        deadline, owner, bottleColor, lidColor, notes,
         sleeveFileBase64, sleeveFileMime, sleeveFileName,
         changedBy: currentUser?.email,
       }),
@@ -1765,9 +1767,11 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
   const company   = document.getElementById('mk-company').value.trim();
   const printName = document.getElementById('mk-print-name').value.trim();
   const quantity  = document.getElementById('mk-quantity').value;
-  const deadline  = document.getElementById('mk-deadline').value;
-  const owner     = document.getElementById('mk-form-owner').value;
-  const notes     = document.getElementById('mk-notes').value.trim();
+  const deadline     = document.getElementById('mk-deadline').value;
+  const owner        = document.getElementById('mk-form-owner').value;
+  const bottleColor  = document.getElementById('mk-bottle-color').value.trim();
+  const lidColor     = document.getElementById('mk-lid-color').value.trim();
+  const notes        = document.getElementById('mk-notes').value.trim();
   const fileInput = document.getElementById('mk-file');
   const statusEl  = document.getElementById('mk-form-status');
 
@@ -1801,7 +1805,7 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
         action:    'add_mockup_job',
         soort, company, printName,
         quantity:  quantity ? parseInt(quantity) : '',
-        deadline, owner, notes,
+        deadline, owner, bottleColor, lidColor, notes,
         mockupFileBase64, mockupFileMime, mockupFileName,
         changedBy: currentUser?.email,
       }),
