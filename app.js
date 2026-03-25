@@ -1697,7 +1697,7 @@ async function postWithProgress(url, body, onProgress) {
 document.getElementById('sv-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('sv-soort').value;
   const company   = document.getElementById('sv-company').value.trim();
-  const printName = document.getElementById('sv-print-name').value.trim();
+  const printName = '';
   const quantity  = document.getElementById('sv-quantity').value;
   const deadline     = document.getElementById('sv-deadline').value;
   const owner        = document.getElementById('sv-owner').value;
@@ -1924,7 +1924,7 @@ if (document.getElementById('mk-files-list')) addMkFileRow();
 document.getElementById('mk-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('mk-soort').value;
   const company   = document.getElementById('mk-company').value.trim();
-  const printName = document.getElementById('mk-print-name').value.trim();
+  const printName = '';
   const quantity  = document.getElementById('mk-quantity').value;
   const deadline     = document.getElementById('mk-deadline').value;
   const owner        = document.getElementById('mk-form-owner').value;
