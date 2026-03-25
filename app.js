@@ -1656,8 +1656,8 @@ function addSvFileRow() {
   row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
   container.appendChild(row);
 }
-document.getElementById('sv-add-file').addEventListener('click', addSvFileRow);
-addSvFileRow();
+document.getElementById('sv-add-file')?.addEventListener('click', addSvFileRow);
+if (document.getElementById('sv-files-list')) addSvFileRow();
 
 function readFileAsBase64(file, onProgress) {
   return new Promise((resolve, reject) => {
@@ -1872,8 +1872,8 @@ function addMkFileRow() {
   row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
   container.appendChild(row);
 }
-document.getElementById('mk-add-file').addEventListener('click', addMkFileRow);
-addMkFileRow();
+document.getElementById('mk-add-file')?.addEventListener('click', addMkFileRow);
+if (document.getElementById('mk-files-list')) addMkFileRow();
 
 document.getElementById('mk-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('mk-soort').value;
