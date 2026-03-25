@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
@@ -66,7 +66,8 @@
   <button class="tab-btn" data-tab="sleeves">Sleeves</button>
   <button class="tab-btn" data-tab="mockups">Mockups</button>
   <button class="tab-btn" data-tab="add-job">+ Add Job</button>
-  <button class="tab-btn" data-tab="overview" style="margin-left:auto">Overview</button>
+  <button class="tab-btn" data-tab="calendar" style="margin-left:auto">Calendar</button>
+  <button class="tab-btn" data-tab="overview">Overview</button>
   <button class="tab-btn" data-tab="shipping">Shipping</button>
   <button class="tab-btn" data-tab="stock">Stock</button>
   <button class="tab-btn" data-tab="reports">Reports</button>
@@ -369,6 +370,65 @@
 
     </div>
   </section>
+
+  <!-- ─── CALENDAR ─── -->
+  <section id="tab-calendar" class="tab-content">
+    <div class="cal-toolbar">
+      <div class="cal-nav">
+        <button class="btn-secondary cal-nav-btn" onclick="calNav(-1)">← Prev</button>
+        <button class="btn-secondary cal-nav-btn" onclick="calNav(0)">Today</button>
+        <button class="btn-secondary cal-nav-btn" onclick="calNav(1)">Next →</button>
+      </div>
+      <div id="cal-week-label" class="cal-week-label"></div>
+      <div class="cal-summary-strip" id="cal-summary"></div>
+    </div>
+    <div id="cal-week-grid" class="cal-week-grid"></div>
+  </section>
+
+  <!-- ─── CALENDAR EDIT MODAL ─── -->
+  <div id="cal-edit-overlay" style="display:none;">
+    <div id="cal-edit-modal" class="modal">
+      <div class="modal-header">
+        <span class="logo" style="font-size:16px;padding:4px 8px;">IZY</span>
+        <h2 id="cal-edit-title">Edit Day</h2>
+        <button class="modal-close" onclick="closeCalendarEdit()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="cal-edit-form" onsubmit="return false;">
+          <div class="form-group">
+            <label>Who is working</label>
+            <input type="text" id="cal-who" list="cal-who-list" placeholder="Name or leave empty" autocomplete="off" />
+            <datalist id="cal-who-list"></datalist>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Start time</label>
+              <input type="time" id="cal-start" />
+            </div>
+            <div class="form-group">
+              <label>End time</label>
+              <input type="time" id="cal-end" />
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Hours to print</label>
+              <input type="number" id="cal-hours-print" min="0" step="0.5" placeholder="e.g. 6" />
+            </div>
+            <div class="form-group">
+              <label>Expected products</label>
+              <input type="number" id="cal-expected" min="0" step="1" placeholder="e.g. 80" />
+            </div>
+          </div>
+          <div id="cal-edit-status" class="form-status" style="display:none;"></div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="closeCalendarEdit()">Cancel</button>
+            <button type="button" id="cal-edit-submit" class="btn-primary" onclick="submitCalendarEdit()">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- ─── STOCK ─── -->
   <section id="tab-stock" class="tab-content">
@@ -1167,7 +1227,7 @@
   </div>
 </section>
 
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

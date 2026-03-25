@@ -200,6 +200,7 @@ function activateTab(tabName) {
   if (tabName === 'sleeves') { populateSleeveOwners(); loadSleeves(); }
   if (tabName === 'mockups') loadMockups();
   if (tabName === 'stock') loadStock();
+  if (tabName === 'calendar') loadCalendar();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -2415,6 +2416,211 @@ async function loadShipping() {
     renderReview();
   } catch (err) {
     document.getElementById('sh-count').textContent = 'Error';
+  }
+}
+
+// ── Calendar ───────────────────────────────────────────────────
+let calendarData   = [];   // raw rows from Calendar sheet
+let calWeekOffset  = 0;    // 0 = current week, -1 = prev, +1 = next
+let calEditRow     = null; // row being edited
+
+const WORKER_COLORS = ['#3b82f6','#ec4899','#22c55e','#f97316','#a855f7','#eab308','#14b8a6'];
+const workerColor = (() => {
+  const map = {};
+  let idx = 0;
+  return (name) => {
+    if (!name) return '#94a3b8';
+    if (!map[name]) map[name] = WORKER_COLORS[idx++ % WORKER_COLORS.length];
+    return map[name];
+  };
+})();
+
+async function loadCalendar() {
+  const grid = document.getElementById('cal-week-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--text-3);font-style:italic;padding:20px 0;">Loading calendar…</div>';
+  try {
+    const raw = await fetch(SCRIPT_URL + '?sheet=calendar&raw=1&t=' + Date.now()).then(r => r.json());
+    const rows = raw.raw || [];
+    // Find header row
+    let hdrIdx = rows.findIndex(r => String(r[0]).toLowerCase().trim() === 'date' && String(r[2]).toLowerCase().trim() === 'who');
+    if (hdrIdx < 0) { grid.innerHTML = '<div style="color:var(--red)">Could not read Calendar sheet headers.</div>'; return; }
+    const hdr = rows[hdrIdx].map(h => String(h).trim().toLowerCase());
+    const ci  = (kw) => hdr.findIndex(h => h.includes(kw));
+    const cols = {
+      date: ci('date'), day: ci('day'), who: ci('who'),
+      start: ci('start'), end: ci('end'), hoursTotal: ci('hours total'),
+      hoursPrint: ci('hours to print'), expected: ci('expected'),
+    };
+    // Parse data rows (skip header rows and blank rows)
+    calendarData = [];
+    for (let i = hdrIdx + 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[cols.date]) continue;
+      const dateVal = r[cols.date];
+      if (String(dateVal).toLowerCase().trim() === 'date') continue; // repeated header
+      const dateObj = new Date(dateVal);
+      if (isNaN(dateObj)) continue;
+      // Normalise to midnight local time (dates in sheet are 23:00 UTC = midnight Belgium)
+      const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      calendarData.push({
+        _sheetRow:    hdrIdx + 1 + i, // approximate; use actual row index
+        _row:         i + 1,          // 1-based sheet row
+        date:         d,
+        day:          String(r[cols.day] ?? ''),
+        who:          String(r[cols.who] ?? '').trim(),
+        startTime:    String(r[cols.start] ?? '').trim(),
+        endTime:      String(r[cols.end]   ?? '').trim(),
+        hoursTotal:   parseFloat(r[cols.hoursTotal]) || 0,
+        hoursPrint:   parseFloat(r[cols.hoursPrint]) || 0,
+        expected:     parseInt(r[cols.expected])    || 0,
+      });
+    }
+    // Populate worker autocomplete from existing "who" values
+    const workers = [...new Set(calendarData.map(r => r.who).filter(Boolean))].sort();
+    const dl = document.getElementById('cal-who-list');
+    if (dl) dl.innerHTML = workers.map(w => `<option value="${w}">`).join('');
+
+    renderCalendar();
+  } catch(err) {
+    grid.innerHTML = '<div style="color:var(--red)">Error loading calendar.</div>';
+  }
+}
+
+function getWeekDays(weekOffset) {
+  const now   = new Date();
+  const day   = now.getDay(); // 0=Sun
+  const mon   = new Date(now);
+  mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + weekOffset * 7);
+  mon.setHours(0, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    return d;
+  });
+}
+
+function renderCalendar() {
+  const grid    = document.getElementById('cal-week-grid');
+  const label   = document.getElementById('cal-week-label');
+  const summary = document.getElementById('cal-summary');
+  if (!grid) return;
+
+  const days     = getWeekDays(calWeekOffset);
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const fmt      = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const fmtFull  = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  label.textContent = `${fmt(days[0])} – ${fmt(days[6])} ${days[0].getFullYear()}`;
+
+  // Week totals
+  const weekEntries = days.map(d => calendarData.find(r => r.date.toDateString() === d.toDateString()));
+  const totalHours    = weekEntries.reduce((s, r) => s + (r?.hoursTotal || 0), 0);
+  const totalExpected = weekEntries.reduce((s, r) => s + (r?.expected   || 0), 0);
+  const workers       = [...new Set(weekEntries.map(r => r?.who).filter(Boolean))];
+  summary.innerHTML = [
+    `<span class="cal-summary-stat"><strong>${totalHours.toFixed(1)}h</strong> this week</span>`,
+    totalExpected ? `<span class="cal-summary-stat"><strong>${totalExpected}</strong> expected products</span>` : '',
+    workers.length ? `<span class="cal-summary-stat"><strong>${workers.join(', ')}</strong></span>` : '',
+  ].filter(Boolean).join('<span style="color:var(--border)">|</span>');
+
+  grid.innerHTML = days.map((d, i) => {
+    const entry   = weekEntries[i];
+    const isToday = d.toDateString() === today.toDateString();
+    const isPast  = d < today;
+    const isWeekend = i >= 5;
+    const classes = ['cal-day-card', isToday ? 'today' : '', isPast && !isToday ? 'past' : '', isWeekend ? 'weekend' : ''].filter(Boolean).join(' ');
+
+    let body = `<div class="cal-day-empty">No schedule</div>`;
+    if (entry?.who || entry?.hoursTotal > 0) {
+      const wc = workerColor(entry.who);
+      body = `
+        ${entry.who ? `<div class="cal-who"><span class="cal-who-dot" style="background:${wc}"></span>${entry.who}</div>` : ''}
+        ${entry.startTime && entry.endTime ? `<div class="cal-hours">🕐 ${entry.startTime} – ${entry.endTime}</div>` : ''}
+        ${entry.hoursTotal > 0 ? `<div class="cal-hours">${entry.hoursTotal}h total${entry.hoursPrint > 0 ? `, ${entry.hoursPrint}h printing` : ''}</div>` : ''}
+        ${entry.expected > 0 ? `<div class="cal-expected">~${entry.expected} products</div>` : ''}`;
+    }
+
+    const rowRef = JSON.stringify({ sheetRow: entry?._row, date: fmtFull(d) });
+    return `<div class="${classes}" onclick='openCalendarEdit(${rowRef.replace(/'/g,"&#39;")}, ${JSON.stringify(entry || {})})'>
+      <div class="cal-day-header">
+        <span class="cal-day-name">${DAY_NAMES[i]}</span>
+        <span class="cal-day-date">${d.getDate()}</span>
+      </div>
+      <div class="cal-day-body">${body}</div>
+      <div class="cal-day-footer"><span class="cal-edit-link">✏️ Edit</span></div>
+    </div>`;
+  }).join('');
+}
+
+function calNav(dir) {
+  if (dir === 0) calWeekOffset = 0;
+  else calWeekOffset += dir;
+  renderCalendar();
+}
+
+function openCalendarEdit(ref, entry) {
+  calEditRow = ref;
+  document.getElementById('cal-edit-title').textContent = ref.date || 'Edit Day';
+  document.getElementById('cal-who').value          = entry.who        || '';
+  document.getElementById('cal-start').value        = entry.startTime  || '';
+  document.getElementById('cal-end').value          = entry.endTime    || '';
+  document.getElementById('cal-hours-print').value  = entry.hoursPrint > 0 ? entry.hoursPrint : '';
+  document.getElementById('cal-expected').value     = entry.expected   > 0 ? entry.expected   : '';
+  const st = document.getElementById('cal-edit-status');
+  st.style.display = 'none'; st.textContent = '';
+  document.getElementById('cal-edit-submit').disabled = false;
+  document.getElementById('cal-edit-overlay').style.display = 'flex';
+}
+
+function closeCalendarEdit() {
+  document.getElementById('cal-edit-overlay').style.display = 'none';
+}
+
+document.getElementById('cal-edit-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeCalendarEdit();
+});
+
+async function submitCalendarEdit() {
+  const who      = document.getElementById('cal-who').value.trim();
+  const start    = document.getElementById('cal-start').value;
+  const end      = document.getElementById('cal-end').value;
+  const hPrint   = document.getElementById('cal-hours-print').value;
+  const expected = document.getElementById('cal-expected').value;
+  const statusEl = document.getElementById('cal-edit-status');
+  const btn      = document.getElementById('cal-edit-submit');
+
+  if (!calEditRow?.sheetRow) {
+    statusEl.className = 'form-status error'; statusEl.style.display = '';
+    statusEl.textContent = 'Could not identify the sheet row. Try reloading the calendar.';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.style.display = 'none';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify({
+        action: 'update_calendar',
+        sheetRow:        calEditRow.sheetRow,
+        who, startTime:  start, endTime: end,
+        hoursToPrint:    hPrint   || 0,
+        expectedProducts: expected || 0,
+        changedBy:       currentUser?.email,
+      }),
+    });
+    btn.textContent = 'Save';
+    btn.disabled = false;
+    statusEl.className = 'form-status success'; statusEl.style.display = '';
+    statusEl.textContent = 'Saved!';
+    setTimeout(async () => { closeCalendarEdit(); await loadCalendar(); }, 800);
+  } catch(err) {
+    statusEl.className = 'form-status error'; statusEl.style.display = '';
+    statusEl.textContent = 'Error saving. Try again.';
+    btn.disabled = false; btn.textContent = 'Save';
   }
 }
 

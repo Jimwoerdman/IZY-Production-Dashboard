@@ -264,7 +264,15 @@ function doGet(e) {
         ? ss.getSheetByName('Mockups')
         : e.parameter.sheet === 'stock'
           ? ss.getSheetByName('Stock')
-          : ss.getSheetByName('Workfile');
+          : e.parameter.sheet === 'calendar'
+            ? ss.getSheetByName('Calendar')
+            : ss.getSheetByName('Workfile');
+
+  // Raw 2D array dump for sheets with non-standard layouts
+  if (e.parameter.raw === '1' && sheet) {
+    const rawVals = sheet.getDataRange().getValues();
+    return respond({ raw: rawVals });
+  }
 
   // Phone photo poll
   if (e.parameter.photosession) {
@@ -959,6 +967,54 @@ function doPost(e) {
         }
       }
       if (!matched) return respond({ error: 'No Stock row found for ' + data.type + ' / ' + data.color });
+      return respond({ success: true });
+    }
+
+    // Update calendar day
+    if (data.action === 'update_calendar') {
+      const calSheet = ss.getSheetByName('Calendar');
+      if (!calSheet) return respond({ error: 'Calendar sheet not found' });
+      const rowIdx = parseInt(data.sheetRow);
+      if (rowIdx < 2) return respond({ error: 'Invalid row' });
+
+      // Find the header row to locate column indices
+      const calVals = calSheet.getDataRange().getValues();
+      let hdr = null;
+      for (var hi = 0; hi < calVals.length; hi++) {
+        const r = calVals[hi];
+        if (String(r[0]).toLowerCase().trim() === 'date' && String(r[2]).toLowerCase().trim() === 'who') {
+          hdr = r.map(h => String(h).trim().toLowerCase());
+          break;
+        }
+      }
+      if (!hdr) return respond({ error: 'Header row not found in Calendar sheet' });
+
+      const col = (kw) => hdr.findIndex(h => h.includes(kw)) + 1; // 1-based
+      const whoCol      = col('who');
+      const startCol    = col('start');
+      const endCol      = col('end');
+      const hoursTotCol = col('hours total');
+      const hoursPrtCol = col('hours to print');
+      const expectedCol = col('expected');
+
+      if (whoCol > 0)      calSheet.getRange(rowIdx, whoCol).setValue(data.who || '');
+      if (startCol > 0)    calSheet.getRange(rowIdx, startCol).setValue(data.startTime || '');
+      if (endCol > 0)      calSheet.getRange(rowIdx, endCol).setValue(data.endTime || '');
+      if (hoursPrtCol > 0) calSheet.getRange(rowIdx, hoursPrtCol).setValue(parseFloat(data.hoursToPrint) || 0);
+      if (expectedCol > 0) calSheet.getRange(rowIdx, expectedCol).setValue(parseInt(data.expectedProducts) || 0);
+
+      // Auto-compute Hours Total from start/end
+      if (hoursTotCol > 0) {
+        if (data.startTime && data.endTime) {
+          try {
+            const [sh, sm] = data.startTime.split(':').map(Number);
+            const [eh, em] = data.endTime.split(':').map(Number);
+            calSheet.getRange(rowIdx, hoursTotCol).setValue(Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / 60));
+          } catch(e) { calSheet.getRange(rowIdx, hoursTotCol).setValue(0); }
+        } else {
+          calSheet.getRange(rowIdx, hoursTotCol).setValue(0);
+        }
+      }
       return respond({ success: true });
     }
 
