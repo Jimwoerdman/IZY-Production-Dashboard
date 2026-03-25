@@ -146,14 +146,16 @@ function badge(status) {
   const s = (status || '').toLowerCase();
   if (s === 'shipped')          return `<span class="badge b-shipped">Shipped</span>`;
   if (s === 'to print')         return `<span class="badge b-to-print">To Print</span>`;
-  if (s === 'to sleeve')        return `<span class="badge b-to-print">To Sleeve</span>`;
-  if (s === 'to make')          return `<span class="badge b-to-print">To make</span>`;
-  if (s === 'changes needed')   return `<span class="badge b-waiting">Changes needed</span>`;
-  if (s === 'ordered')          return `<span class="badge b-progress">Ordered</span>`;
-  if (s === 'waiting')          return `<span class="badge b-waiting">Waiting</span>`;
-  if (s.includes('progress'))   return `<span class="badge b-progress">In Progress</span>`;
-  if (s === 'ready to ship')    return `<span class="badge b-ready-ship">Ready to Ship</span>`;
-  if (s === 'done')             return `<span class="badge b-shipped">Done</span>`;
+  if (s === 'to sleeve')           return `<span class="badge b-to-print">To Sleeve</span>`;
+  if (s === 'to make')             return `<span class="badge b-to-print">To make</span>`;
+  if (s === 'made')                return `<span class="badge b-progress">Made</span>`;
+  if (s === 'feedback/revisions')  return `<span class="badge b-waiting">Feedback/revisions</span>`;
+  if (s === 'waiting')             return `<span class="badge b-waiting">Waiting</span>`;
+  if (s === 'ordered')             return `<span class="badge b-progress">Ordered</span>`;
+  if (s === 'finished')            return `<span class="badge b-shipped">Finished</span>`;
+  if (s.includes('progress'))      return `<span class="badge b-progress">In Progress</span>`;
+  if (s === 'ready to ship')       return `<span class="badge b-ready-ship">Ready to Ship</span>`;
+  if (s === 'done')                return `<span class="badge b-shipped">Done</span>`;
   if (!status)                  return '';
   return `<span class="badge b-default">${status}</span>`;
 }
