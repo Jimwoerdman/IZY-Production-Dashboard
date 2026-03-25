@@ -1313,6 +1313,7 @@ function renderSleeves() {
           </div>
           ${badge(get(r,'Status'))}
         </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
         ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
         <div class="aq-meta">
           ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
@@ -1331,7 +1332,6 @@ function renderSleeves() {
       const row = `<tr class="${isDone ? 'row-shipped' : ''}">
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
@@ -1355,7 +1355,7 @@ function renderSleeves() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead><tr>
-              <th>#</th><th>Company</th><th>Product</th><th>Status</th>
+              <th>#</th><th>Company</th><th>Status</th>
               <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
