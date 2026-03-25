@@ -509,103 +509,6 @@
       <button onclick="refreshMockups()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;color:var(--text-2);cursor:pointer;">↻ Refresh</button>
     </div>
 
-    <!-- Inline add-mockup form -->
-    <div id="add-mockup-form-wrap" style="display:none;">
-      <div class="add-job-card" style="margin-bottom:24px;">
-        <div class="add-job-header">
-          <div class="add-job-header-icon">🎨</div>
-          <div>
-            <div class="add-job-title">New Mockup Job</div>
-            <div class="add-job-subtitle">Add a job to the Mockup Queue</div>
-          </div>
-        </div>
-        <form id="add-mockup-form" onsubmit="return false;">
-          <div class="form-section">
-            <div class="form-grid form-grid-3">
-              <div class="form-group">
-                <label>Product Type <span class="req">*</span></label>
-                <select id="mk-soort" required>
-                  <option value="">Select type…</option>
-                  <option value="Bottle">Bottle</option>
-                  <option value="Mug">Mug</option>
-                  <option value="Travel Bottle">Travel Bottle</option>
-                  <option value="Tumbler">Tumbler</option>
-                  <option value="Sample Bottle">Sample Bottle</option>
-                  <option value="Sample Mug">Sample Mug</option>
-                  <option value="Sample Travel Bottle">Sample Travel Bottle</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Owner</label>
-                <select id="mk-form-owner"><option value="">Select owner…</option></select>
-              </div>
-              <div class="form-group">
-                <label>Quantity</label>
-                <input type="number" id="mk-quantity" min="1" placeholder="e.g. 100" />
-              </div>
-            </div>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label>Company <span class="req">*</span></label>
-                <input type="text" id="mk-company" required placeholder="Company name" />
-              </div>
-              <div class="form-group">
-                <label>Product Name <span class="req">*</span></label>
-                <input type="text" id="mk-print-name" required placeholder="Product / print name" />
-              </div>
-            </div>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label>Bottle Color</label>
-                <select id="mk-bottle-color">
-                  <option value="">Select color…</option>
-                  <option>White</option><option>Black</option><option>Gray</option>
-                  <option>Light Blue</option><option>Blue</option><option>Green</option>
-                  <option>Red</option><option>Orange</option><option>Yellow</option>
-                  <option>Pink</option><option>Silver</option><option>Gold</option>
-                  <option>Nvt</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Lid Color</label>
-                <select id="mk-lid-color">
-                  <option value="">Select color…</option>
-                  <option>White</option><option>Black</option><option>Gray</option>
-                  <option>Light Blue</option><option>Blue</option><option>Green</option>
-                  <option>Red</option><option>Orange</option><option>Yellow</option>
-                  <option>Pink</option><option>Silver</option><option>Gold</option>
-                  <option>Nvt</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label>Deadline</label>
-                <input type="date" id="mk-deadline" />
-              </div>
-            </div>
-            <div class="form-grid form-grid-1">
-              <div class="form-group">
-                <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI, image…)</span></label>
-                <div id="mk-files-list"></div>
-                <button type="button" id="mk-add-file" class="btn-add-file">+ Add file</button>
-              </div>
-            </div>
-          </div>
-          <div class="form-section">
-            <div class="form-section-label">Notes</div>
-            <div class="form-group">
-              <textarea id="mk-notes" rows="2" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="mk-submit" class="btn-nj-submit">Add Mockup Job</button>
-            <span id="mk-form-status" class="form-status"></span>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <div class="filters-bar">
       <input type="text" id="mk-search" placeholder="Search company or product..." />
       <select id="mk-status"><option value="">All Statuses</option></select>
@@ -622,103 +525,6 @@
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
       <button class="btn-add-sv" onclick="toggleAddSleeveForm()">+ Add Sleeve Job</button>
       <button onclick="refreshSleeves()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;color:var(--text-2);cursor:pointer;">↻ Refresh</button>
-    </div>
-
-    <!-- Inline add-sleeve form -->
-    <div id="add-sleeve-form-wrap" style="display:none;">
-      <div class="add-job-card" style="margin-bottom:24px;">
-        <div class="add-job-header">
-          <div class="add-job-header-icon">🧴</div>
-          <div>
-            <div class="add-job-title">New Sleeve Job</div>
-            <div class="add-job-subtitle">Add a job to the Sleeve Queue</div>
-          </div>
-        </div>
-        <form id="add-sleeve-form" onsubmit="return false;">
-          <div class="form-section">
-            <div class="form-grid form-grid-3">
-              <div class="form-group">
-                <label>Product Type <span class="req">*</span></label>
-                <select id="sv-soort" required>
-                  <option value="">Select type…</option>
-                  <option value="Bottle">Bottle</option>
-                  <option value="Mug">Mug</option>
-                  <option value="Travel Bottle">Travel Bottle</option>
-                  <option value="Tumbler">Tumbler</option>
-                  <option value="Sample Bottle">Sample Bottle</option>
-                  <option value="Sample Mug">Sample Mug</option>
-                  <option value="Sample Travel Bottle">Sample Travel Bottle</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Owner</label>
-                <select id="sv-owner"><option value="">Select owner…</option></select>
-              </div>
-              <div class="form-group">
-                <label>Quantity <span class="req">*</span></label>
-                <input type="number" id="sv-quantity" required min="1" placeholder="e.g. 100" />
-              </div>
-            </div>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label>Company <span class="req">*</span></label>
-                <input type="text" id="sv-company" required placeholder="Company name" />
-              </div>
-              <div class="form-group">
-                <label>Product Name <span class="req">*</span></label>
-                <input type="text" id="sv-print-name" required placeholder="Product / print name" />
-              </div>
-            </div>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label>Bottle Color</label>
-                <select id="sv-bottle-color">
-                  <option value="">Select color…</option>
-                  <option>White</option><option>Black</option><option>Gray</option>
-                  <option>Light Blue</option><option>Blue</option><option>Green</option>
-                  <option>Red</option><option>Orange</option><option>Yellow</option>
-                  <option>Pink</option><option>Silver</option><option>Gold</option>
-                  <option>Nvt</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Lid Color</label>
-                <select id="sv-lid-color">
-                  <option value="">Select color…</option>
-                  <option>White</option><option>Black</option><option>Gray</option>
-                  <option>Light Blue</option><option>Blue</option><option>Green</option>
-                  <option>Red</option><option>Orange</option><option>Yellow</option>
-                  <option>Pink</option><option>Silver</option><option>Gold</option>
-                  <option>Nvt</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label>Deadline</label>
-                <input type="date" id="sv-deadline" />
-              </div>
-            </div>
-            <div class="form-grid form-grid-1">
-              <div class="form-group">
-                <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI, image…)</span></label>
-                <div id="sv-files-list"></div>
-                <button type="button" id="sv-add-file" class="btn-add-file">+ Add file</button>
-              </div>
-            </div>
-          </div>
-          <div class="form-section">
-            <div class="form-section-label">Notes</div>
-            <div class="form-group">
-              <textarea id="sv-notes" rows="2" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="sv-submit" class="btn-nj-submit">Add Sleeve Job</button>
-            <span id="sv-form-status" class="form-status"></span>
-          </div>
-        </form>
-      </div>
     </div>
 
     <div class="filters-bar">
@@ -780,6 +586,200 @@
         <button class="modal-btn-cancel" onclick="closeModal()">Cancel</button>
         <button class="modal-btn-submit" id="modal-submit" onclick="submitPrintUpdate()">Submit</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADD MOCKUP MODAL ─── -->
+<div id="add-mockup-modal-overlay" style="display:none;">
+  <div id="add-mockup-modal" class="modal">
+    <div class="modal-header">
+      <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
+      <h2>New Mockup Job</h2>
+      <button class="modal-close" onclick="closeAddMockupModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="add-mockup-form" onsubmit="return false;">
+        <div class="form-section">
+          <div class="form-grid form-grid-3">
+            <div class="form-group">
+              <label>Product Type <span class="req">*</span></label>
+              <select id="mk-soort" required>
+                <option value="">Select type…</option>
+                <option value="Bottle">Bottle</option>
+                <option value="Mug">Mug</option>
+                <option value="Travel Bottle">Travel Bottle</option>
+                <option value="Tumbler">Tumbler</option>
+                <option value="Sample Bottle">Sample Bottle</option>
+                <option value="Sample Mug">Sample Mug</option>
+                <option value="Sample Travel Bottle">Sample Travel Bottle</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Owner</label>
+              <select id="mk-form-owner"><option value="">Select owner…</option></select>
+            </div>
+            <div class="form-group">
+              <label>Quantity</label>
+              <input type="number" id="mk-quantity" min="1" placeholder="e.g. 100" />
+            </div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>Company <span class="req">*</span></label>
+              <input type="text" id="mk-company" required placeholder="Company name" />
+            </div>
+            <div class="form-group">
+              <label>Product Name <span class="req">*</span></label>
+              <input type="text" id="mk-print-name" required placeholder="Product / print name" />
+            </div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>Bottle Color</label>
+              <select id="mk-bottle-color">
+                <option value="">Select color…</option>
+                <option>White</option><option>Black</option><option>Gray</option>
+                <option>Light Blue</option><option>Blue</option><option>Green</option>
+                <option>Red</option><option>Orange</option><option>Yellow</option>
+                <option>Pink</option><option>Silver</option><option>Gold</option>
+                <option>Nvt</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Lid Color</label>
+              <select id="mk-lid-color">
+                <option value="">Select color…</option>
+                <option>White</option><option>Black</option><option>Gray</option>
+                <option>Light Blue</option><option>Blue</option><option>Green</option>
+                <option>Red</option><option>Orange</option><option>Yellow</option>
+                <option>Pink</option><option>Silver</option><option>Gold</option>
+                <option>Nvt</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>Deadline</label>
+              <input type="date" id="mk-deadline" />
+            </div>
+          </div>
+          <div class="form-grid form-grid-1">
+            <div class="form-group">
+              <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI, image…)</span></label>
+              <div id="mk-files-list"></div>
+              <button type="button" id="mk-add-file" class="btn-add-file">+ Add file</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Notes</div>
+          <div class="form-group">
+            <textarea id="mk-notes" rows="2" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="mk-submit" class="btn-nj-submit">Add Mockup Job</button>
+          <span id="mk-form-status" class="form-status"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADD SLEEVE MODAL ─── -->
+<div id="add-sleeve-modal-overlay" style="display:none;">
+  <div id="add-sleeve-modal" class="modal">
+    <div class="modal-header">
+      <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
+      <h2>New Sleeve Job</h2>
+      <button class="modal-close" onclick="closeAddSleeveModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="add-sleeve-form" onsubmit="return false;">
+        <div class="form-section">
+          <div class="form-grid form-grid-3">
+            <div class="form-group">
+              <label>Product Type <span class="req">*</span></label>
+              <select id="sv-soort" required>
+                <option value="">Select type…</option>
+                <option value="Bottle">Bottle</option>
+                <option value="Mug">Mug</option>
+                <option value="Travel Bottle">Travel Bottle</option>
+                <option value="Tumbler">Tumbler</option>
+                <option value="Sample Bottle">Sample Bottle</option>
+                <option value="Sample Mug">Sample Mug</option>
+                <option value="Sample Travel Bottle">Sample Travel Bottle</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Owner</label>
+              <select id="sv-owner"><option value="">Select owner…</option></select>
+            </div>
+            <div class="form-group">
+              <label>Quantity <span class="req">*</span></label>
+              <input type="number" id="sv-quantity" required min="1" placeholder="e.g. 100" />
+            </div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>Company <span class="req">*</span></label>
+              <input type="text" id="sv-company" required placeholder="Company name" />
+            </div>
+            <div class="form-group">
+              <label>Product Name <span class="req">*</span></label>
+              <input type="text" id="sv-print-name" required placeholder="Product / print name" />
+            </div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>Bottle Color</label>
+              <select id="sv-bottle-color">
+                <option value="">Select color…</option>
+                <option>White</option><option>Black</option><option>Gray</option>
+                <option>Light Blue</option><option>Blue</option><option>Green</option>
+                <option>Red</option><option>Orange</option><option>Yellow</option>
+                <option>Pink</option><option>Silver</option><option>Gold</option>
+                <option>Nvt</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Lid Color</label>
+              <select id="sv-lid-color">
+                <option value="">Select color…</option>
+                <option>White</option><option>Black</option><option>Gray</option>
+                <option>Light Blue</option><option>Blue</option><option>Green</option>
+                <option>Red</option><option>Orange</option><option>Yellow</option>
+                <option>Pink</option><option>Silver</option><option>Gold</option>
+                <option>Nvt</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label>Deadline</label>
+              <input type="date" id="sv-deadline" />
+            </div>
+          </div>
+          <div class="form-grid form-grid-1">
+            <div class="form-group">
+              <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI, image…)</span></label>
+              <div id="sv-files-list"></div>
+              <button type="button" id="sv-add-file" class="btn-add-file">+ Add file</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-label">Notes</div>
+          <div class="form-group">
+            <textarea id="sv-notes" rows="2" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="sv-submit" class="btn-nj-submit">Add Sleeve Job</button>
+          <span id="sv-form-status" class="form-status"></span>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -1079,7 +1079,7 @@
   </div>
 </section>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=9"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

@@ -527,11 +527,14 @@ function doPost(e) {
       sendJobNotification(
         data.changedBy, data.owner,
         '🆕 Nieuwe print job: ' + (data.company || '') + ' – ' + (data.printName || ''),
-        'Er is een nieuwe print job toegevoegd.\n\nBedrijf: ' + (data.company || '—') +
-        '\nProduct: ' + (data.printName || '—') +
-        '\nType: ' + (data.soort || '—') +
-        '\nAantal: ' + (data.quantity || '—') +
-        '\nDeadline: ' + (data.deadline || '—')
+        [
+          ['Actie',    'Nieuwe print job toegevoegd'],
+          ['Bedrijf',  data.company  || '—'],
+          ['Product',  data.printName || '—'],
+          ['Type',     data.soort    || '—'],
+          ['Aantal',   data.quantity || '—'],
+          ['Deadline', data.deadline || '—']
+        ]
       );
       return respond({ success: true, newRow });
     }
@@ -656,11 +659,14 @@ function doPost(e) {
       sendJobNotification(
         data.changedBy, data.owner,
         '🆕 Nieuwe sleeve job: ' + (data.company || '') + ' – ' + (data.printName || ''),
-        'Er is een nieuwe sleeve job toegevoegd.\n\nBedrijf: ' + (data.company || '—') +
-        '\nProduct: ' + (data.printName || '—') +
-        '\nType: ' + (data.soort || '—') +
-        '\nAantal: ' + (data.quantity || '—') +
-        '\nDeadline: ' + (data.deadline || '—')
+        [
+          ['Actie',    'Nieuwe sleeve job toegevoegd'],
+          ['Bedrijf',  data.company  || '—'],
+          ['Product',  data.printName || '—'],
+          ['Type',     data.soort    || '—'],
+          ['Aantal',   data.quantity || '—'],
+          ['Deadline', data.deadline || '—']
+        ]
       );
       return respond({ success: true, newRow });
     }
@@ -776,11 +782,14 @@ function doPost(e) {
       sendJobNotification(
         data.changedBy, data.owner,
         '🆕 Nieuwe mockup job: ' + (data.company || '') + ' – ' + (data.printName || ''),
-        'Er is een nieuwe mockup job toegevoegd.\n\nBedrijf: ' + (data.company || '—') +
-        '\nProduct: ' + (data.printName || '—') +
-        '\nType: ' + (data.soort || '—') +
-        '\nAantal: ' + (data.quantity || '—') +
-        '\nDeadline: ' + (data.deadline || '—')
+        [
+          ['Actie',    'Nieuwe mockup job toegevoegd'],
+          ['Bedrijf',  data.company  || '—'],
+          ['Product',  data.printName || '—'],
+          ['Type',     data.soort    || '—'],
+          ['Aantal',   data.quantity || '—'],
+          ['Deadline', data.deadline || '—']
+        ]
       );
       return respond({ success: true, newRow });
     }
@@ -826,9 +835,12 @@ function doPost(e) {
       sendJobNotification(
         data.changedBy, data.owner,
         '✏️ Sleeve job gewijzigd: ' + (data.company || ''),
-        'Een sleeve job is aangepast.\n\nBedrijf: ' + (data.company || '—') +
-        '\nType: ' + (data.soort || '—') +
-        '\nDeadline: ' + (data.deadline || '—')
+        [
+          ['Actie',    'Sleeve job aangepast'],
+          ['Bedrijf',  data.company  || '—'],
+          ['Type',     data.soort    || '—'],
+          ['Deadline', data.deadline || '—']
+        ]
       );
       return respond({ success: true });
     }
@@ -874,9 +886,12 @@ function doPost(e) {
       sendJobNotification(
         data.changedBy, data.owner,
         '✏️ Mockup job gewijzigd: ' + (data.company || ''),
-        'Een mockup job is aangepast.\n\nBedrijf: ' + (data.company || '—') +
-        '\nType: ' + (data.soort || '—') +
-        '\nDeadline: ' + (data.deadline || '—')
+        [
+          ['Actie',    'Mockup job aangepast'],
+          ['Bedrijf',  data.company  || '—'],
+          ['Type',     data.soort    || '—'],
+          ['Deadline', data.deadline || '—']
+        ]
       );
       return respond({ success: true });
     }
@@ -964,7 +979,36 @@ const GEERTJAN = 'geertjan@izybottles.com';
 const JIM      = 'jim@izybottles.com';
 const SHARON   = 'sharon@orderchamp.com';
 
-function sendJobNotification(changedBy, owner, subject, body) {
+function buildHtmlEmail(subject, lines, changedBy) {
+  var dashUrl = 'https://jimwoerdman.github.io/IZY-Production-Dashboard/';
+  var rows = lines.map(function(l) {
+    return '<tr><td style="padding:6px 0;color:#6b7a99;font-size:13px;white-space:nowrap;padding-right:16px;">' +
+           l[0] + '</td><td style="padding:6px 0;color:#0f1629;font-size:13px;font-weight:500;">' + l[1] + '</td></tr>';
+  }).join('');
+  return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f0f2f7;font-family:\'Segoe UI\',Arial,sans-serif;">' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f7;padding:32px 16px;">' +
+    '<tr><td align="center">' +
+    '<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">' +
+    // Header
+    '<tr><td style="background:#0f1629;padding:28px 32px;">' +
+    '<div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.5px;">IZY Production Dashboard</div>' +
+    '<div style="color:#8892aa;font-size:13px;margin-top:4px;">Job notificatie</div>' +
+    '</td></tr>' +
+    // Body
+    '<tr><td style="background:#ffffff;padding:28px 32px;">' +
+    '<div style="font-size:16px;font-weight:600;color:#0f1629;margin-bottom:20px;">' + subject + '</div>' +
+    '<table cellpadding="0" cellspacing="0" style="width:100%;border-top:1px solid #e8ebf2;">' + rows + '</table>' +
+    '</td></tr>' +
+    // Footer
+    '<tr><td style="background:#f7f8fb;padding:20px 32px;border-top:1px solid #e8ebf2;">' +
+    '<div style="font-size:12px;color:#6b7a99;margin-bottom:12px;">Gedaan door: <strong style="color:#0f1629;">' + changedBy + '</strong></div>' +
+    '<a href="' + dashUrl + '" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:6px;text-decoration:none;">Bekijk dashboard →</a>' +
+    '</td></tr>' +
+    '</table></td></tr></table>' +
+    '</body></html>';
+}
+
+function sendJobNotification(changedBy, owner, subject, lines) {
   if (!changedBy) return;
   if (changedBy === SHARON) return; // Sharon is volledig uitgesloten
 
@@ -976,13 +1020,18 @@ function sendJobNotification(changedBy, owner, subject, body) {
   // Geertjan's changes always notify Jim
   if (changedBy === GEERTJAN) recipients.add(JIM);
 
+  const htmlBody = buildHtmlEmail(subject, lines, changedBy);
+  const plainBody = lines.map(function(l){ return l[0] + ': ' + l[1]; }).join('\n') +
+                    '\n\nGedaan door: ' + changedBy +
+                    '\n\nDashboard: https://jimwoerdman.github.io/IZY-Production-Dashboard/';
+
   recipients.forEach(function(email) {
     try {
       MailApp.sendEmail({
-        to:      email,
-        subject: subject,
-        body:    body + '\n\nGedaan door: ' + changedBy +
-                 '\n\nDashboard: https://jimwoerdman.github.io/IZY-Production-Dashboard/'
+        to:       email,
+        subject:  subject,
+        body:     plainBody,
+        htmlBody: htmlBody
       });
     } catch(e) { Logger.log('Mail failed to ' + email + ': ' + e.message); }
   });
@@ -990,10 +1039,22 @@ function sendJobNotification(changedBy, owner, subject, body) {
 
 /***** TEST — run this to verify mail notifications work *****/
 function testMail() {
+  var lines = [
+    ['Bedrijf',    'Test Company BV'],
+    ['Actie',      'Nieuwe print job toegevoegd'],
+    ['Job type',   'Bottle'],
+    ['Deadline',   '01/04/2026'],
+    ['Bestelling', '#12345']
+  ];
+  var htmlBody  = buildHtmlEmail('Nieuwe job: Test Company BV', lines, 'geertjan@izybottles.com');
+  var plainBody = lines.map(function(l){ return l[0] + ': ' + l[1]; }).join('\n') +
+                  '\n\nGedaan door: geertjan@izybottles.com' +
+                  '\n\nDashboard: https://jimwoerdman.github.io/IZY-Production-Dashboard/';
   MailApp.sendEmail({
-    to:      'jim@izybottles.com',
-    subject: '🧪 Testmelding IZY Dashboard',
-    body:    'Dit is een testmail om te controleren of notificaties werken.\n\nGedaan door: geertjan@izybottles.com'
+    to:       'jim@izybottles.com',
+    subject:  '🧪 Testmelding IZY Dashboard — Nieuwe job: Test Company BV',
+    body:     plainBody,
+    htmlBody: htmlBody
   });
 }
 

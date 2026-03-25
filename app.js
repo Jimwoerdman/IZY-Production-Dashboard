@@ -1647,10 +1647,14 @@ async function resetSleeveJob(rowIdx) {
 // ── Add Sleeve Job ────────────────────────────────────────────
 
 function toggleAddSleeveForm() {
-  const wrap = document.getElementById('add-sleeve-form-wrap');
-  const isVisible = wrap.style.display !== 'none';
-  wrap.style.display = isVisible ? 'none' : 'block';
-  if (!isVisible) populateSleeveOwners();
+  const overlay = document.getElementById('add-sleeve-modal-overlay');
+  overlay.style.display = 'flex';
+  populateSleeveOwners();
+}
+function closeAddSleeveModal() {
+  document.getElementById('add-sleeve-modal-overlay').style.display = 'none';
+  document.getElementById('sv-files-list').innerHTML = '';
+  addSvFileRow();
 }
 
 // Sleeve add-form: multi-file rows
@@ -1739,9 +1743,7 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
     statusEl.className   = 'form-status success';
     statusEl.textContent = '✓ Sleeve job added!';
     document.getElementById('add-sleeve-form').reset();
-    document.getElementById('sv-files-list').innerHTML = '';
-    addSvFileRow();
-    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    setTimeout(() => { closeAddSleeveModal(); statusEl.textContent = ''; }, 1500);
     sleeveLoaded = false;
     loadSleeves();
   } catch (err) {
@@ -1811,6 +1813,12 @@ function closeEditJobModal() {
 
 document.getElementById('edit-job-modal-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeEditJobModal();
+});
+document.getElementById('add-sleeve-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAddSleeveModal();
+});
+document.getElementById('add-mockup-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAddMockupModal();
 });
 
 async function submitEditJob() {
@@ -1891,10 +1899,14 @@ function populateMockupOwners() {
 }
 
 function toggleAddMockupForm() {
-  const wrap = document.getElementById('add-mockup-form-wrap');
-  const isVisible = wrap.style.display !== 'none';
-  wrap.style.display = isVisible ? 'none' : 'block';
-  if (!isVisible) populateMockupOwners();
+  const overlay = document.getElementById('add-mockup-modal-overlay');
+  overlay.style.display = 'flex';
+  populateMockupOwners();
+}
+function closeAddMockupModal() {
+  document.getElementById('add-mockup-modal-overlay').style.display = 'none';
+  document.getElementById('mk-files-list').innerHTML = '';
+  addMkFileRow();
 }
 
 // Mockup add-form: multi-file rows
@@ -1958,9 +1970,7 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
     statusEl.className   = 'form-status success';
     statusEl.textContent = '✓ Mockup job added!';
     document.getElementById('add-mockup-form').reset();
-    document.getElementById('mk-files-list').innerHTML = '';
-    addMkFileRow();
-    setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    setTimeout(() => { closeAddMockupModal(); statusEl.textContent = ''; }, 1500);
     mockupLoaded = false;
     loadMockups();
   } catch (err) {
