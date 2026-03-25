@@ -15,6 +15,7 @@ const ALLOWED_EMAILS = [
   'biessenlevi@gmail.com',
   'sharon@orderchamp.com',
   'ivan@izybottles.com',
+  'geertjan@izybottles.com',
 ];
 
 // Emails that only see the Active Queue tab
@@ -627,7 +628,7 @@ function renderActiveQueue() {
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
           <table>
-            <thead style="background:${c.text};background-image:none;"><tr>
+            <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
               <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
               <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
               <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
