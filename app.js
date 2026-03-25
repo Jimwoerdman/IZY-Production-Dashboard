@@ -2513,58 +2513,89 @@ function getWeekDays(weekOffset) {
   });
 }
 
+// Store entries indexed for onclick access (avoids JSON-in-HTML escaping issues)
+const _calEntryMap = {};
+
 function renderCalendar() {
   const grid    = document.getElementById('cal-week-grid');
   const label   = document.getElementById('cal-week-label');
   const summary = document.getElementById('cal-summary');
   if (!grid) return;
 
-  const days     = getWeekDays(calWeekOffset);
-  const today    = new Date(); today.setHours(0,0,0,0);
-  const fmt      = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  const fmtFull  = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const days      = getWeekDays(calWeekOffset);
+  const today     = new Date(); today.setHours(0,0,0,0);
+  const fmt       = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const fmtFull   = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
   label.textContent = `${fmt(days[0])} – ${fmt(days[6])} ${days[0].getFullYear()}`;
 
-  // Week totals
-  const weekEntries = days.map(d => calendarData.find(r => r.date.toDateString() === d.toDateString()));
-  const totalHours    = weekEntries.reduce((s, r) => s + (r?.hoursTotal || 0), 0);
-  const totalExpected = weekEntries.reduce((s, r) => s + (r?.expected   || 0), 0);
-  const workers       = [...new Set(weekEntries.map(r => r?.who).filter(Boolean))];
+  // Group all entries by date string
+  const byDate = {};
+  calendarData.forEach(r => {
+    const key = r.date.toDateString();
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(r);
+  });
+
+  // Week totals (all entries for all days)
+  const allWeekEntries = days.flatMap(d => byDate[d.toDateString()] || []);
+  const totalHours     = allWeekEntries.reduce((s, r) => s + r.hoursTotal, 0);
+  const totalExpected  = allWeekEntries.reduce((s, r) => s + r.expected,   0);
+  const workers        = [...new Set(allWeekEntries.map(r => r.who).filter(Boolean))];
   summary.innerHTML = [
     `<span class="cal-summary-stat"><strong>${totalHours.toFixed(1)}h</strong> this week</span>`,
     totalExpected ? `<span class="cal-summary-stat"><strong>${totalExpected}</strong> expected products</span>` : '',
     workers.length ? `<span class="cal-summary-stat"><strong>${workers.join(', ')}</strong></span>` : '',
   ].filter(Boolean).join('<span style="color:var(--border)">|</span>');
 
-  grid.innerHTML = days.map((d, i) => {
-    const entry   = weekEntries[i];
-    const isToday = d.toDateString() === today.toDateString();
-    const isPast  = d < today;
-    const isWeekend = i >= 5;
-    const classes = ['cal-day-card', isToday ? 'today' : '', isPast && !isToday ? 'past' : '', isWeekend ? 'weekend' : ''].filter(Boolean).join(' ');
+  // Clear entry map and rebuild
+  Object.keys(_calEntryMap).forEach(k => delete _calEntryMap[k]);
 
-    let body = `<div class="cal-day-empty">No schedule</div>`;
-    if (entry?.who || entry?.hoursTotal > 0) {
-      const wc = workerColor(entry.who);
-      body = `
-        ${entry.who ? `<div class="cal-who"><span class="cal-who-dot" style="background:${wc}"></span>${entry.who}</div>` : ''}
-        ${entry.startTime && entry.endTime ? `<div class="cal-hours">🕐 ${entry.startTime} – ${entry.endTime}</div>` : ''}
-        ${entry.hoursTotal > 0 ? `<div class="cal-hours">${entry.hoursTotal}h total${entry.hoursPrint > 0 ? `, ${entry.hoursPrint}h printing` : ''}</div>` : ''}
-        ${entry.expected > 0 ? `<div class="cal-expected">~${entry.expected} products</div>` : ''}`;
+  grid.innerHTML = days.map((d, i) => {
+    const entries   = byDate[d.toDateString()] || [];
+    const isToday   = d.toDateString() === today.toDateString();
+    const isPast    = d < today;
+    const isWeekend = i >= 5;
+    const classes   = ['cal-day-card', isToday ? 'today' : '', isPast && !isToday ? 'past' : '', isWeekend ? 'weekend' : ''].filter(Boolean).join(' ');
+    const dateLabel = fmtFull(d);
+
+    let body;
+    const filled = entries.filter(e => e.who || e.hoursTotal > 0);
+    if (!filled.length) {
+      const key = `${d.toDateString()}_0`;
+      _calEntryMap[key] = { ref: { sheetRow: entries[0]?._row, date: dateLabel }, entry: entries[0] || {} };
+      body = `<div class="cal-day-empty" onclick="_calClick('${key}')">No schedule — click to add</div>`;
+    } else {
+      body = filled.map((entry, ei) => {
+        const key = `${d.toDateString()}_${ei}`;
+        _calEntryMap[key] = { ref: { sheetRow: entry._row, date: dateLabel }, entry };
+        const wc = workerColor(entry.who);
+        const hrs = entry.hoursTotal > 0 ? entry.hoursTotal.toFixed(entry.hoursTotal % 1 === 0 ? 0 : 2) : null;
+        const hpr = entry.hoursPrint  > 0 ? entry.hoursPrint.toFixed(entry.hoursPrint  % 1 === 0 ? 0 : 2) : null;
+        return `<div class="cal-worker-row" onclick="_calClick('${key}')">
+          <div class="cal-who"><span class="cal-who-dot" style="background:${wc}"></span><strong>${entry.who || '—'}</strong></div>
+          ${entry.startTime && entry.endTime ? `<div class="cal-hours">🕐 ${entry.startTime} – ${entry.endTime}</div>` : ''}
+          ${hrs ? `<div class="cal-hours">${hrs}h${hpr ? `, ${hpr}h printing` : ''}</div>` : ''}
+          ${entry.expected > 0 ? `<div class="cal-expected">~${entry.expected} products</div>` : ''}
+          <div class="cal-edit-link">✏️ Edit</div>
+        </div>`;
+      }).join('<div class="cal-worker-divider"></div>');
     }
 
-    const rowRef = JSON.stringify({ sheetRow: entry?._row, date: fmtFull(d) });
-    return `<div class="${classes}" onclick='openCalendarEdit(${rowRef.replace(/'/g,"&#39;")}, ${JSON.stringify(entry || {})})'>
+    return `<div class="${classes}">
       <div class="cal-day-header">
         <span class="cal-day-name">${DAY_NAMES[i]}</span>
         <span class="cal-day-date">${d.getDate()}</span>
       </div>
       <div class="cal-day-body">${body}</div>
-      <div class="cal-day-footer"><span class="cal-edit-link">✏️ Edit</span></div>
     </div>`;
   }).join('');
+}
+
+function _calClick(key) {
+  const item = _calEntryMap[key];
+  if (item) openCalendarEdit(item.ref, item.entry);
 }
 
 function calNav(dir) {
