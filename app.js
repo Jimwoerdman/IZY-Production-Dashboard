@@ -533,17 +533,27 @@ function renderActiveQueue() {
     return true;
   });
 
-  // Type filter pills
+  // Compute effective display status per row (samples with still<=0 → Ready to Ship)
+  const getDisplayStatus = r => {
+    const still = num(r,'Quantity still to print');
+    return (get(r,'Soort').toLowerCase().includes('sample') && still <= 0)
+      ? 'Ready to Ship' : get(r,'Status');
+  };
+
+  const readyRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'ready to ship');
+  const activeRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() !== 'ready to ship');
+
+  // Type filter pills (exclude Ready to Ship from counts)
   const tabsEl = document.getElementById('aq-type-tabs');
-  tabsEl.innerHTML = `<button class="aq-type-tab${aqTypeFilter === '' ? ' active' : ''}" data-type="">All <span class="aq-tab-count">${filtered.length}</span></button>` +
+  tabsEl.innerHTML = `<button class="aq-type-tab${aqTypeFilter === '' ? ' active' : ''}" data-type="">All <span class="aq-tab-count">${activeRows.length}</span></button>` +
     AQ_SECTIONS.map(s => {
-      const n = filtered.filter(r => s.match(get(r,'Soort').toLowerCase())).length;
+      const n = activeRows.filter(r => s.match(get(r,'Soort').toLowerCase())).length;
       if (!n) return '';
       return `<button class="aq-type-tab${aqTypeFilter === s.label ? ' active' : ''}" data-type="${s.label}" style="--tc:${s.colors.text};--tb:${s.colors.bg}">${s.label} <span class="aq-tab-count">${n}</span></button>`;
     }).join('');
 
   const html = AQ_SECTIONS.filter(s => !aqTypeFilter || s.label === aqTypeFilter).map(section => {
-    const rows = filtered
+    const rows = activeRows
       .filter(r => section.match(get(r,'Soort').toLowerCase()))
       .sort((a,b) => statusSortOrder(a) - statusSortOrder(b));
 
@@ -554,8 +564,7 @@ function renderActiveQueue() {
       const d     = parseDate(get(r,'Deadline'));
       const days  = daysFrom(d);
       const still = num(r,'Quantity still to print');
-      const isSample = get(r,'Soort').toLowerCase().includes('sample');
-      const displayStatus = (isSample && still <= 0) ? 'Ready to Ship' : get(r,'Status');
+      const displayStatus = getDisplayStatus(r);
       const idx   = allRows.indexOf(r);
       const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
       const sleeveBtn = sleeveVal !== 'yes' ? '' :
@@ -629,7 +638,79 @@ function renderActiveQueue() {
       </div>`;
   }).join('');
 
-  document.getElementById('aq-sections').innerHTML = html ||
+  // Ready to Ship section
+  const rtsFiltered = aqTypeFilter
+    ? readyRows.filter(r => AQ_SECTIONS.find(s => s.label === aqTypeFilter)?.match(get(r,'Soort').toLowerCase()))
+    : readyRows;
+
+  const rtsHtml = rtsFiltered.length ? (() => {
+    const rowsHtml = rtsFiltered.map(r => {
+      const d     = parseDate(get(r,'Deadline'));
+      const days  = daysFrom(d);
+      const idx   = allRows.indexOf(r);
+      const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
+      const sleeveBtn = sleeveVal !== 'yes' ? '' :
+        `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`;
+      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const aqFileLink = aqFileUrls.length
+        ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
+        : '';
+      const card = `<div class="aq-card" style="--tc:#15803d;--tb:#dcfce7">
+        <div class="aq-card-top">
+          <div class="aq-card-left">
+            <span class="aq-prio">#${get(r,'Priority')}</span>
+            <span class="aq-company">${get(r,'Name_Company')}</span>
+          </div>
+          ${badge('Ready to Ship')}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
+        <div class="aq-meta">
+          <div class="aq-meta-item"><span class="aq-meta-label">Type</span>${typeBadge(get(r,'Soort'))}</div>
+          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+      const row = `<tr>
+        <td>${get(r,'Priority')}</td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
+        <td>${badge('Ready to Ship')}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
+        <td>${num(r,'Quantity') || '—'}</td>
+        <td>—</td>
+        <td>${daysCell(days)}</td>
+        <td>${aqFileUrls.length ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${aqFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ') : '—'}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+      return { card, row };
+    });
+    return `<div class="aq-section">
+      <div class="aq-section-title">
+        <span style="background:#dcfce7;color:#15803d;border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">✓ Ready to Ship</span>
+        <span class="aq-section-count">${rtsFiltered.length} job${rtsFiltered.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
+      <div class="aq-table-wrap table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Company</th><th>Print Name</th><th>Status</th>
+            <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
+            <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th></th>
+          </tr></thead>
+          <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  })() : '';
+
+  document.getElementById('aq-sections').innerHTML = (html + rtsHtml) ||
     '<p style="color:#94a3b8;padding:20px;">No active jobs match the current filters.</p>';
 }
 
