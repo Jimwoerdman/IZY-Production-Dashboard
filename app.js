@@ -1313,9 +1313,10 @@ function renderSleeves() {
           </div>
           ${badge(get(r,'Status'))}
         </div>
-        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
         ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
         <div class="aq-meta">
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
           ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
           ${get(r,'Notes') ? `<div class="aq-meta-item"><span class="aq-meta-label">Notes</span><span>${get(r,'Notes')}</span></div>` : ''}
@@ -1333,6 +1334,8 @@ function renderSleeves() {
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
@@ -1353,7 +1356,7 @@ function renderSleeves() {
           <table>
             <thead><tr>
               <th>#</th><th>Company</th><th>Product</th><th>Status</th>
-              <th>Type</th><th>Owner</th><th>Deadline</th><th>Files</th><th></th>
+              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
