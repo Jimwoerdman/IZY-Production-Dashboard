@@ -1339,6 +1339,7 @@ function renderSleeves() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
+        <td>${get(r,'Notes') || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -1356,7 +1357,7 @@ function renderSleeves() {
           <table>
             <thead><tr>
               <th>#</th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th></th>
+              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
