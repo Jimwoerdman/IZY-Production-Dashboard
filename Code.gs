@@ -962,13 +962,16 @@ function respond(data) {
 /***** JOB CHANGE NOTIFICATIONS *****/
 const GEERTJAN = 'geertjan@izybottles.com';
 const JIM      = 'jim@izybottles.com';
+const SHARON   = 'sharon@orderchamp.com';
 
 function sendJobNotification(changedBy, owner, subject, body) {
   if (!changedBy) return;
+  if (changedBy === SHARON) return; // Sharon is volledig uitgesloten
+
   const recipients = new Set();
 
-  // Notify the job owner if someone else made the change
-  if (owner && owner !== changedBy) recipients.add(owner);
+  // Notify the job owner if someone else made the change (Sharon nooit notificeren)
+  if (owner && owner !== changedBy && owner !== SHARON) recipients.add(owner);
 
   // Geertjan's changes always notify Jim
   if (changedBy === GEERTJAN) recipients.add(JIM);
