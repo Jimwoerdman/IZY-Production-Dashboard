@@ -65,6 +65,7 @@
   <button class="tab-btn" data-tab="all-jobs" style="display:none">All Jobs</button>
   <button class="tab-btn" data-tab="active-queue">Active Queue</button>
   <button class="tab-btn" data-tab="sleeves">Sleeves</button>
+  <button class="tab-btn" data-tab="mockups">Mockups</button>
   <button class="tab-btn" data-tab="shipping">Shipping History</button>
   <button class="tab-btn" data-tab="add-job">+ Add Job</button>
   <button class="tab-btn" data-tab="reports" style="margin-left:auto">Reports</button>
@@ -499,6 +500,23 @@
 
   </section>
 
+  <!-- ─── MOCKUPS ─── -->
+  <section id="tab-mockups" class="tab-content">
+    <h2 class="section-title">Mockup Queue <span class="subtitle">— Mockups to be made</span></h2>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <button onclick="refreshMockups()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;color:var(--text-2);cursor:pointer;">↻ Refresh</button>
+    </div>
+
+    <div class="filters-bar">
+      <input type="text" id="mk-search" placeholder="Search company or product..." />
+      <select id="mk-status"><option value="">All Statuses</option></select>
+      <label class="check-label"><input type="checkbox" id="mk-hide-done" /> Hide Done</label>
+    </div>
+    <div id="mk-type-tabs"></div>
+    <div id="mk-sections"></div>
+  </section>
+
   <!-- ─── SLEEVES ─── -->
   <section id="tab-sleeves" class="tab-content">
     <h2 class="section-title">Sleeve Queue <span class="subtitle">— Jobs to be sleeved</span></h2>
@@ -684,6 +702,42 @@
   </div>
 </div>
 
+<!-- ─── MOCKUP LOG MODAL ─── -->
+<div id="mockup-modal-overlay">
+  <div id="mockup-modal">
+    <div class="modal-header">
+      <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
+      <h2>Log Mockup Update</h2>
+      <button class="modal-close" onclick="closeMockupModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="mk-modal-job-info"></div>
+      <div class="modal-field">
+        <label>Status <span class="req">*</span></label>
+        <select id="mk-modal-status-select" required>
+          <option value="">— Select status —</option>
+          <option value="To make">To make</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Feedback/revisions">Feedback/revisions</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Attach files <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
+        <div id="mk-modal-files"></div>
+        <button type="button" id="mk-modal-add-file" class="btn-add-file">+ Add file</button>
+        <div id="mk-modal-file-status" style="font-size:12px;color:var(--text-3);margin-top:6px;"></div>
+      </div>
+      <div id="mk-modal-status"></div>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" onclick="closeMockupModal()">Cancel</button>
+        <button class="modal-btn-submit" id="mk-modal-submit" onclick="submitMockupUpdate()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <section id="tab-add-job" class="tab-content">
   <div class="add-job-card">
 
@@ -784,6 +838,13 @@
           <div class="form-group">
             <label>Deadline</label>
             <input type="date" id="nj-deadline" />
+          </div>
+          <div class="form-group">
+            <label>Need Mockup?</label>
+            <div class="sleeve-toggle" id="nj-needmockup" data-value="No">
+              <button type="button" class="sleeve-opt" data-opt="No">No</button>
+              <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
+            </div>
           </div>
           <div class="form-group">
             <label>To Sleeve?</label>

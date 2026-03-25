@@ -20,9 +20,12 @@ const ALLOWED_EMAILS = [
 // Emails that only see the Active Queue tab
 const ACTIVE_QUEUE_ONLY = ['ivan@izybottles.com'];
 
-let currentUser  = null;
-let sleeveRows   = [];
-let sleeveLoaded = false;
+let currentUser   = null;
+let sleeveRows    = [];
+let sleeveLoaded  = false;
+let mockupRows    = [];
+let mockupLoaded  = false;
+let mkTypeFilter  = '';
 
 function handleCredentialResponse(response) {
   const payload = parseJwt(response.credential);
@@ -187,6 +190,7 @@ function activateTab(tabName) {
   if (tabName === 'shipping') loadShipping();
   if (tabName === 'add-job') populateAddJobOwners();
   if (tabName === 'sleeves') { populateSleeveOwners(); loadSleeves(); }
+  if (tabName === 'mockups') loadMockups();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1648,6 +1652,265 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   this.disabled = false;
 });
 
+// ── Mockups Tab ───────────────────────────────────────────────
+
+function populateMockupStatusFilter() {
+  const statuses = [...new Set(mockupRows.map(r => get(r,'Status')).filter(Boolean))].sort();
+  fill('mk-status', statuses);
+}
+
+async function loadMockups() {
+  if (mockupLoaded && mockupRows.length) { renderMockups(); return; }
+  document.getElementById('mk-sections').innerHTML =
+    '<p style="color:#94a3b8;padding:20px;">Loading mockup data…</p>';
+  try {
+    const data = await fetch(SCRIPT_URL + '?sheet=mockups&t=' + Date.now()).then(r => r.json());
+    mockupRows   = (data.rows || []).filter(r => get(r,'Name_Company') || get(r,'Status'));
+    mockupLoaded = true;
+    populateMockupStatusFilter();
+    renderMockups();
+  } catch (err) {
+    document.getElementById('mk-sections').innerHTML =
+      '<p style="color:var(--red);padding:20px;">Error loading mockup data — check your connection.</p>';
+  }
+}
+
+function refreshMockups() {
+  mockupLoaded = false;
+  loadMockups();
+}
+
+function renderMockups() {
+  const search   = document.getElementById('mk-search').value.toLowerCase();
+  const status   = document.getElementById('mk-status').value;
+  const hideDone = document.getElementById('mk-hide-done').checked;
+
+  const filtered = mockupRows.filter(r => {
+    if (hideDone && ['approved','finished'].includes(get(r,'Status').toLowerCase())) return false;
+    if (status && get(r,'Status') !== status) return false;
+    if (search && !(
+      get(r,'Name_Company').toLowerCase().includes(search) ||
+      (get(r,'Name_Print') || '').toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  const tabsEl = document.getElementById('mk-type-tabs');
+  tabsEl.innerHTML =
+    `<button class="aq-type-tab${mkTypeFilter === '' ? ' active' : ''}" data-mktype="">All <span class="aq-tab-count">${filtered.length}</span></button>` +
+    AQ_SECTIONS.map(s => {
+      const n = filtered.filter(r => s.match(get(r,'Soort').toLowerCase())).length;
+      if (!n) return '';
+      return `<button class="aq-type-tab${mkTypeFilter === s.label ? ' active' : ''}" data-mktype="${s.label}" style="--tc:${s.colors.text};--tb:${s.colors.bg}">${s.label} <span class="aq-tab-count">${n}</span></button>`;
+    }).join('');
+
+  const html = AQ_SECTIONS.filter(s => !mkTypeFilter || s.label === mkTypeFilter).map(section => {
+    const rows = filtered
+      .filter(r => section.match(get(r,'Soort').toLowerCase()))
+      .sort((a,b) => (parseInt(get(a,'Priority'))||0) - (parseInt(get(b,'Priority'))||0));
+
+    if (rows.length === 0) return '';
+
+    const c = section.colors;
+    const rowsHtml = rows.map(r => {
+      const idx    = mockupRows.indexOf(r);
+      const isDone = ['approved','finished'].includes(get(r,'Status').toLowerCase());
+      const actionBtns = `<button class="btn-log mk-btn-log" data-mkidx="${idx}">✏️ Update</button>`;
+
+      const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const fileLinks = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open file">📎 File${rawFileUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join(' ')
+        : '';
+
+      const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}" style="--tc:${c.text};--tb:${c.bg}">
+        <div class="aq-card-top">
+          <div class="aq-card-left">
+            <span class="aq-prio">#${get(r,'Priority')}</span>
+            <span class="aq-company">${get(r,'Name_Company')}</span>
+          </div>
+          ${badge(get(r,'Status'))}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
+        <div class="aq-meta">
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
+          ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
+          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
+          ${get(r,'Notes') ? `<div class="aq-meta-item"><span class="aq-meta-label">Notes</span><span>${get(r,'Notes')}</span></div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+
+      const fileCell = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
+        : '—';
+
+      const row = `<tr class="${isDone ? 'row-shipped' : ''}">
+        <td>${get(r,'Priority')}</td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td>${badge(get(r,'Status'))}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
+        <td>${get(r,'Owner') || '—'}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${fileCell}</td>
+        <td>${get(r,'Notes') || '—'}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+
+      return { card, row };
+    });
+
+    return `
+      <div class="aq-section">
+        <div class="aq-section-title">
+          <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
+          <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
+        <div class="aq-table-wrap table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Company</th><th>Status</th>
+              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
+            </tr></thead>
+            <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('mk-sections').innerHTML = html ||
+    '<p style="color:#94a3b8;padding:20px;">No mockup jobs match the current filters.</p>';
+}
+
+['mk-search','mk-status','mk-hide-done'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener(id === 'mk-hide-done' ? 'change' : 'input', renderMockups);
+  el.addEventListener('change', renderMockups);
+});
+
+document.getElementById('mk-type-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.aq-type-tab');
+  if (btn) { mkTypeFilter = btn.dataset.mktype; renderMockups(); }
+});
+
+document.getElementById('tab-mockups').addEventListener('click', function(e) {
+  const logBtn = e.target.closest('.mk-btn-log');
+  if (logBtn) openMockupModal(parseInt(logBtn.dataset.mkidx));
+});
+
+// ── Mockup Modal ──────────────────────────────────────────────
+
+let mockupModalJob = null;
+
+function addMockupFileRow() {
+  const container = document.getElementById('mk-modal-files');
+  const row = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.innerHTML = `<input type="file" accept="*/*" /><button type="button" class="btn-remove-file" title="Remove">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+
+function openMockupModal(rowIdx) {
+  mockupModalJob = mockupRows[rowIdx];
+  if (!mockupModalJob) return;
+
+  document.getElementById('mk-modal-job-info').innerHTML = `
+    <div class="modal-job-card">
+      <div><span class="modal-label">Job</span><strong>#${get(mockupModalJob,'Priority')} — ${get(mockupModalJob,'Name_Company')}</strong></div>
+      <div><span class="modal-label">Type</span>${typeBadge(get(mockupModalJob,'Soort'))}</div>
+      ${get(mockupModalJob,'Bottle color') ? `<div><span class="modal-label">Color</span>${get(mockupModalJob,'Bottle color')}</div>` : ''}
+      ${get(mockupModalJob,'Lid') ? `<div><span class="modal-label">Lid</span>${get(mockupModalJob,'Lid')}</div>` : ''}
+      ${get(mockupModalJob,'Deadline') ? `<div><span class="modal-label">Deadline</span>${get(mockupModalJob,'Deadline')}</div>` : ''}
+    </div>`;
+
+  const sel = document.getElementById('mk-modal-status-select');
+  sel.value = get(mockupModalJob,'Status') || '';
+
+  document.getElementById('mk-modal-files').innerHTML = '';
+  addMockupFileRow();
+  document.getElementById('mk-modal-file-status').textContent = '';
+  document.getElementById('mk-modal-status').textContent = '';
+
+  document.getElementById('mockup-modal-overlay').style.display = 'flex';
+  sel.focus();
+}
+
+function closeMockupModal() {
+  document.getElementById('mockup-modal-overlay').style.display = 'none';
+  document.getElementById('mk-modal-files').innerHTML = '';
+  document.getElementById('mk-modal-file-status').textContent = '';
+  document.getElementById('mk-modal-status-select').value = '';
+  document.getElementById('mk-modal-status').textContent = '';
+  mockupModalJob = null;
+}
+
+document.getElementById('mockup-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeMockupModal();
+});
+
+document.getElementById('mk-modal-add-file').addEventListener('click', addMockupFileRow);
+
+async function submitMockupUpdate() {
+  const statusEl     = document.getElementById('mk-modal-status');
+  const submitBtn    = document.getElementById('mk-modal-submit');
+  const fileStatusEl = document.getElementById('mk-modal-file-status');
+  const chosenStatus = document.getElementById('mk-modal-status-select').value;
+
+  if (!chosenStatus) {
+    statusEl.textContent = 'Please select a status.';
+    statusEl.className   = 'modal-error';
+    return;
+  }
+
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Submitting…';
+  statusEl.textContent  = '';
+
+  const fileRows    = document.getElementById('mk-modal-files').querySelectorAll('.sv-file-row input[type="file"]');
+  const mockupFiles = [];
+  const hasFiles    = Array.from(fileRows).some(inp => inp.files && inp.files[0]);
+  if (hasFiles) {
+    fileStatusEl.textContent = 'Reading files…';
+    for (const inp of fileRows) {
+      if (inp.files && inp.files[0]) {
+        try {
+          const f = await readFileAsBase64(inp.files[0]);
+          mockupFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+        } catch (_) {}
+      }
+    }
+    fileStatusEl.textContent = '';
+  }
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:      'update_mockup',
+        sheetRow:    mockupModalJob['_sheetRow'],
+        status:      chosenStatus,
+        mockupFiles,
+        changedBy:   currentUser?.email,
+      }),
+    });
+    statusEl.textContent = '✓ Updated!';
+    statusEl.className   = 'modal-success';
+    mockupLoaded = false;
+    setTimeout(() => { closeMockupModal(); loadMockups(); }, 800);
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.className   = 'modal-error';
+  }
+  submitBtn.disabled    = false;
+  submitBtn.textContent = 'Submit';
+}
+
 // ── Cache helpers ─────────────────────────────────────────────
 const MAIN_CACHE_KEY = 'izy_main_cache_v2';
 
@@ -2082,7 +2345,11 @@ document.getElementById('nj-mockup').addEventListener('change', function() {
   }
 });
 
-// To Sleeve segmented toggle
+// Need Mockup + To Sleeve segmented toggles
+document.getElementById('nj-needmockup').addEventListener('click', function(e) {
+  const opt = e.target.closest('.sleeve-opt');
+  if (opt) this.dataset.value = opt.dataset.opt;
+});
 document.getElementById('nj-tosleeve').addEventListener('click', function(e) {
   const opt = e.target.closest('.sleeve-opt');
   if (opt) this.dataset.value = opt.dataset.opt;
@@ -2097,7 +2364,8 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const lid       = document.getElementById('nj-lid').value;
   const deadline  = document.getElementById('nj-deadline').value;
   const owner     = document.getElementById('nj-owner').value;
-  const tosleeve  = document.getElementById('nj-tosleeve').dataset.value;
+  const needmockup = document.getElementById('nj-needmockup').dataset.value;
+  const tosleeve   = document.getElementById('nj-tosleeve').dataset.value;
   const notes     = document.getElementById('nj-notes').value.trim();
   const mockupFile = document.getElementById('nj-mockup').files[0];
   const designFileInputs = document.getElementById('nj-files-list').querySelectorAll('input[type="file"]');
@@ -2156,7 +2424,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         action:    'add_job',
         soort, company, printName,
         quantity:  parseInt(quantity),
-        color, lid, deadline, owner, tosleeve, notes,
+        color, lid, deadline, owner, tosleeve, needmockup, notes,
         mockupBase64, designFiles,
         changedBy: currentUser?.email,
         status:    'To Print',
@@ -2165,10 +2433,12 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     );
     setProgress(1, 'Done!');
 
-    sleeveLoaded = false; // force reload next time Sleeves tab is opened
+    sleeveLoaded = false;
+    if (needmockup === 'Yes') mockupLoaded = false;
 
     statusEl.className = 'form-status success';
-    statusEl.textContent = tosleeve === 'Yes' ? '✓ Print job added + sleeve job created!' : '✓ Print job added!';
+    const extras = [tosleeve === 'Yes' ? 'sleeve job' : '', needmockup === 'Yes' ? 'mockup job' : ''].filter(Boolean);
+    statusEl.textContent = extras.length ? `✓ Print job added + ${extras.join(' & ')} created!` : '✓ Print job added!';
     setTimeout(() => hideProgress(), 1500);
     document.getElementById('add-job-form').reset();
     document.getElementById('nj-priority-hint').textContent = '';
@@ -2176,6 +2446,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     document.getElementById('nj-mockup-name').textContent = 'Click to upload image';
     document.getElementById('nj-files-list').innerHTML = '';
     addNjFileRow();
+    document.getElementById('nj-needmockup').dataset.value = 'No';
     document.getElementById('nj-tosleeve').dataset.value = 'No';
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
