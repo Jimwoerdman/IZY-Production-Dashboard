@@ -988,6 +988,15 @@ function sendJobNotification(changedBy, owner, subject, body) {
   });
 }
 
+/***** TEST — run this to verify mail notifications work *****/
+function testMail() {
+  MailApp.sendEmail({
+    to:      'jim@izybottles.com',
+    subject: '🧪 Testmelding IZY Dashboard',
+    body:    'Dit is een testmail om te controleren of notificaties werken.\n\nGedaan door: geertjan@izybottles.com'
+  });
+}
+
 /***** DEBUG — run this to test add_job directly without HTTP *****/
 function testAddJob() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
