@@ -938,7 +938,7 @@ function doPost(e) {
       let ls = ss.getSheetByName('PrintLog');
       if (!ls) {
         ls = ss.insertSheet('PrintLog');
-        ls.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By']);
+        ls.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By', 'SheetRow']);
       }
       return ls;
     };
@@ -953,27 +953,24 @@ function doPost(e) {
         g('soort'),
         sessionQty,
         g('priority'),
-        data.changedBy || ''
+        data.changedBy || '',
+        rowIndex  // SheetRow — used to delete entries on reset
       ]);
       Logger.log('PrintLog row appended for sessionQty=' + sessionQty);
     }
 
-    // On reset: append a negative correction row so totals stay correct
-    if (isReset && quantityPrintedCol >= 0) {
-      const prevQty = parseInt(rowData[quantityPrintedCol]) || 0;
-      if (prevQty > 0) {
-        const logSheet = ensureLogSheet();
-        logSheet.appendRow([
-          Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'),
-          g('company') || g('name_company'),
-          g('name_print') || g('print'),
-          g('owner'),
-          g('soort'),
-          -prevQty,  // negative to cancel out earlier entries
-          g('priority'),
-          (data.changedBy || '') + ' [reset]'
-        ]);
-        Logger.log('PrintLog correction row appended: -' + prevQty);
+    // On reset: delete all PrintLog rows for this job
+    if (isReset) {
+      const logSheet = ss.getSheetByName('PrintLog');
+      if (logSheet && logSheet.getLastRow() > 1) {
+        const logData = logSheet.getDataRange().getValues();
+        // SheetRow is column I (index 8)
+        for (var li = logData.length - 1; li >= 1; li--) {
+          if (parseInt(logData[li][8]) === rowIndex) {
+            logSheet.deleteRow(li + 1); // 1-based
+          }
+        }
+        Logger.log('PrintLog rows deleted for sheetRow=' + rowIndex);
       }
     }
 
