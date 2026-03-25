@@ -1406,8 +1406,9 @@ function openSleeveModal(rowIdx) {
   document.getElementById('sv-modal-job-info').innerHTML = `
     <div class="modal-job-card">
       <div><span class="modal-label">Job</span><strong>#${get(sleeveModalJob,'Priority')} — ${get(sleeveModalJob,'Name_Company')}</strong></div>
-      <div><span class="modal-label">Product</span>${get(sleeveModalJob,'Name_Print') || '—'}</div>
       <div><span class="modal-label">Type</span>${typeBadge(get(sleeveModalJob,'Soort'))}</div>
+      ${get(sleeveModalJob,'Bottle color') ? `<div><span class="modal-label">Color</span>${get(sleeveModalJob,'Bottle color')}</div>` : ''}
+      ${get(sleeveModalJob,'Lid') ? `<div><span class="modal-label">Lid</span>${get(sleeveModalJob,'Lid')}</div>` : ''}
       ${get(sleeveModalJob,'Deadline') ? `<div><span class="modal-label">Deadline</span>${get(sleeveModalJob,'Deadline')}</div>` : ''}
     </div>`;
 
