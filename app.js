@@ -2434,12 +2434,40 @@ async function loadStock() {
   }
 }
 
+const STOCK_TYPE_CONFIG = {
+  'Bottle':        { icon: '🍶', bg: '#dbeafe', text: '#1d4ed8', bar: '#3b82f6' },
+  'Mug':           { icon: '☕', bg: '#fce7f3', text: '#be185d', bar: '#ec4899' },
+  'Travel Bottle': { icon: '🧋', bg: '#dcfce7', text: '#15803d', bar: '#22c55e' },
+  'Tumbler':       { icon: '🥤', bg: '#fef3c7', text: '#b45309', bar: '#f59e0b' },
+  'Bottle lids':   { icon: '🔩', bg: '#ede9fe', text: '#6d28d9', bar: '#8b5cf6' },
+  'Mug lids':      { icon: '🔩', bg: '#f3e8ff', text: '#7e22ce', bar: '#a855f7' },
+};
+
+const COLOR_SWATCHES = {
+  'white': '#f8fafc', 'off white': '#f5f0e8', 'cream': '#fefce8', 'beige': '#e8d9c0',
+  'black': '#1e293b', 'dark grey': '#374151', 'grey': '#9ca3af', 'gray': '#9ca3af', 'silver': '#cbd5e1',
+  'red': '#ef4444', 'dark red': '#991b1b', 'coral': '#fb7185', 'pink': '#ec4899', 'light pink': '#f9a8d4', 'rose': '#f43f5e',
+  'blue': '#3b82f6', 'dark blue': '#1e40af', 'navy': '#1e3a5f', 'light blue': '#93c5fd', 'sky blue': '#7dd3fc',
+  'green': '#22c55e', 'dark green': '#15803d', 'mint': '#6ee7b7', 'teal': '#14b8a6', 'olive': '#84cc16',
+  'yellow': '#eab308', 'gold': '#ca8a04', 'orange': '#f97316', 'amber': '#f59e0b',
+  'purple': '#a855f7', 'violet': '#7c3aed', 'lavender': '#c4b5fd',
+  'brown': '#92400e', 'tan': '#d4a574',
+  'transparent': 'rgba(0,0,0,0.05)',
+};
+
+function colorSwatch(colorName) {
+  const key = (colorName || '').toLowerCase().trim();
+  const hex = COLOR_SWATCHES[key];
+  if (!hex) return `<span class="stock-swatch stock-swatch-unknown" title="${colorName}"></span>`;
+  const needsBorder = ['#f8fafc','#f5f0e8','#fefce8','#e8d9c0','rgba(0,0,0,0.05)'].includes(hex);
+  return `<span class="stock-swatch" style="background:${hex};${needsBorder ? 'border:1.5px solid #cbd5e1;' : ''}" title="${colorName}"></span>`;
+}
+
 function renderStock() {
   const container = document.getElementById('stock-content');
   if (!container) return;
-  if (!stockRows.length) { container.innerHTML = '<div class="loading-msg">No stock data found.</div>'; return; }
+  if (!stockRows.length) { container.innerHTML = '<div class="stock-empty">No stock data found.</div>'; return; }
 
-  // Group by Type
   const groups = {};
   stockRows.forEach(r => {
     const type = r['Type'] || 'Unknown';
@@ -2450,46 +2478,86 @@ function renderStock() {
   const typeOrder = ['Bottle', 'Mug', 'Travel Bottle', 'Tumbler', 'Bottle lids', 'Mug lids'];
   const orderedTypes = [...typeOrder.filter(t => groups[t]), ...Object.keys(groups).filter(t => !typeOrder.includes(t))];
 
-  const stockQtyClass = (qty) => {
-    const n = parseInt(qty) || 0;
-    if (n <= 0)  return 'stock-qty danger';
-    if (n < 100) return 'stock-qty warning';
-    return 'stock-qty ok';
-  };
+  // Summary stats
+  const allItems   = stockRows.map(r => parseInt(r['Quantity']) || 0);
+  const totalStock = allItems.reduce((a, b) => a + b, 0);
+  const lowCount   = stockRows.filter(r => { const q = parseInt(r['Quantity'])||0; return q > 0 && q < 100; }).length;
+  const outCount   = stockRows.filter(r => (parseInt(r['Quantity'])||0) === 0).length;
+  const outItems   = stockRows.filter(r => (parseInt(r['Quantity'])||0) === 0);
 
-  container.innerHTML = orderedTypes.map(type => {
-    const rows = groups[type];
+  const summaryHtml = `
+    <div class="stock-summary">
+      <div class="stock-stat">
+        <div class="stock-stat-value">${totalStock.toLocaleString()}</div>
+        <div class="stock-stat-label">Total in stock</div>
+      </div>
+      <div class="stock-stat ${lowCount > 0 ? 'warning' : ''}">
+        <div class="stock-stat-value">${lowCount}</div>
+        <div class="stock-stat-label">Low stock</div>
+      </div>
+      <div class="stock-stat ${outCount > 0 ? 'danger' : ''}">
+        <div class="stock-stat-value">${outCount}</div>
+        <div class="stock-stat-label">Out of stock</div>
+      </div>
+    </div>`;
+
+  const alertHtml = outItems.length
+    ? `<div class="stock-alert">⚠️ Out of stock: ${outItems.map(r => `<strong>${r['Color']} ${r['Type']}</strong>`).join(', ')}</div>`
+    : '';
+
+  const groupsHtml = orderedTypes.map(type => {
+    const rows   = groups[type];
+    const cfg    = STOCK_TYPE_CONFIG[type] || { icon: '📦', bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' };
+    const typeTotal = rows.reduce((s, r) => s + (parseInt(r['Quantity'])||0), 0);
+    const maxQty    = Math.max(...rows.map(r => parseInt(r['Quantity'])||0), 1);
+
     const rowsHtml = rows.map(r => {
-      const qty = parseInt(r['Quantity']) || 0;
+      const qty    = parseInt(r['Quantity']) || 0;
+      const pct    = Math.round((qty / maxQty) * 100);
+      const qClass = qty === 0 ? 'danger' : qty < 100 ? 'warning' : 'ok';
+      const barColor = qty === 0 ? '#ef4444' : qty < 100 ? '#f97316' : cfg.bar;
       return `<div class="stock-row">
-        <span class="stock-color">${r['Color'] || '—'}</span>
-        <span class="${stockQtyClass(qty)}">${qty}</span>
+        ${colorSwatch(r['Color'])}
+        <span class="stock-color-name">${r['Color'] || '—'}</span>
+        <div class="stock-bar-wrap">
+          <div class="stock-bar" style="width:${pct}%;background:${barColor}"></div>
+        </div>
+        <span class="stock-qty ${qClass}">${qty.toLocaleString()}</span>
         ${r['Levering'] ? `<span class="stock-levering">${r['Levering']}</span>` : ''}
+        <button class="stock-add-btn" onclick="openDeliveryModal('${type}','${r['Color']}')" title="Add delivery">+</button>
       </div>`;
     }).join('');
+
     return `<div class="stock-group">
-      <div class="stock-group-title">${type}</div>
+      <div class="stock-group-header" style="background:${cfg.bg};color:${cfg.text}">
+        <span class="stock-group-icon">${cfg.icon}</span>
+        <span class="stock-group-name">${type}</span>
+        <span class="stock-group-total">${typeTotal.toLocaleString()}</span>
+      </div>
       <div class="stock-rows">${rowsHtml}</div>
     </div>`;
   }).join('');
+
+  container.innerHTML = summaryHtml + alertHtml + `<div class="stock-groups">${groupsHtml}</div>`;
 }
 
-function openDeliveryModal() {
+function openDeliveryModal(preType, preColor) {
   if (!stockRows.length) { alert('Load the Stock tab first.'); return; }
 
-  // Populate Type dropdown
   const types = [...new Set(stockRows.map(r => r['Type']).filter(Boolean))];
   const typeSelect  = document.getElementById('del-type');
   const colorSelect = document.getElementById('del-color');
   typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+  if (preType) typeSelect.value = preType;
 
-  const updateColors = () => {
+  const updateColors = (selectColor) => {
     const chosen = typeSelect.value;
     const colors = stockRows.filter(r => r['Type'] === chosen).map(r => r['Color']).filter(Boolean);
     colorSelect.innerHTML = colors.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (selectColor) colorSelect.value = selectColor;
   };
-  typeSelect.onchange = updateColors;
-  updateColors();
+  typeSelect.onchange = () => updateColors();
+  updateColors(preColor);
 
   document.getElementById('del-quantity').value = '';
   document.getElementById('del-note').value = '';
