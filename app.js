@@ -1793,8 +1793,19 @@ function openEditJobModal(rowIdx, type) {
   document.getElementById('edit-job-modal-overlay').style.display = 'flex';
 }
 
+function addEjFileRow() {
+  const container = document.getElementById('ej-files-list');
+  const row = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.innerHTML = `<input type="file" accept="*/*" /><button type="button" class="btn-remove-file" title="Remove">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+document.getElementById('ej-add-file')?.addEventListener('click', addEjFileRow);
+
 function closeEditJobModal() {
   document.getElementById('edit-job-modal-overlay').style.display = 'none';
+  document.getElementById('ej-files-list').innerHTML = '';
   editJobRow = null; editJobType = null;
 }
 
@@ -1812,6 +1823,18 @@ async function submitEditJob() {
   const btn = document.getElementById('ej-submit');
   btn.disabled = true;
   document.getElementById('ej-status').textContent = 'Saving…';
+
+  // Collect any new files
+  const ejFileInputs = document.getElementById('ej-files-list').querySelectorAll('input[type="file"]');
+  const designFiles = [];
+  for (const inp of ejFileInputs) {
+    if (inp.files && inp.files[0]) {
+      try {
+        const f = await readFileAsBase64(inp.files[0]);
+        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+      } catch (_) {}
+    }
+  }
 
   // Convert YYYY-MM-DD back to DD/MM/YYYY for the sheet
   const rawDeadline = document.getElementById('ej-deadline').value;
@@ -1842,6 +1865,7 @@ async function submitEditJob() {
           if (!newNote) return existingVal;
           return existingVal ? `${existingVal}\n${withDate(newNote)}` : withDate(newNote);
         })(),
+        designFiles,
         changedBy:   currentUser?.email,
       }),
     });

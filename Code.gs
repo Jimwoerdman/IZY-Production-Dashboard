@@ -775,6 +775,26 @@ function doPost(e) {
       setSv('deadline',      data.deadline   || '');
       setSv('owner',         data.owner      || '');
       setSv('notes',         data.notes      || '');
+      if (data.designFiles && data.designFiles.length > 0) {
+        try {
+          const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const fileCol = findSv('file');
+          const newUrls = [];
+          data.designFiles.forEach(function(df) {
+            try {
+              const raw   = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), df.mime || 'application/octet-stream', df.name || ('file_' + Date.now()));
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch(e) { Logger.log('edit_sleeve file error: ' + e.message); }
+          });
+          if (fileCol >= 0 && newUrls.length > 0) {
+            const existing = String(svSheet.getRange(rowIdx, fileCol + 1).getValue() || '').trim();
+            svSheet.getRange(rowIdx, fileCol + 1).setValue([existing, ...newUrls].filter(Boolean).join('\n'));
+          }
+        } catch(fileErr) { Logger.log('edit_sleeve files failed: ' + fileErr.message); }
+      }
       Logger.log('edit_sleeve_job: updated row ' + rowIdx);
       return respond({ success: true });
     }
@@ -796,6 +816,26 @@ function doPost(e) {
       setMk('deadline',      data.deadline   || '');
       setMk('owner',         data.owner      || '');
       setMk('notes',         data.notes      || '');
+      if (data.designFiles && data.designFiles.length > 0) {
+        try {
+          const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const fileCol = findMk('file');
+          const newUrls = [];
+          data.designFiles.forEach(function(df) {
+            try {
+              const raw   = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
+              const blob  = Utilities.newBlob(Utilities.base64Decode(raw), df.mime || 'application/octet-stream', df.name || ('file_' + Date.now()));
+              const file  = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch(e) { Logger.log('edit_mockup file error: ' + e.message); }
+          });
+          if (fileCol >= 0 && newUrls.length > 0) {
+            const existing = String(mkSheet.getRange(rowIdx, fileCol + 1).getValue() || '').trim();
+            mkSheet.getRange(rowIdx, fileCol + 1).setValue([existing, ...newUrls].filter(Boolean).join('\n'));
+          }
+        } catch(fileErr) { Logger.log('edit_mockup files failed: ' + fileErr.message); }
+      }
       Logger.log('edit_mockup_job: updated row ' + rowIdx);
       return respond({ success: true });
     }
