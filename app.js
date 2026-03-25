@@ -2476,16 +2476,25 @@ function renderStock() {
   });
 
   // Summary stats
-  const allItems   = stockRows.map(r => parseInt(r['Quantity']) || 0);
-  const totalStock = allItems.reduce((a, b) => a + b, 0);
-  const lowCount   = stockRows.filter(r => { const q = parseInt(r['Quantity'])||0; return q > 0 && q < 100; }).length;
-  const outCount   = stockRows.filter(r => (parseInt(r['Quantity'])||0) === 0).length;
+  const PRODUCT_TYPES = ['Bottle', 'Mug', 'Travel Bottle', 'Tumbler'];
+  const LID_TYPES     = ['Bottle lids', 'Mug lids'];
+  const sumQty = (types) => stockRows
+    .filter(r => types.includes(r['Type']))
+    .reduce((s, r) => s + (parseInt(r['Quantity'])||0), 0);
+  const productsTotal = sumQty(PRODUCT_TYPES);
+  const lidsTotal     = sumQty(LID_TYPES);
+  const lowCount  = stockRows.filter(r => { const q = parseInt(r['Quantity'])||0; return q > 0 && q < 100; }).length;
+  const outCount  = stockRows.filter(r => (parseInt(r['Quantity'])||0) === 0).length;
 
   const summaryHtml = `
     <div class="stock-summary">
       <div class="stock-stat">
-        <div class="stock-stat-value">${totalStock.toLocaleString()}</div>
-        <div class="stock-stat-label">Total in stock</div>
+        <div class="stock-stat-value">${productsTotal.toLocaleString()}</div>
+        <div class="stock-stat-label">Products in stock</div>
+      </div>
+      <div class="stock-stat">
+        <div class="stock-stat-value">${lidsTotal.toLocaleString()}</div>
+        <div class="stock-stat-label">Spare lids in stock</div>
       </div>
       <div class="stock-stat ${lowCount > 0 ? 'warning' : ''}">
         <div class="stock-stat-value">${lowCount}</div>
