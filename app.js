@@ -2474,6 +2474,72 @@ function renderStock() {
   }).join('');
 }
 
+function openDeliveryModal() {
+  if (!stockRows.length) { alert('Load the Stock tab first.'); return; }
+
+  // Populate Type dropdown
+  const types = [...new Set(stockRows.map(r => r['Type']).filter(Boolean))];
+  const typeSelect  = document.getElementById('del-type');
+  const colorSelect = document.getElementById('del-color');
+  typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+
+  const updateColors = () => {
+    const chosen = typeSelect.value;
+    const colors = stockRows.filter(r => r['Type'] === chosen).map(r => r['Color']).filter(Boolean);
+    colorSelect.innerHTML = colors.map(c => `<option value="${c}">${c}</option>`).join('');
+  };
+  typeSelect.onchange = updateColors;
+  updateColors();
+
+  document.getElementById('del-quantity').value = '';
+  document.getElementById('del-note').value = '';
+  const st = document.getElementById('del-status');
+  st.style.display = 'none'; st.textContent = '';
+  document.getElementById('del-submit').disabled = false;
+  document.getElementById('delivery-modal-overlay').style.display = 'flex';
+}
+
+function closeDeliveryModal() {
+  document.getElementById('delivery-modal-overlay').style.display = 'none';
+}
+
+document.getElementById('delivery-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDeliveryModal();
+});
+
+async function submitDelivery() {
+  const type     = document.getElementById('del-type').value;
+  const color    = document.getElementById('del-color').value;
+  const quantity = parseInt(document.getElementById('del-quantity').value);
+  const note     = document.getElementById('del-note').value.trim();
+  const statusEl = document.getElementById('del-status');
+  const btn      = document.getElementById('del-submit');
+
+  if (!type || !color || !quantity || quantity < 1) {
+    statusEl.className = 'form-status error'; statusEl.style.display = '';
+    statusEl.textContent = 'Please fill in type, color and quantity.'; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.style.display = 'none';
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify({ action: 'add_stock', type, color, quantity, note, changedBy: currentUser?.email }),
+    });
+    statusEl.className = 'form-status success'; statusEl.style.display = '';
+    statusEl.textContent = `Added ${quantity}× ${color} ${type} to stock.`;
+    btn.textContent = 'Add to Stock';
+    // Refresh stock display after short delay
+    setTimeout(async () => { closeDeliveryModal(); await loadStock(); }, 1200);
+  } catch (err) {
+    statusEl.className = 'form-status error'; statusEl.style.display = '';
+    statusEl.textContent = 'Error saving. Try again.';
+    btn.disabled = false; btn.textContent = 'Add to Stock';
+  }
+}
+
 async function refreshData() {
   const lu = document.getElementById('last-updated');
   lu.textContent = 'Updating…';

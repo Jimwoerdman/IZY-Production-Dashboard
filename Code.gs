@@ -917,6 +917,51 @@ function doPost(e) {
       return respond({ success: true });
     }
 
+    // Add stock delivery
+    if (data.action === 'add_stock') {
+      const stSheet = ss.getSheetByName('Stock');
+      if (!stSheet) return respond({ error: 'Stock sheet not found' });
+      const stVals    = stSheet.getDataRange().getValues();
+      const stHeaders = stVals[0].map(h => String(h).trim().toLowerCase());
+      const stTypeCol  = stHeaders.indexOf('type');
+      const stColorCol = stHeaders.indexOf('color');
+      const stQtyCol   = stHeaders.indexOf('quantity');
+      if (stTypeCol < 0 || stColorCol < 0 || stQtyCol < 0) return respond({ error: 'Stock sheet missing columns' });
+
+      const tl = (data.type  || '').trim().toLowerCase();
+      const cl = (data.color || '').trim().toLowerCase();
+      const amount = parseInt(data.quantity) || 0;
+      if (!tl || !cl || amount <= 0) return respond({ error: 'Invalid type, color or quantity' });
+
+      let matched = false;
+      for (var si = 1; si < stVals.length; si++) {
+        if (String(stVals[si][stTypeCol]  ?? '').trim().toLowerCase() === tl &&
+            String(stVals[si][stColorCol] ?? '').trim().toLowerCase() === cl) {
+          const current = parseInt(stVals[si][stQtyCol]) || 0;
+          const newQty  = current + amount;
+          stSheet.getRange(si + 1, stQtyCol + 1).setValue(newQty);
+
+          // Log to StockLog
+          let slSheet = ss.getSheetByName('StockLog');
+          if (!slSheet) {
+            slSheet = ss.insertSheet('StockLog');
+            slSheet.appendRow(['Date', 'Type', 'Color', 'Deducted', 'Result', 'Job Row', 'Logged By', 'Note']);
+          }
+          const tzz = ss.getSpreadsheetTimeZone();
+          slSheet.appendRow([
+            Utilities.formatDate(new Date(), tzz, 'dd/MM/yyyy'),
+            data.type, data.color, amount,
+            'delivery (' + current + '→' + newQty + ')',
+            '', data.changedBy || '', data.note || ''
+          ]);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) return respond({ error: 'No Stock row found for ' + data.type + ' / ' + data.color });
+      return respond({ success: true });
+    }
+
     // Use the exact sheet row number sent by the dashboard (most reliable — no search needed)
     const rowIndex = data.sheetRow ? parseInt(data.sheetRow) : -1;
     Logger.log('rowIndex=' + rowIndex);
@@ -979,42 +1024,106 @@ function doPost(e) {
     // Deduct from Stock sheet when prints are logged
     if (sessionQty > 0) {
       const stockSheet = ss.getSheetByName('Stock');
-      if (stockSheet && stockSheet.getLastRow() > 1) {
+
+      // Ensure StockLog sheet exists for audit trail
+      const ensureStockLog = () => {
+        let sl = ss.getSheetByName('StockLog');
+        if (!sl) {
+          sl = ss.insertSheet('StockLog');
+          sl.appendRow(['Date', 'Type', 'Color', 'Deducted', 'Result', 'Job Row', 'Logged By', 'Note']);
+        }
+        return sl;
+      };
+
+      if (!stockSheet) {
+        Logger.log('Stock: sheet "Stock" not found — skipping deduction');
+      } else if (stockSheet.getLastRow() < 2) {
+        Logger.log('Stock: sheet is empty — skipping deduction');
+      } else {
         const stockVals    = stockSheet.getDataRange().getValues();
         const stockHeaders = stockVals[0].map(h => String(h).trim().toLowerCase());
         const stTypeCol    = stockHeaders.indexOf('type');
         const stColorCol   = stockHeaders.indexOf('color');
         const stQtyCol     = stockHeaders.indexOf('quantity');
 
-        if (stTypeCol >= 0 && stColorCol >= 0 && stQtyCol >= 0) {
-          const bottleColor  = g('bottle color');
-          const lidColor     = g('lid');
-          const soort        = g('soort');
-          const totalDeduct  = sessionQty + (parseInt(data.faultyPrints) || 0);
+        if (stTypeCol < 0 || stColorCol < 0 || stQtyCol < 0) {
+          Logger.log('Stock: missing required column(s). Found headers: ' + stockHeaders.join(', '));
+        } else {
+          // Use exact header match (not includes) to avoid ambiguous column lookups
+          const exactCol = (name) => {
+            const i = headers.findIndex(h => h.trim().toLowerCase() === name.toLowerCase());
+            return i >= 0 ? String(rowData[i] ?? '').trim() : '';
+          };
 
-          const deductStock = (typeName, colorName, amount) => {
-            if (!typeName || !colorName || amount <= 0) return;
+          const bottleColor = exactCol('Bottle color');
+          const lidColor    = exactCol('Lid');
+          const soortRaw    = data.soort || exactCol('Soort');
+          const totalDeduct = sessionQty + (parseInt(data.faultyPrints) || 0);
+
+          // Map Workfile Soort values → Stock sheet Type names
+          // Handles sample variants, capitalisation differences, etc.
+          const normalizeType = (s) => {
+            const sl = (s || '').toLowerCase().trim();
+            if (sl === 'bottle' || sl.startsWith('bottle sample')) return 'Bottle';
+            if (sl === 'mug'    || sl.startsWith('mug sample'))    return 'Mug';
+            if (sl.startsWith('travel bottle'))                     return 'Travel Bottle';
+            if (sl === 'tumbler' || sl.startsWith('tumbler sample'))return 'Tumbler';
+            // Fallback: title-case the raw value
+            return (s || '').trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+          };
+
+          const stockType = normalizeType(soortRaw);
+          const stockLog  = ensureStockLog();
+          const logDate   = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
+
+          // Adjust a stock row by delta (negative = deduct, positive = add back)
+          const adjustStock = (typeName, colorName, delta, note) => {
+            if (!typeName || !colorName) {
+              const msg = 'skipped — missing type or color (type="' + typeName + '" color="' + colorName + '")';
+              Logger.log('Stock ' + (note || '') + ': ' + msg);
+              stockLog.appendRow([logDate, typeName, colorName, delta, 'skipped', rowIndex, data.changedBy || '', msg]);
+              return;
+            }
             const tl = typeName.trim().toLowerCase();
             const cl = colorName.trim().toLowerCase();
+            let matched = false;
             for (var si = 1; si < stockVals.length; si++) {
-              if (String(stockVals[si][stTypeCol] ?? '').trim().toLowerCase() === tl &&
-                  String(stockVals[si][stColorCol] ?? '').trim().toLowerCase() === cl) {
+              const rowType  = String(stockVals[si][stTypeCol]  ?? '').trim().toLowerCase();
+              const rowColor = String(stockVals[si][stColorCol] ?? '').trim().toLowerCase();
+              if (rowType === tl && rowColor === cl) {
                 const current = parseInt(stockVals[si][stQtyCol]) || 0;
-                stockSheet.getRange(si + 1, stQtyCol + 1).setValue(Math.max(0, current - amount));
-                Logger.log('Stock deducted: ' + typeName + '/' + colorName + ' -' + amount);
+                const newQty  = Math.max(0, current + delta);
+                stockSheet.getRange(si + 1, stQtyCol + 1).setValue(newQty);
+                const direction = delta < 0 ? 'deducted' : 'added';
+                Logger.log('Stock ' + direction + ': ' + typeName + '/' + colorName + ' ' + delta + ' (' + current + '→' + newQty + ')');
+                stockLog.appendRow([logDate, typeName, colorName, delta, 'ok (' + current + '→' + newQty + ')', rowIndex, data.changedBy || '', note || '']);
+                matched = true;
                 break;
               }
+            }
+            if (!matched) {
+              const msg = 'no match in Stock sheet for type="' + typeName + '" color="' + colorName + '" (soortRaw="' + soortRaw + '")';
+              Logger.log('Stock ' + (note || '') + ': ' + msg);
+              stockLog.appendRow([logDate, typeName, colorName, delta, 'no match', rowIndex, data.changedBy || '', msg]);
             }
           };
 
           // Deduct product stock
-          deductStock(soort, bottleColor, totalDeduct);
+          adjustStock(stockType, bottleColor, -totalDeduct, 'product');
 
-          // Deduct lid stock
+          // Lid logic:
+          // Every bottle/mug comes with a matching lid included in the bottle stock.
+          // Spare lids only need adjusting when the lid color differs from the bottle color:
+          //   - Deduct the chosen lid color from spare lids (you're using a spare)
+          //   - Add the original matching lid color back to spare lids (it's now unused/spare)
           if (lidColor) {
-            const soortLower = soort.toLowerCase();
+            const soortLower = (soortRaw || '').toLowerCase();
             const lidType = (soortLower.includes('mug') || soortLower.includes('tumbler')) ? 'Mug lids' : 'Bottle lids';
-            deductStock(lidType, lidColor, totalDeduct);
+            if (lidColor.trim().toLowerCase() !== (bottleColor || '').trim().toLowerCase()) {
+              adjustStock(lidType, lidColor,    -totalDeduct, 'lids — spare used');
+              adjustStock(lidType, bottleColor,  totalDeduct, 'lids — original returned to spare');
+            }
+            // If lid color === bottle color: lid comes with the bottle, no spare lid movement needed
           }
         }
       }
