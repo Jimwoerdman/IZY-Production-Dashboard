@@ -877,7 +877,9 @@ footer {
 .aq-section { margin-bottom: 24px; }
 .aq-section-title {
   display: flex; align-items: center; gap: 10px;
-  padding: 0 0 12px 0;
+  padding: 8px 16px;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 0;
 }
 .aq-section-count { font-size: 12px; color: var(--text-3); font-weight: 500; }
 

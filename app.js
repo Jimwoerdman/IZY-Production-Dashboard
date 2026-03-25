@@ -620,9 +620,9 @@ function renderActiveQueue() {
 
     return `
       <div class="aq-section">
-        <div class="aq-section-title">
-          <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
-          <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+        <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
+          <span style="font-size:13px;font-weight:700;">${section.label}</span>
+          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
@@ -692,9 +692,9 @@ function renderActiveQueue() {
       return { card, row };
     });
     return `<div class="aq-section">
-      <div class="aq-section-title">
-        <span style="background:#dcfce7;color:#15803d;border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">✓ Ready to Ship</span>
-        <span class="aq-section-count">${rtsFiltered.length} job${rtsFiltered.length !== 1 ? 's' : ''}</span>
+      <div class="aq-section-title" style="background:#dcfce7;color:#15803d;">
+        <span style="font-size:13px;font-weight:700;">✓ Ready to Ship</span>
+        <span class="aq-section-count" style="color:#15803d;opacity:0.7;">${rtsFiltered.length} job${rtsFiltered.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
       <div class="aq-table-wrap table-wrap">
@@ -1439,9 +1439,9 @@ function renderSleeves() {
 
     return `
       <div class="aq-section">
-        <div class="aq-section-title">
-          <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
-          <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+        <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
+          <span style="font-size:13px;font-weight:700;">${section.label}</span>
+          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
@@ -1933,9 +1933,9 @@ function renderMockups() {
 
     return `
       <div class="aq-section">
-        <div class="aq-section-title">
-          <span style="background:${c.bg};color:${c.text};border-radius:6px;padding:4px 14px;font-size:13px;font-weight:700;">${section.label}</span>
-          <span class="aq-section-count">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+        <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
+          <span style="font-size:13px;font-weight:700;">${section.label}</span>
+          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
