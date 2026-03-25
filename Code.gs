@@ -524,6 +524,15 @@ function doPost(e) {
       }
 
       Logger.log('add_job: wrote row ' + newRow);
+      sendJobNotification(
+        data.changedBy, data.owner,
+        '🆕 Nieuwe print job: ' + (data.company || '') + ' – ' + (data.printName || ''),
+        'Er is een nieuwe print job toegevoegd.\n\nBedrijf: ' + (data.company || '—') +
+        '\nProduct: ' + (data.printName || '—') +
+        '\nType: ' + (data.soort || '—') +
+        '\nAantal: ' + (data.quantity || '—') +
+        '\nDeadline: ' + (data.deadline || '—')
+      );
       return respond({ success: true, newRow });
     }
 
@@ -644,6 +653,15 @@ function doPost(e) {
       }
 
       Logger.log('add_sleeve_job: wrote row ' + newRow);
+      sendJobNotification(
+        data.changedBy, data.owner,
+        '🆕 Nieuwe sleeve job: ' + (data.company || '') + ' – ' + (data.printName || ''),
+        'Er is een nieuwe sleeve job toegevoegd.\n\nBedrijf: ' + (data.company || '—') +
+        '\nProduct: ' + (data.printName || '—') +
+        '\nType: ' + (data.soort || '—') +
+        '\nAantal: ' + (data.quantity || '—') +
+        '\nDeadline: ' + (data.deadline || '—')
+      );
       return respond({ success: true, newRow });
     }
 
@@ -755,6 +773,15 @@ function doPost(e) {
       }
 
       Logger.log('add_mockup_job: wrote row ' + newRow);
+      sendJobNotification(
+        data.changedBy, data.owner,
+        '🆕 Nieuwe mockup job: ' + (data.company || '') + ' – ' + (data.printName || ''),
+        'Er is een nieuwe mockup job toegevoegd.\n\nBedrijf: ' + (data.company || '—') +
+        '\nProduct: ' + (data.printName || '—') +
+        '\nType: ' + (data.soort || '—') +
+        '\nAantal: ' + (data.quantity || '—') +
+        '\nDeadline: ' + (data.deadline || '—')
+      );
       return respond({ success: true, newRow });
     }
 
@@ -796,6 +823,13 @@ function doPost(e) {
         } catch(fileErr) { Logger.log('edit_sleeve files failed: ' + fileErr.message); }
       }
       Logger.log('edit_sleeve_job: updated row ' + rowIdx);
+      sendJobNotification(
+        data.changedBy, data.owner,
+        '✏️ Sleeve job gewijzigd: ' + (data.company || ''),
+        'Een sleeve job is aangepast.\n\nBedrijf: ' + (data.company || '—') +
+        '\nType: ' + (data.soort || '—') +
+        '\nDeadline: ' + (data.deadline || '—')
+      );
       return respond({ success: true });
     }
 
@@ -837,6 +871,13 @@ function doPost(e) {
         } catch(fileErr) { Logger.log('edit_mockup files failed: ' + fileErr.message); }
       }
       Logger.log('edit_mockup_job: updated row ' + rowIdx);
+      sendJobNotification(
+        data.changedBy, data.owner,
+        '✏️ Mockup job gewijzigd: ' + (data.company || ''),
+        'Een mockup job is aangepast.\n\nBedrijf: ' + (data.company || '—') +
+        '\nType: ' + (data.soort || '—') +
+        '\nDeadline: ' + (data.deadline || '—')
+      );
       return respond({ success: true });
     }
 
@@ -916,6 +957,32 @@ function respond(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/***** JOB CHANGE NOTIFICATIONS *****/
+const GEERTJAN = 'geertjan@izybottles.com';
+const JIM      = 'jim@izybottles.com';
+
+function sendJobNotification(changedBy, owner, subject, body) {
+  if (!changedBy) return;
+  const recipients = new Set();
+
+  // Notify the job owner if someone else made the change
+  if (owner && owner !== changedBy) recipients.add(owner);
+
+  // Geertjan's changes always notify Jim
+  if (changedBy === GEERTJAN) recipients.add(JIM);
+
+  recipients.forEach(function(email) {
+    try {
+      MailApp.sendEmail({
+        to:      email,
+        subject: subject,
+        body:    body + '\n\nGedaan door: ' + changedBy +
+                 '\n\nDashboard: https://jimwoerdman.github.io/IZY-Production-Dashboard/'
+      });
+    } catch(e) { Logger.log('Mail failed to ' + email + ': ' + e.message); }
+  });
 }
 
 /***** DEBUG — run this to test add_job directly without HTTP *****/
