@@ -1006,18 +1006,92 @@ function doPost(e) {
       Logger.log('PrintLog row appended for sessionQty=' + sessionQty);
     }
 
-    // On reset: delete all PrintLog rows for this job
+    // On reset: delete PrintLog rows and refund stock
     if (isReset) {
       const logSheet = ss.getSheetByName('PrintLog');
+      let refundQty = 0;
       if (logSheet && logSheet.getLastRow() > 1) {
         const logData = logSheet.getDataRange().getValues();
-        // SheetRow is column I (index 8)
-        for (var li = logData.length - 1; li >= 1; li--) {
+        // Sum quantities (index 5) before deleting; SheetRow is index 8
+        for (var li = 1; li < logData.length; li++) {
           if (parseInt(logData[li][8]) === rowIndex) {
-            logSheet.deleteRow(li + 1); // 1-based
+            refundQty += parseInt(logData[li][5]) || 0;
           }
         }
-        Logger.log('PrintLog rows deleted for sheetRow=' + rowIndex);
+        // Delete rows bottom-up
+        for (var li = logData.length - 1; li >= 1; li--) {
+          if (parseInt(logData[li][8]) === rowIndex) logSheet.deleteRow(li + 1);
+        }
+        Logger.log('PrintLog rows deleted for sheetRow=' + rowIndex + ', refundQty=' + refundQty);
+      }
+
+      // Refund stock
+      if (refundQty > 0) {
+        const stockSheet = ss.getSheetByName('Stock');
+        if (stockSheet && stockSheet.getLastRow() >= 2) {
+          const stockVals    = stockSheet.getDataRange().getValues();
+          const stockHeaders = stockVals[0].map(h => String(h).trim().toLowerCase());
+          const stTypeCol    = stockHeaders.indexOf('type');
+          const stColorCol   = stockHeaders.indexOf('color');
+          const stQtyCol     = stockHeaders.indexOf('quantity');
+
+          if (stTypeCol >= 0 && stColorCol >= 0 && stQtyCol >= 0) {
+            const exactCol = (name) => {
+              const i = headers.findIndex(h => h.trim().toLowerCase() === name.toLowerCase());
+              return i >= 0 ? String(rowData[i] ?? '').trim() : '';
+            };
+            const normalizeType = (s) => {
+              const sl = (s || '').toLowerCase().trim();
+              if (sl === 'bottle' || sl.startsWith('bottle sample')) return 'Bottle';
+              if (sl === 'mug'    || sl.startsWith('mug sample'))    return 'Mug';
+              if (sl.startsWith('travel bottle'))                     return 'Travel Bottle';
+              if (sl === 'tumbler' || sl.startsWith('tumbler sample'))return 'Tumbler';
+              return (s || '').trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+            };
+
+            const bottleColor = exactCol('Bottle color');
+            const lidColor    = exactCol('Lid');
+            const soortRaw    = data.soort || exactCol('Soort');
+            const stockType   = normalizeType(soortRaw);
+
+            let stockLog = ss.getSheetByName('StockLog');
+            if (!stockLog) {
+              stockLog = ss.insertSheet('StockLog');
+              stockLog.appendRow(['Date', 'Type', 'Color', 'Deducted', 'Result', 'Job Row', 'Logged By', 'Note']);
+            }
+            const logDate = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
+
+            const adjustReset = (typeName, colorName, delta, note) => {
+              if (!typeName || !colorName) return;
+              const tl = typeName.trim().toLowerCase();
+              const cl = colorName.trim().toLowerCase();
+              for (var si = 1; si < stockVals.length; si++) {
+                if (String(stockVals[si][stTypeCol] ?? '').trim().toLowerCase() === tl &&
+                    String(stockVals[si][stColorCol] ?? '').trim().toLowerCase() === cl) {
+                  const current = parseInt(stockVals[si][stQtyCol]) || 0;
+                  const newQty  = Math.max(0, current + delta);
+                  stockSheet.getRange(si + 1, stQtyCol + 1).setValue(newQty);
+                  Logger.log('Stock reset ' + (delta > 0 ? 'refund' : 're-deduct') + ': ' + typeName + '/' + colorName + ' ' + (delta > 0 ? '+' : '') + delta + ' (' + current + '→' + newQty + ')');
+                  stockLog.appendRow([logDate, typeName, colorName, delta, 'reset (' + current + '→' + newQty + ')', rowIndex, data.changedBy || '', note || '']);
+                  return;
+                }
+              }
+              Logger.log('Stock reset: no match for ' + typeName + '/' + colorName);
+              stockLog.appendRow([logDate, typeName, colorName, delta, 'no match', rowIndex, data.changedBy || '', note || '']);
+            };
+
+            // Refund product stock
+            adjustReset(stockType, bottleColor, refundQty, 'reset — product refund');
+
+            // Reverse lid swap if lid color ≠ bottle color
+            if (lidColor && lidColor.trim().toLowerCase() !== (bottleColor || '').trim().toLowerCase()) {
+              const soortLower = (soortRaw || '').toLowerCase();
+              const lidType = (soortLower.includes('mug') || soortLower.includes('tumbler')) ? 'Mug lids' : 'Bottle lids';
+              adjustReset(lidType, lidColor,    +refundQty, 'reset — spare lid refund');
+              adjustReset(lidType, bottleColor, -refundQty, 'reset — matching lid re-deducted');
+            }
+          }
+        }
       }
     }
 
