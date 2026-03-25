@@ -327,6 +327,7 @@ function doPost(e) {
     Logger.log('action=' + data.action + ' sheetRow=' + data.sheetRow);
 
     const ss     = SpreadsheetApp.getActiveSpreadsheet();
+    const tz     = ss.getSpreadsheetTimeZone();
     const sheet  = ss.getSheetByName('Workfile');
     const values = sheet.getDataRange().getValues();
     const headers = values[0].map(h => String(h).trim());
@@ -378,7 +379,6 @@ function doPost(e) {
       const soortVals = sheet.getRange(2, 2, lastDataRow - 1, 1).getValues();
       const priority  = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
 
-      const tz     = ss.getSpreadsheetTimeZone();
       const wfLen  = Math.max(headers.length, 36);
       const vals   = new Array(wfLen).fill('');
       const setW   = (kw, value) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); if (i >= 0) vals[i] = value; };
@@ -613,7 +613,6 @@ function doPost(e) {
       const lastRow   = svSheet.getLastRow();
       const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 12)).getValues()[0].map(h => String(h).trim());
       const newRow    = lastRow + 1;
-      const tz        = ss.getSpreadsheetTimeZone();
 
       const findIdx = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
 
@@ -744,7 +743,6 @@ function doPost(e) {
       const lastRow   = mkSheet.getLastRow();
       const mkHeaders = mkSheet.getRange(1, 1, 1, Math.max(mkSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
       const newRow    = lastRow + 1;
-      const tz        = ss.getSpreadsheetTimeZone();
       const findIdx   = kw => mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
 
       let priority = 1;
@@ -922,31 +920,33 @@ function doPost(e) {
     Logger.log('rowIndex=' + rowIndex);
     if (rowIndex < 2) return respond({ error: 'Invalid sheet row: ' + data.sheetRow });
 
-    // Update Quantity Printed + append to PrintLog
+    // Update Quantity Printed
     if (quantityPrintedCol >= 0 && data.quantityPrinted !== undefined) {
       sheet.getRange(rowIndex, quantityPrintedCol + 1).setValue(data.quantityPrinted);
+    }
 
-      // Append a log entry so we can track prints over time
-      const sessionQty = parseInt(data.sessionPrinted);
-      if (sessionQty > 0) {
-        const rowData = values[rowIndex - 1]; // 0-based
-        const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
-        let logSheet = ss.getSheetByName('PrintLog');
-        if (!logSheet) {
-          logSheet = ss.insertSheet('PrintLog');
-          logSheet.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By']);
-        }
-        logSheet.appendRow([
-          Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'),
-          g('company') || g('name_company'),
-          g('name_print') || g('print'),
-          g('owner'),
-          g('soort'),
-          sessionQty,
-          g('priority'),
-          data.changedBy || ''
-        ]);
+    // Append to PrintLog (always, independent of quantityPrintedCol)
+    const sessionQty = parseInt(data.sessionPrinted);
+    Logger.log('sessionQty=' + sessionQty);
+    if (sessionQty > 0) {
+      const rowData = values[rowIndex - 1]; // 0-based: row 2 → index 1
+      const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
+      let logSheet = ss.getSheetByName('PrintLog');
+      if (!logSheet) {
+        logSheet = ss.insertSheet('PrintLog');
+        logSheet.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By']);
       }
+      logSheet.appendRow([
+        Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'),
+        g('company') || g('name_company'),
+        g('name_print') || g('print'),
+        g('owner'),
+        g('soort'),
+        sessionQty,
+        g('priority'),
+        data.changedBy || ''
+      ]);
+      Logger.log('PrintLog row appended for sessionQty=' + sessionQty);
     }
 
     // Update Faulty Prints
