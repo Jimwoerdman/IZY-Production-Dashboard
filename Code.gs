@@ -748,6 +748,48 @@ function doPost(e) {
       return respond({ success: true, newRow });
     }
 
+    // Edit sleeve job
+    if (data.action === 'edit_sleeve_job') {
+      const svSheet   = ss.getSheetByName('Sleeves');
+      const svHeaders = svSheet.getRange(1, 1, 1, svSheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const rowIdx    = parseInt(data.sheetRow);
+      if (rowIdx < 2) return respond({ error: 'Invalid sheet row' });
+      const findSv = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+      const setSv  = (kw, val) => { const c = findSv(kw); if (c >= 0) svSheet.getRange(rowIdx, c + 1).setValue(val); };
+      setSv('name_company',  data.company    || '');
+      setSv('name_print',    data.printName  || '');
+      setSv('soort',         data.soort      || '');
+      setSv('bottle color',  data.bottleColor|| '');
+      setSv('lid',           data.lidColor   || '');
+      setSv('quantity',      data.quantity   || '');
+      setSv('deadline',      data.deadline   || '');
+      setSv('owner',         data.owner      || '');
+      setSv('notes',         data.notes      || '');
+      Logger.log('edit_sleeve_job: updated row ' + rowIdx);
+      return respond({ success: true });
+    }
+
+    // Edit mockup job
+    if (data.action === 'edit_mockup_job') {
+      const mkSheet   = ss.getSheetByName('Mockups');
+      const mkHeaders = mkSheet.getRange(1, 1, 1, mkSheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const rowIdx    = parseInt(data.sheetRow);
+      if (rowIdx < 2) return respond({ error: 'Invalid sheet row' });
+      const findMk = kw => mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+      const setMk  = (kw, val) => { const c = findMk(kw); if (c >= 0) mkSheet.getRange(rowIdx, c + 1).setValue(val); };
+      setMk('name_company',  data.company    || '');
+      setMk('name_print',    data.printName  || '');
+      setMk('soort',         data.soort      || '');
+      setMk('bottle color',  data.bottleColor|| '');
+      setMk('lid',           data.lidColor   || '');
+      setMk('quantity',      data.quantity   || '');
+      setMk('deadline',      data.deadline   || '');
+      setMk('owner',         data.owner      || '');
+      setMk('notes',         data.notes      || '');
+      Logger.log('edit_mockup_job: updated row ' + rowIdx);
+      return respond({ success: true });
+    }
+
     // Use the exact sheet row number sent by the dashboard (most reliable — no search needed)
     const rowIndex = data.sheetRow ? parseInt(data.sheetRow) : -1;
     Logger.log('rowIndex=' + rowIndex);

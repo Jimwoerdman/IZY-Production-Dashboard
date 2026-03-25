@@ -1389,7 +1389,7 @@ function renderSleeves() {
       const idx    = sleeveRows.indexOf(r);
       const isDone = get(r,'Status').toLowerCase() === 'done';
 
-      const actionBtns = `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Update</button>`;
+      const actionBtns = `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Update</button><button class="btn-log sv-btn-edit" data-svidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
 
       // Support multiple file URLs (newline or comma separated)
       const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
@@ -1474,8 +1474,10 @@ document.getElementById('sv-type-tabs').addEventListener('click', e => {
 
 // Sleeve tab button delegation
 document.getElementById('tab-sleeves').addEventListener('click', function(e) {
-  const logBtn = e.target.closest('.sv-btn-log');
+  const logBtn  = e.target.closest('.sv-btn-log');
   if (logBtn) openSleeveModal(parseInt(logBtn.dataset.svidx));
+  const editBtn = e.target.closest('.sv-btn-edit');
+  if (editBtn) openEditJobModal(parseInt(editBtn.dataset.svidx), 'sleeve');
 });
 
 // ── Sleeve Modal ──────────────────────────────────────────────
@@ -1740,6 +1742,108 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   this.disabled = false;
 });
 
+// ── Edit Job Modal (shared for Sleeve & Mockup) ───────────────
+
+let editJobType = null; // 'sleeve' or 'mockup'
+let editJobRow  = null; // the row object
+
+function openEditJobModal(rowIdx, type) {
+  const rows = type === 'sleeve' ? sleeveRows : mockupRows;
+  editJobRow  = rows[rowIdx];
+  editJobType = type;
+  if (!editJobRow) return;
+
+  document.getElementById('edit-job-modal-title').textContent =
+    type === 'sleeve' ? 'Edit Sleeve Job' : 'Edit Mockup Job';
+
+  document.getElementById('ej-company').value    = get(editJobRow, 'Name_Company') || '';
+  document.getElementById('ej-print-name').value = get(editJobRow, 'Name_Print')   || '';
+  document.getElementById('ej-soort').value       = get(editJobRow, 'Soort')        || '';
+  document.getElementById('ej-bottle-color').value = get(editJobRow, 'Bottle color') || '';
+  document.getElementById('ej-lid-color').value   = get(editJobRow, 'Lid')          || '';
+  document.getElementById('ej-quantity').value    = get(editJobRow, 'Quantity')      || '';
+  document.getElementById('ej-notes').value       = get(editJobRow, 'Notes')         || '';
+
+  // Convert DD/MM/YYYY deadline to YYYY-MM-DD for date input
+  const dl = get(editJobRow, 'Deadline') || '';
+  if (dl && dl.includes('/')) {
+    const [d, m, y] = dl.split('/');
+    document.getElementById('ej-deadline').value = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  } else {
+    document.getElementById('ej-deadline').value = dl;
+  }
+
+  // Populate owner dropdown
+  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const ownerSel = document.getElementById('ej-owner');
+  ownerSel.innerHTML = '<option value="">Select owner…</option>' +
+    owners.map(o => `<option value="${o}">${o}</option>`).join('');
+  ownerSel.value = get(editJobRow, 'Owner') || '';
+
+  document.getElementById('ej-status').textContent = '';
+  document.getElementById('edit-job-modal-overlay').style.display = 'flex';
+}
+
+function closeEditJobModal() {
+  document.getElementById('edit-job-modal-overlay').style.display = 'none';
+  editJobRow = null; editJobType = null;
+}
+
+document.getElementById('edit-job-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeEditJobModal();
+});
+
+async function submitEditJob() {
+  const company   = document.getElementById('ej-company').value.trim();
+  const printName = document.getElementById('ej-print-name').value.trim();
+  if (!company || !printName) {
+    document.getElementById('ej-status').textContent = 'Company and Product Name are required.';
+    return;
+  }
+
+  const btn = document.getElementById('ej-submit');
+  btn.disabled = true;
+  document.getElementById('ej-status').textContent = 'Saving…';
+
+  // Convert YYYY-MM-DD back to DD/MM/YYYY for the sheet
+  const rawDeadline = document.getElementById('ej-deadline').value;
+  let deadline = rawDeadline;
+  if (rawDeadline && rawDeadline.includes('-')) {
+    const [y, m, d] = rawDeadline.split('-');
+    deadline = `${d}/${m}/${y}`;
+  }
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        action:      editJobType === 'sleeve' ? 'edit_sleeve_job' : 'edit_mockup_job',
+        sheetRow:    editJobRow['_sheetRow'],
+        company,
+        printName,
+        soort:       document.getElementById('ej-soort').value,
+        bottleColor: document.getElementById('ej-bottle-color').value,
+        lidColor:    document.getElementById('ej-lid-color').value,
+        quantity:    document.getElementById('ej-quantity').value || '',
+        deadline,
+        owner:       document.getElementById('ej-owner').value,
+        notes:       document.getElementById('ej-notes').value.trim(),
+        changedBy:   currentUser?.email,
+      }),
+    });
+    document.getElementById('ej-status').textContent = '✅ Saved!';
+    setTimeout(() => {
+      closeEditJobModal();
+      if (editJobType === 'sleeve') { sleeveLoaded = false; loadSleeves(); }
+      else { mockupLoaded = false; loadMockups(); }
+    }, 1200);
+  } catch (err) {
+    document.getElementById('ej-status').textContent = '❌ Error: ' + err.message;
+    btn.disabled = false;
+  }
+}
+
 // ── Add Mockup Job ────────────────────────────────────────────
 
 function populateMockupOwners() {
@@ -1888,7 +1992,7 @@ function renderMockups() {
     const rowsHtml = rows.map(r => {
       const idx    = mockupRows.indexOf(r);
       const isDone = ['approved','finished'].includes(get(r,'Status').toLowerCase());
-      const actionBtns = `<button class="btn-log mk-btn-log" data-mkidx="${idx}">✏️ Update</button>`;
+      const actionBtns = `<button class="btn-log mk-btn-log" data-mkidx="${idx}">✏️ Update</button><button class="btn-log mk-btn-edit" data-mkidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
 
       const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const fileLinks = rawFileUrls.length
@@ -1971,8 +2075,10 @@ document.getElementById('mk-type-tabs').addEventListener('click', e => {
 });
 
 document.getElementById('tab-mockups').addEventListener('click', function(e) {
-  const logBtn = e.target.closest('.mk-btn-log');
+  const logBtn  = e.target.closest('.mk-btn-log');
   if (logBtn) openMockupModal(parseInt(logBtn.dataset.mkidx));
+  const editBtn = e.target.closest('.mk-btn-edit');
+  if (editBtn) openEditJobModal(parseInt(editBtn.dataset.mkidx), 'mockup');
 });
 
 // ── Mockup Modal ──────────────────────────────────────────────
