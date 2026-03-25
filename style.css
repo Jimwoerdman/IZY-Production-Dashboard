@@ -684,8 +684,20 @@ td.cell-ok      { color: var(--green);  font-weight: 600; }
 /* Groups grid */
 .stock-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
+  margin-bottom: 16px;
+}
+.stock-groups-products {
+  grid-template-columns: repeat(4, 1fr);
+}
+.stock-groups-lids {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (max-width: 900px) {
+  .stock-groups-products { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .stock-groups-products, .stock-groups-lids { grid-template-columns: 1fr; }
 }
 .stock-group {
   background: var(--surface);

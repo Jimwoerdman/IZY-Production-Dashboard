@@ -2475,15 +2475,11 @@ function renderStock() {
     groups[type].push(r);
   });
 
-  const typeOrder = ['Bottle', 'Mug', 'Travel Bottle', 'Tumbler', 'Bottle lids', 'Mug lids'];
-  const orderedTypes = [...typeOrder.filter(t => groups[t]), ...Object.keys(groups).filter(t => !typeOrder.includes(t))];
-
   // Summary stats
   const allItems   = stockRows.map(r => parseInt(r['Quantity']) || 0);
   const totalStock = allItems.reduce((a, b) => a + b, 0);
   const lowCount   = stockRows.filter(r => { const q = parseInt(r['Quantity'])||0; return q > 0 && q < 100; }).length;
   const outCount   = stockRows.filter(r => (parseInt(r['Quantity'])||0) === 0).length;
-  const outItems   = stockRows.filter(r => (parseInt(r['Quantity'])||0) === 0);
 
   const summaryHtml = `
     <div class="stock-summary">
@@ -2501,20 +2497,17 @@ function renderStock() {
       </div>
     </div>`;
 
-  const alertHtml = outItems.length
-    ? `<div class="stock-alert">⚠️ Out of stock: ${outItems.map(r => `<strong>${r['Color']} ${r['Type']}</strong>`).join(', ')}</div>`
-    : '';
+  const buildGroupHtml = (type) => {
+    if (!groups[type]) return '';
+    const grpRows   = groups[type];
+    const cfg       = STOCK_TYPE_CONFIG[type] || { icon: '📦', bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' };
+    const typeTotal = grpRows.reduce((s, r) => s + (parseInt(r['Quantity'])||0), 0);
+    const maxQty    = Math.max(...grpRows.map(r => parseInt(r['Quantity'])||0), 1);
 
-  const groupsHtml = orderedTypes.map(type => {
-    const rows   = groups[type];
-    const cfg    = STOCK_TYPE_CONFIG[type] || { icon: '📦', bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' };
-    const typeTotal = rows.reduce((s, r) => s + (parseInt(r['Quantity'])||0), 0);
-    const maxQty    = Math.max(...rows.map(r => parseInt(r['Quantity'])||0), 1);
-
-    const rowsHtml = rows.map(r => {
-      const qty    = parseInt(r['Quantity']) || 0;
-      const pct    = Math.round((qty / maxQty) * 100);
-      const qClass = qty === 0 ? 'danger' : qty < 100 ? 'warning' : 'ok';
+    const rowsHtml = grpRows.map(r => {
+      const qty      = parseInt(r['Quantity']) || 0;
+      const pct      = Math.round((qty / maxQty) * 100);
+      const qClass   = qty === 0 ? 'danger' : qty < 100 ? 'warning' : 'ok';
       const barColor = qty === 0 ? '#ef4444' : qty < 100 ? '#f97316' : cfg.bar;
       return `<div class="stock-row">
         ${colorSwatch(r['Color'])}
@@ -2536,9 +2529,14 @@ function renderStock() {
       </div>
       <div class="stock-rows">${rowsHtml}</div>
     </div>`;
-  }).join('');
+  };
 
-  container.innerHTML = summaryHtml + alertHtml + `<div class="stock-groups">${groupsHtml}</div>`;
+  const productRow = ['Bottle', 'Mug', 'Travel Bottle', 'Tumbler'].map(buildGroupHtml).join('');
+  const lidRow     = ['Bottle lids', 'Mug lids'].map(buildGroupHtml).join('');
+
+  container.innerHTML = summaryHtml
+    + `<div class="stock-groups stock-groups-products">${productRow}</div>`
+    + `<div class="stock-groups stock-groups-lids">${lidRow}</div>`;
 }
 
 function openDeliveryModal(preType, preColor) {
