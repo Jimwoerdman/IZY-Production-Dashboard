@@ -1766,7 +1766,6 @@ function openEditJobModal(rowIdx, type) {
     type === 'sleeve' ? 'Edit Sleeve Job' : 'Edit Mockup Job';
 
   document.getElementById('ej-company').value    = get(editJobRow, 'Name_Company') || '';
-  document.getElementById('ej-print-name').value = get(editJobRow, 'Name_Print')   || '';
   document.getElementById('ej-soort').value       = get(editJobRow, 'Soort')        || '';
   document.getElementById('ej-bottle-color').value = get(editJobRow, 'Bottle color') || '';
   document.getElementById('ej-lid-color').value   = get(editJobRow, 'Lid')          || '';
@@ -1804,10 +1803,9 @@ document.getElementById('edit-job-modal-overlay').addEventListener('click', func
 });
 
 async function submitEditJob() {
-  const company   = document.getElementById('ej-company').value.trim();
-  const printName = document.getElementById('ej-print-name').value.trim();
-  if (!company || !printName) {
-    document.getElementById('ej-status').textContent = 'Company and Product Name are required.';
+  const company = document.getElementById('ej-company').value.trim();
+  if (!company) {
+    document.getElementById('ej-status').textContent = 'Company is required.';
     return;
   }
 
@@ -1831,7 +1829,6 @@ async function submitEditJob() {
         action:      editJobType === 'sleeve' ? 'edit_sleeve_job' : 'edit_mockup_job',
         sheetRow:    editJobRow['_sheetRow'],
         company,
-        printName,
         soort:       document.getElementById('ej-soort').value,
         bottleColor: document.getElementById('ej-bottle-color').value,
         lidColor:    document.getElementById('ej-lid-color').value,
