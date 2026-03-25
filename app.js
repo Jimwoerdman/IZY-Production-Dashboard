@@ -72,6 +72,7 @@ function signOut() {
 
 // ─────────────────────────────────────────────────────────────
 let allRows      = [];
+let printLogRows = []; // append-only log from PrintLog sheet
 let shippedRows  = []; // confirmed matched shipping rows
 let reviewRows   = []; // unmatched / low-confidence rows for review
 let charts       = {};
@@ -869,53 +870,68 @@ function renderReports() {
 }
 
 // ── Printed Report ────────────────────────────────────────────
-function renderPrintedReport() {
+function filterPrintLog() {
   const period = document.getElementById('pr-period').value;
   const from   = document.getElementById('pr-date-from').value;
   const to     = document.getElementById('pr-date-to').value;
   const owner  = document.getElementById('pr-owner').value;
 
-  const PRINTED_STATUSES = ['printed', 'printing ready', 'print ready', 'shipped', 'done'];
+  return printLogRows.filter(r => {
+    if (owner && r['Owner'] !== owner) return false;
+    if (!period) return true;
+    const d = parseDate(r['Date']);
+    if (!d) return false;
+    if (period === 'custom') {
+      const f = from ? new Date(from) : null;
+      const t = to   ? new Date(to + 'T23:59:59') : null;
+      if (f && d < f) return false;
+      if (t && d > t) return false;
+      return true;
+    }
+    const range = getDateRange(period);
+    if (!range) return true;
+    return d >= range.from && d <= range.to;
+  }).sort((a, b) => (parseDate(b['Date']) || 0) - (parseDate(a['Date']) || 0));
+}
 
-  const printed = allRows.filter(r => {
-    const status = get(r, 'Status').toLowerCase();
-    if (!PRINTED_STATUSES.some(s => status.includes(s))) return false;
-    if (owner && get(r, 'Owner') !== owner) return false;
-    if (period && !inDateRange(r, 'Date Printed', period, from, to)) return false;
-    return true;
-  }).sort((a, b) => {
-    const da = parseDate(get(a, 'Date added ')), db = parseDate(get(b, 'Date added '));
-    return (db || 0) - (da || 0);
-  });
+function renderPrintedReport() {
+  if (printLogRows.length === 0) {
+    document.getElementById('pr-summary').innerHTML =
+      '<div class="pr-stat" style="flex:1;text-align:center;color:var(--text-2);font-size:13px;padding:16px;">' +
+      'Nog geen printlog-regels gevonden. Vul een aantal in via het print-log icoon en laad de pagina opnieuw.' +
+      '</div>';
+    document.getElementById('rep-printed').innerHTML =
+      '<tr><td colspan="7" style="text-align:center;color:var(--text-2);padding:20px;">Geen data</td></tr>';
+    return;
+  }
 
-  const totalJobs  = printed.length;
-  const totalItems = printed.reduce((s, r) => s + num(r, 'Quantity'), 0);
-  const byOwner    = {};
-  printed.forEach(r => {
-    const o = get(r, 'Owner') || 'Unknown';
-    byOwner[o] = (byOwner[o] || 0) + num(r, 'Quantity');
+  const rows = filterPrintLog();
+
+  const totalEntries = rows.length;
+  const totalItems   = rows.reduce((s, r) => s + (parseInt(r['Quantity']) || 0), 0);
+  const byOwner      = {};
+  rows.forEach(r => {
+    const o = r['Owner'] || 'Onbekend';
+    byOwner[o] = (byOwner[o] || 0) + (parseInt(r['Quantity']) || 0);
   });
-  const topOwner = Object.entries(byOwner).sort((a, b) => b[1] - a[1])[0];
 
   document.getElementById('pr-summary').innerHTML =
-    `<div class="pr-stat"><div class="pr-stat-value">${totalJobs}</div><div class="pr-stat-label">Jobs Printed</div></div>` +
-    `<div class="pr-stat"><div class="pr-stat-value">${totalItems.toLocaleString()}</div><div class="pr-stat-label">Items Printed</div></div>` +
-    (topOwner ? `<div class="pr-stat"><div class="pr-stat-value">${topOwner[1].toLocaleString()}</div><div class="pr-stat-label">Most by ${topOwner[0]}</div></div>` : '') +
+    `<div class="pr-stat"><div class="pr-stat-value">${totalEntries}</div><div class="pr-stat-label">Print-runs</div></div>` +
+    `<div class="pr-stat"><div class="pr-stat-value">${totalItems.toLocaleString()}</div><div class="pr-stat-label">Stuks geprint</div></div>` +
     Object.entries(byOwner).sort((a, b) => b[1] - a[1]).map(([o, q]) =>
       `<div class="pr-stat"><div class="pr-stat-value" style="font-size:20px;">${q.toLocaleString()}</div><div class="pr-stat-label">${o}</div></div>`
     ).join('');
 
-  document.getElementById('rep-printed').innerHTML = printed.length === 0
-    ? '<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:20px;">No printed jobs found for this period.</td></tr>'
-    : printed.map(r => `<tr>
-        <td>${get(r,'Priority')}</td>
-        <td>${get(r,'Name_Company')}</td>
-        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
-        <td>${get(r,'Owner')}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Date added ') || '—'}</td>
-        <td>${num(r,'Quantity')}</td>
+  document.getElementById('rep-printed').innerHTML = rows.length === 0
+    ? '<tr><td colspan="7" style="text-align:center;color:var(--text-2);padding:20px;">Geen geprinte jobs voor deze periode.</td></tr>'
+    : rows.map(r => `<tr>
+        <td>${r['Priority'] || '—'}</td>
+        <td>${r['Company'] || '—'}</td>
+        <td class="print-name">${r['Print Name'] || '—'}</td>
+        <td>${r['Owner'] || '—'}</td>
+        <td>${typeBadge(r['Type'] || '')}</td>
+        <td>${r['Date'] || '—'}</td>
+        <td>${parseInt(r['Quantity']) || 0}</td>
       </tr>`).join('');
 }
 
@@ -926,7 +942,9 @@ function populateSecondaryFilters(rows) {
   const owners   = [...new Set(rows.map(r => get(r,'Owner')).filter(Boolean))].sort();
   fill('aq-status', statuses);
   fill('rp-owner',  owners);
-  fill('pr-owner',  owners);
+  // pr-owner comes from printLogRows, not allRows
+  const logOwners = [...new Set(printLogRows.map(r => r['Owner']).filter(Boolean))].sort();
+  fill('pr-owner', logOwners.length ? logOwners : owners);
 }
 
 ['rp-owner','rp-period','rp-date-from','rp-date-to'].forEach(id => {
@@ -2416,12 +2434,14 @@ async function refreshData() {
 
   try {
     // Use Promise.race for timeout — works in all browsers without AbortController quirks
-    const fetchPromise = fetch(SCRIPT_URL + '?t=' + Date.now()).then(r => r.json()).then(d => d.rows || []);
+    const fetchPromise = fetch(SCRIPT_URL + '?t=' + Date.now()).then(r => r.json());
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), 35000)
     );
 
-    const parsed  = (await Promise.race([fetchPromise, timeoutPromise])).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
+    const fetchData = await Promise.race([fetchPromise, timeoutPromise]);
+    const parsed  = (fetchData.rows || []).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
+    printLogRows = fetchData.printLog || [];
 
     if (parsed.length > 0) {
       allRows = parsed;

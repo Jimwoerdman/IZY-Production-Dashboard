@@ -288,7 +288,27 @@ function doGet(e) {
     return obj;
   });
 
-  return respondGet({ rows });
+  // Also return PrintLog when fetching main Workfile
+  let printLog = [];
+  if (!e.parameter.sheet || e.parameter.sheet === '') {
+    const logSheet = ss.getSheetByName('PrintLog');
+    if (logSheet && logSheet.getLastRow() > 1) {
+      const logVals    = logSheet.getDataRange().getValues();
+      const logHeaders = logVals[0].map(h => String(h).trim());
+      printLog = logVals.slice(1).map(row => {
+        const obj = Object.fromEntries(logHeaders.map((h, i) => {
+          const v = row[i];
+          if (v instanceof Date && !isNaN(v)) {
+            return [h, v.getTime() === 0 ? '' : Utilities.formatDate(v, tz, 'dd/MM/yyyy')];
+          }
+          return [h, String(v ?? '').trim()];
+        }));
+        return obj;
+      });
+    }
+  }
+
+  return respondGet({ rows, printLog });
 }
 
 function respondGet(data) {
@@ -902,9 +922,30 @@ function doPost(e) {
     Logger.log('rowIndex=' + rowIndex);
     if (rowIndex < 2) return respond({ error: 'Invalid sheet row: ' + data.sheetRow });
 
-    // Update Quantity Printed
+    // Update Quantity Printed + append to PrintLog
     if (quantityPrintedCol >= 0 && data.quantityPrinted !== undefined) {
       sheet.getRange(rowIndex, quantityPrintedCol + 1).setValue(data.quantityPrinted);
+
+      // Append a log entry so we can track prints over time
+      if (data.quantityPrinted > 0) {
+        const rowData = values[rowIndex - 1]; // 0-based
+        const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
+        let logSheet = ss.getSheetByName('PrintLog');
+        if (!logSheet) {
+          logSheet = ss.insertSheet('PrintLog');
+          logSheet.appendRow(['Date', 'Company', 'Print Name', 'Owner', 'Type', 'Quantity', 'Priority', 'Logged By']);
+        }
+        logSheet.appendRow([
+          Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'),
+          g('company') || g('name_company'),
+          g('name_print') || g('print'),
+          g('owner'),
+          g('soort'),
+          parseInt(data.quantityPrinted),
+          g('priority'),
+          data.changedBy || ''
+        ]);
+      }
     }
 
     // Update Faulty Prints
