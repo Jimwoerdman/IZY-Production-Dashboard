@@ -2452,6 +2452,20 @@ async function loadCalendar() {
       start: ci('start'), end: ci('end'), hoursTotal: ci('hours total'),
       hoursPrint: ci('hours to print'), expected: ci('expected'),
     };
+    // Google Sheets stores time values as Date objects anchored to 1899-12-30 (its epoch).
+    // This helper extracts HH:MM from those, or passes plain strings through unchanged.
+    const parseSheetTime = (val) => {
+      if (!val) return '';
+      const s = String(val);
+      if (s.includes('1899-12-3')) {
+        // Extract UTC HH:MM — Sheets time fractions are in UTC
+        const d = new Date(val);
+        return String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
+      }
+      if (/^\d{1,2}:\d{2}/.test(s)) return s.substring(0,5); // already HH:MM
+      return '';
+    };
+
     // Parse data rows (skip header rows and blank rows)
     calendarData = [];
     for (let i = hdrIdx + 1; i < rows.length; i++) {
@@ -2464,16 +2478,15 @@ async function loadCalendar() {
       // Normalise to midnight local time (dates in sheet are 23:00 UTC = midnight Belgium)
       const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
       calendarData.push({
-        _sheetRow:    hdrIdx + 1 + i, // approximate; use actual row index
-        _row:         i + 1,          // 1-based sheet row
-        date:         d,
-        day:          String(r[cols.day] ?? ''),
-        who:          String(r[cols.who] ?? '').trim(),
-        startTime:    String(r[cols.start] ?? '').trim(),
-        endTime:      String(r[cols.end]   ?? '').trim(),
-        hoursTotal:   parseFloat(r[cols.hoursTotal]) || 0,
-        hoursPrint:   parseFloat(r[cols.hoursPrint]) || 0,
-        expected:     parseInt(r[cols.expected])    || 0,
+        _row:       i + 1,          // 1-based sheet row
+        date:       d,
+        day:        String(r[cols.day] ?? ''),
+        who:        String(r[cols.who] ?? '').trim(),
+        startTime:  parseSheetTime(r[cols.start]),
+        endTime:    parseSheetTime(r[cols.end]),
+        hoursTotal: parseFloat(r[cols.hoursTotal]) || 0,
+        hoursPrint: parseFloat(r[cols.hoursPrint]) || 0,
+        expected:   parseInt(r[cols.expected])     || 0,
       });
     }
     // Populate worker autocomplete from existing "who" values
