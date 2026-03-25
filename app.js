@@ -651,7 +651,7 @@ function renderActiveQueue() {
       const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
       const sleeveBtn = sleeveVal !== 'yes' ? '' :
         `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`;
-      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-ship" data-rowidx="${idx}" style="background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">✓ Ship</button><button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
@@ -729,8 +729,10 @@ document.getElementById('tab-active-queue').addEventListener('click', function(e
   const logBtn    = e.target.closest('.btn-log');
   const sleeveBtn = e.target.closest('.btn-sleeve');
   const resetBtn  = e.target.closest('.btn-reset');
+  const shipBtn   = e.target.closest('.btn-ship');
   if (logBtn)   openPrintModal(parseInt(logBtn.dataset.rowidx));
   if (resetBtn) resetJob(parseInt(resetBtn.dataset.rowidx));
+  if (shipBtn)  shipJob(parseInt(shipBtn.dataset.rowidx), shipBtn);
   if (sleeveBtn) {
     if (sleeveBtn.classList.contains('sleeved')) unsleeveJob(parseInt(sleeveBtn.dataset.rowidx), sleeveBtn);
     else markSleeved(parseInt(sleeveBtn.dataset.rowidx), sleeveBtn);
@@ -2290,6 +2292,28 @@ async function unsleeveJob(rowIdx, btn) {
     refreshData();
   } catch (err) {
     if (btn) { btn.textContent = '✓ Sleeved'; btn.classList.add('sleeved'); btn.disabled = true; }
+    alert('Could not update: ' + err.message);
+  }
+}
+
+async function shipJob(rowIdx, btn) {
+  const job = allRows[rowIdx];
+  if (!job) return;
+  if (!confirm(`Mark "${get(job,'Name_Company')} #${get(job,'Priority')}" as Shipped?`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Shipping…'; }
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({
+        sheetRow:  job['_sheetRow'],
+        status:    'Shipped',
+        changedBy: currentUser?.email,
+      }),
+    });
+    refreshData();
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Ship'; }
     alert('Could not update: ' + err.message);
   }
 }
