@@ -609,8 +609,8 @@ footer {
 /* Done card muted style */
 .sv-card-done { opacity: 0.65; }
 
-/* ── Sleeve Log Modal ────────────────────────────────────────── */
-#sleeve-modal-overlay {
+/* ── Sleeve / Mockup Log Modal ───────────────────────────────── */
+#sleeve-modal-overlay, #mockup-modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
@@ -620,7 +620,7 @@ footer {
   justify-content: center;
   padding: 20px;
 }
-#sleeve-modal {
+#sleeve-modal, #mockup-modal {
   background: var(--surface);
   border-radius: var(--radius-lg);
   width: 100%;
