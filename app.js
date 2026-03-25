@@ -881,7 +881,7 @@ function renderPrintedReport() {
     const status = get(r, 'Status').toLowerCase();
     if (!PRINTED_STATUSES.some(s => status.includes(s))) return false;
     if (owner && get(r, 'Owner') !== owner) return false;
-    if (period && !inDateRange(r, 'Date added ', period, from, to)) return false;
+    if (period && !inDateRange(r, 'Date Printed', period, from, to)) return false;
     return true;
   }).sort((a, b) => {
     const da = parseDate(get(a, 'Date added ')), db = parseDate(get(b, 'Date added '));

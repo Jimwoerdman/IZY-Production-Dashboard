@@ -317,6 +317,7 @@ function doPost(e) {
     const soortCol           = col('Soort');
     const quantityPrintedCol = headers.findIndex(h => h.toLowerCase().includes('quantity printed'));
     const faultyCol          = col('Faulty prints');
+    const datePrintedCol     = headers.findIndex(h => h.toLowerCase() === 'date printed');
 
     // Fixed column positions per user specification
     const photoCol   = 8;  // Column H
@@ -915,6 +916,19 @@ function doPost(e) {
     if (data.status) {
       Logger.log('Updating status col Q=' + statusCol + ' to: ' + data.status);
       sheet.getRange(rowIndex, statusCol).setValue(data.status);
+
+      // Write today as Date Printed when status is set to a printed variant
+      const PRINTED_VARIANTS = ['printed', 'print ready', 'printing ready'];
+      if (datePrintedCol >= 0 && PRINTED_VARIANTS.some(v => data.status.toLowerCase().includes(v))) {
+        sheet.getRange(rowIndex, datePrintedCol + 1).setValue(
+          Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy')
+        );
+      }
+      // Clear Date Printed if status is moved back to To Print / Waiting
+      const UNPRINT_VARIANTS = ['to print', 'waiting'];
+      if (datePrintedCol >= 0 && UNPRINT_VARIANTS.some(v => data.status.toLowerCase().includes(v))) {
+        sheet.getRange(rowIndex, datePrintedCol + 1).setValue('');
+      }
     }
 
     // Write shipping date to column J when status is set to Shipped
