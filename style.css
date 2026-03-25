@@ -455,6 +455,8 @@ thead th {
   cursor: pointer;
   user-select: none;
   transition: color 0.15s;
+  background: var(--th-bg, var(--navy));
+  background-image: var(--th-bg-img, linear-gradient(135deg, var(--navy) 0%, #1e2d50 100%));
 }
 thead th:hover { color: white; }
 
@@ -678,6 +680,29 @@ footer {
   color: var(--text-2);
   text-align: center;
   margin-top: 5px;
+}
+
+/* ── Edit Job Modal ──────────────────────────────────────────── */
+#edit-job-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,22,41,0.6);
+  backdrop-filter: blur(3px);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#edit-job-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+  animation: fadeIn 0.18s ease;
 }
 
 /* ── Print Log Modal ─────────────────────────────────────────── */
