@@ -3432,6 +3432,33 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   this.disabled = false;
 });
 
+// ── Form completion progress bars ────────────────────────────
+function setupFormProgress(fieldIds, fillId, labelId, total) {
+  const fill  = document.getElementById(fillId);
+  const label = document.getElementById(labelId);
+  if (!fill || !label) return;
+  function update() {
+    const done = fieldIds.filter(id => {
+      const el = document.getElementById(id);
+      return el && el.value && el.value.trim() !== '';
+    }).length;
+    const pct = Math.round((done / total) * 100);
+    fill.style.width = pct + '%';
+    fill.classList.toggle('complete', done === total);
+    label.textContent = done + ' / ' + total + ' required fields';
+  }
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', update);
+    if (el) el.addEventListener('change', update);
+  });
+  update();
+}
+
+setupFormProgress(['nj-soort','nj-quantity','nj-company','nj-print-name'], 'nj-progress-fill', 'nj-progress-label', 4);
+setupFormProgress(['mk-soort','mk-company'], 'mk-progress-fill', 'mk-progress-label', 2);
+setupFormProgress(['sv-soort','sv-quantity','sv-company'], 'sv-progress-fill', 'sv-progress-label', 3);
+
 // ── Boot: check auth before loading data ─────────────────────
 const _stored = localStorage.getItem('izy_user');
 if (_stored) {

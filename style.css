@@ -1072,6 +1072,31 @@ td.notes-cell {
   margin-top: 5px;
 }
 
+/* ── Form completion progress bar ───────────────────────────── */
+.form-completion-bar {
+  padding: 14px 24px 0;
+}
+.form-completion-bar-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.form-completion-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--blue);
+  border-radius: 4px;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.form-completion-bar-fill.complete { background: #22c55e; }
+.form-completion-label {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 5px;
+  text-align: right;
+}
+
 /* ── Shared modal overlay (edit + add sleeve/mockup) ─────────── */
 #edit-job-modal-overlay,
 #add-mockup-modal-overlay,

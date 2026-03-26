@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
@@ -754,6 +754,10 @@
       <h2>New Mockup Job</h2>
       <button class="modal-close" onclick="closeAddMockupModal()">✕</button>
     </div>
+    <div class="form-completion-bar">
+      <div class="form-completion-bar-track"><div class="form-completion-bar-fill" id="mk-progress-fill"></div></div>
+      <div class="form-completion-label" id="mk-progress-label">0 / 2 required fields</div>
+    </div>
     <div class="modal-body">
       <form id="add-mockup-form" onsubmit="return false;">
         <div class="form-section">
@@ -846,6 +850,10 @@
       <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
       <h2>New Sleeve Job</h2>
       <button class="modal-close" onclick="closeAddSleeveModal()">✕</button>
+    </div>
+    <div class="form-completion-bar">
+      <div class="form-completion-bar-track"><div class="form-completion-bar-fill" id="sv-progress-fill"></div></div>
+      <div class="form-completion-label" id="sv-progress-label">0 / 3 required fields</div>
     </div>
     <div class="modal-body">
       <form id="add-sleeve-form" onsubmit="return false;">
@@ -1097,6 +1105,10 @@
         <div class="add-job-subtitle">Fill in the details below to add a job to the Workfile</div>
       </div>
     </div>
+    <div class="form-completion-bar" style="padding: 14px 0 0;">
+      <div class="form-completion-bar-track"><div class="form-completion-bar-fill" id="nj-progress-fill"></div></div>
+      <div class="form-completion-label" id="nj-progress-label">0 / 4 required fields</div>
+    </div>
 
     <form id="add-job-form" onsubmit="return false;">
 
@@ -1227,7 +1239,7 @@
   </div>
 </section>
 
-<script src="app.js?v=33"></script>
+<script src="app.js?v=34"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
