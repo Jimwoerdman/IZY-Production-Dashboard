@@ -1856,24 +1856,39 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
 
   this.disabled        = true;
   statusEl.className   = 'form-status';
-  statusEl.textContent = 'Saving…';
+  statusEl.textContent = '';
+
+  const svProgressWrap  = document.getElementById('sv-upload-progress');
+  const svProgressFill  = document.getElementById('sv-upload-fill');
+  const svProgressLabel = document.getElementById('sv-upload-label');
+  const svSetProgress = (pct, label) => {
+    if (svProgressWrap)  svProgressWrap.style.display = 'block';
+    if (svProgressFill)  svProgressFill.style.width   = Math.round(pct * 100) + '%';
+    if (svProgressLabel) svProgressLabel.textContent  = label;
+  };
+  const svHideProgress = () => {
+    if (svProgressWrap) svProgressWrap.style.display = 'none';
+    if (svProgressFill) svProgressFill.style.width   = '0%';
+  };
 
   const svFileInputs = document.getElementById('sv-files-list').querySelectorAll('input[type="file"]');
   const designFiles  = [];
-  for (const inp of svFileInputs) {
-    if (inp.files && inp.files[0]) {
-      try {
-        const f = await readFileAsBase64(inp.files[0]);
-        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
-      } catch (_) {}
-    }
+  const svFilesToRead = [...svFileInputs].filter(inp => inp.files && inp.files[0]);
+  for (let i = 0; i < svFilesToRead.length; i++) {
+    const baseProgress = i / svFilesToRead.length;
+    svSetProgress(baseProgress * 0.4, `Reading file ${i + 1} of ${svFilesToRead.length}…`);
+    try {
+      const f = await readFileAsBase64(svFilesToRead[i].files[0], p => svSetProgress((baseProgress + p / svFilesToRead.length) * 0.4, `Reading file ${i + 1} of ${svFilesToRead.length}… ${Math.round(p * 100)}%`));
+      designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+    } catch (_) {}
   }
 
+  svSetProgress(svFilesToRead.length ? 0.4 : 0, 'Uploading…');
+
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify({
+    await postWithProgress(
+      SCRIPT_URL,
+      JSON.stringify({
         action:    'add_sleeve_job',
         soort, company, printName,
         quantity:  parseInt(quantity),
@@ -1881,14 +1896,17 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
         designFiles,
         changedBy: currentUser?.email,
       }),
-    });
+      p => svSetProgress((svFilesToRead.length ? 0.4 : 0) + p * (svFilesToRead.length ? 0.6 : 1), `Uploading… ${Math.round(p * 100)}%`)
+    );
+    svSetProgress(1, 'Done!');
     statusEl.className   = 'form-status success';
     statusEl.textContent = '✓ Sleeve job added!';
     document.getElementById('add-sleeve-form').reset();
-    setTimeout(() => { closeAddSleeveModal(); statusEl.textContent = ''; }, 1500);
+    setTimeout(() => { svHideProgress(); closeAddSleeveModal(); statusEl.textContent = ''; }, 1500);
     sleeveLoaded = false;
     loadSleeves();
   } catch (err) {
+    svHideProgress();
     statusEl.className   = 'form-status error';
     statusEl.textContent = 'Error: ' + err.message;
   }
@@ -2082,24 +2100,39 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
 
   this.disabled        = true;
   statusEl.className   = 'form-status';
-  statusEl.textContent = 'Saving…';
+  statusEl.textContent = '';
+
+  const mkProgressWrap  = document.getElementById('mk-upload-progress');
+  const mkProgressFill  = document.getElementById('mk-upload-fill');
+  const mkProgressLabel = document.getElementById('mk-upload-label');
+  const mkSetProgress = (pct, label) => {
+    if (mkProgressWrap)  mkProgressWrap.style.display = 'block';
+    if (mkProgressFill)  mkProgressFill.style.width   = Math.round(pct * 100) + '%';
+    if (mkProgressLabel) mkProgressLabel.textContent  = label;
+  };
+  const mkHideProgress = () => {
+    if (mkProgressWrap) mkProgressWrap.style.display = 'none';
+    if (mkProgressFill) mkProgressFill.style.width   = '0%';
+  };
 
   const mkFileInputs = document.getElementById('mk-files-list').querySelectorAll('input[type="file"]');
   const designFiles  = [];
-  for (const inp of mkFileInputs) {
-    if (inp.files && inp.files[0]) {
-      try {
-        const f = await readFileAsBase64(inp.files[0]);
-        designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
-      } catch (_) {}
-    }
+  const mkFilesToRead = [...mkFileInputs].filter(inp => inp.files && inp.files[0]);
+  for (let i = 0; i < mkFilesToRead.length; i++) {
+    const baseProgress = i / mkFilesToRead.length;
+    mkSetProgress(baseProgress * 0.4, `Reading file ${i + 1} of ${mkFilesToRead.length}…`);
+    try {
+      const f = await readFileAsBase64(mkFilesToRead[i].files[0], p => mkSetProgress((baseProgress + p / mkFilesToRead.length) * 0.4, `Reading file ${i + 1} of ${mkFilesToRead.length}… ${Math.round(p * 100)}%`));
+      designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
+    } catch (_) {}
   }
 
+  mkSetProgress(mkFilesToRead.length ? 0.4 : 0, 'Uploading…');
+
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify({
+    await postWithProgress(
+      SCRIPT_URL,
+      JSON.stringify({
         action:    'add_mockup_job',
         soort, company, printName: '',
         quantity:  quantity ? parseInt(quantity) : '',
@@ -2107,14 +2140,17 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
         designFiles,
         changedBy: currentUser?.email,
       }),
-    });
+      p => mkSetProgress((mkFilesToRead.length ? 0.4 : 0) + p * (mkFilesToRead.length ? 0.6 : 1), `Uploading… ${Math.round(p * 100)}%`)
+    );
+    mkSetProgress(1, 'Done!');
     statusEl.className   = 'form-status success';
     statusEl.textContent = '✓ Mockup job added!';
     document.getElementById('add-mockup-form').reset();
-    setTimeout(() => { closeAddMockupModal(); statusEl.textContent = ''; }, 1500);
+    setTimeout(() => { mkHideProgress(); closeAddMockupModal(); statusEl.textContent = ''; }, 1500);
     mockupLoaded = false;
     loadMockups();
   } catch (err) {
+    mkHideProgress();
     statusEl.className   = 'form-status error';
     statusEl.textContent = 'Error: ' + err.message;
   }

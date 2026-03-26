@@ -838,6 +838,10 @@
           <button type="button" id="mk-submit" class="btn-nj-submit">Add Mockup Job</button>
           <span id="mk-form-status" class="form-status"></span>
         </div>
+        <div id="mk-upload-progress" style="display:none;margin-top:12px;">
+          <div class="upload-bar-track"><div id="mk-upload-fill" class="upload-bar-fill"></div></div>
+          <div id="mk-upload-label" class="upload-bar-label"></div>
+        </div>
       </form>
     </div>
   </div>
@@ -934,6 +938,10 @@
         <div class="form-actions">
           <button type="button" id="sv-submit" class="btn-nj-submit">Add Sleeve Job</button>
           <span id="sv-form-status" class="form-status"></span>
+        </div>
+        <div id="sv-upload-progress" style="display:none;margin-top:12px;">
+          <div class="upload-bar-track"><div id="sv-upload-fill" class="upload-bar-fill"></div></div>
+          <div id="sv-upload-label" class="upload-bar-label"></div>
         </div>
       </form>
     </div>
@@ -1239,7 +1247,7 @@
   </div>
 </section>
 
-<script src="app.js?v=34"></script>
+<script src="app.js?v=35"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
