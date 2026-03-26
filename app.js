@@ -523,6 +523,7 @@ const AQ_SECTIONS = [
   { label: 'Travel Bottles', colors: TYPE_COLORS['travel bottle'], match: s => s === 'travel bottle' },
   { label: 'Tumblers',       colors: TYPE_COLORS['tumbler'],       match: s => s === 'tumbler' },
   { label: 'Samples',        colors: { bg: '#f1f5f9', text: '#475569' }, match: s => s.includes('sample') },
+  { label: 'Other',          colors: { bg: '#f8fafc', text: '#64748b' }, match: s => !['bottle','mug','travel','tumbler','sample'].some(kw => s.includes(kw)) },
 ];
 
 function statusSortOrder(r) {
@@ -551,11 +552,16 @@ function renderActiveQueue() {
     return true;
   });
 
-  // Compute effective display status per row (samples with still<=0 → Ready to Ship)
+  // Compute effective display status per row
+  // Auto-correct stale status when still=0 but sheet wasn't updated (e.g. quantity entered manually)
   const getDisplayStatus = r => {
     const still = num(r,'Quantity still to print');
-    return (get(r,'Soort').toLowerCase().includes('sample') && still <= 0)
-      ? 'Ready to Ship' : get(r,'Status');
+    const status = get(r,'Status').toLowerCase();
+    if (still <= 0 && (status === 'to print' || status === 'printing progress' || status === '')) {
+      const needsSleeve = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase() === 'yes';
+      return needsSleeve ? 'Waiting' : 'Ready to Ship';
+    }
+    return get(r,'Status');
   };
 
   const readyRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'ready to ship');
