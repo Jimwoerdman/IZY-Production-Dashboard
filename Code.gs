@@ -283,6 +283,46 @@ function doGet(e) {
     return respondGet({ photoUrl: url || null });
   }
 
+  // Moneybird invoices
+  if (e.parameter.sheet === 'invoices') {
+    const MB_ADMIN = '374048181076362541';
+    const MB_TOKEN = 'Bearer iDGsiCl_pWFKsauxj-ZRNuw5v7_qYCDfYqDH4yvlPNU';
+    try {
+      const cache  = CacheService.getScriptCache();
+      const cached = cache.get('mb_invoices');
+      if (cached) return respondGet({ invoices: JSON.parse(cached) });
+
+      const invoices = [];
+      let page = 1;
+      while (true) {
+        const resp = UrlFetchApp.fetch(
+          'https://moneybird.com/api/v2/' + MB_ADMIN + '/sales_invoices.json?per_page=100&page=' + page,
+          { headers: { 'Authorization': MB_TOKEN }, muteHttpExceptions: true }
+        );
+        if (resp.getResponseCode() !== 200) break;
+        const batch = JSON.parse(resp.getContentText());
+        if (!Array.isArray(batch) || !batch.length) break;
+        batch.forEach(function(inv) {
+          invoices.push({
+            id:         inv.id,
+            company:    (inv.contact && inv.contact.company_name) || '',
+            state:      inv.state,
+            date:       inv.invoice_date || '',
+            paid_at:    inv.paid_at || '',
+            total:      inv.total_price_incl_tax || '',
+            invoice_id: inv.invoice_id || '',
+          });
+        });
+        if (batch.length < 100) break;
+        page++;
+      }
+      cache.put('mb_invoices', JSON.stringify(invoices), 300); // 5-min cache
+      return respondGet({ invoices: invoices });
+    } catch(err) {
+      return respondGet({ error: err.message, invoices: [] });
+    }
+  }
+
   if (!sheet) return respondGet({ error: 'Sheet not found', availableSheets: ss.getSheets().map(s => s.getName()) });
   const values = sheet.getDataRange().getValues();
   const headers = values[0].map(h => String(h).trim());
@@ -352,8 +392,11 @@ function doPost(e) {
 
     // Fixed column positions per user specification
     const photoCol   = 8;  // Column H
-    const statusCol  = 9;  // Column I ("Status")
     const printerCol = 35; // Column AI
+
+    // Find 'Status' column by header (exact match, 1-based) — avoids 'Status (under construction)'
+    const statusColIdx = headers.findIndex(h => h === 'Status');
+    const statusCol    = statusColIdx >= 0 ? statusColIdx + 1 : 9; // fallback to col 9
 
     if (priorityCol === -1) return respond({ error: 'Priority column not found' });
 
@@ -614,6 +657,27 @@ function doPost(e) {
           Logger.log('Sleeve files upload failed: ' + fileErr.message);
         }
       }
+      // Send notification to job owner / Jim
+      if (data.status) {
+        try {
+          const rowVals   = svSheet.getRange(rowIndex, 1, 1, svSheet.getLastColumn()).getValues()[0];
+          const svGet     = kw => { const i = svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowVals[i] ?? '').trim() : ''; };
+          const svOwner   = svGet('owner');
+          const svCompany = svGet('company') || svGet('name_company');
+          const svPrint   = svGet('print')   || svGet('name_print');
+          sendJobNotification(
+            data.changedBy, svOwner,
+            '🧥 Sleeve status bijgewerkt: ' + svCompany + ' – ' + svPrint,
+            [
+              ['Actie',   'Sleeve status gewijzigd'],
+              ['Bedrijf', svCompany || '—'],
+              ['Product', svPrint   || '—'],
+              ['Status',  data.status],
+              ['Door',    data.changedBy || '—']
+            ]
+          );
+        } catch(notifErr) { Logger.log('Sleeve notification failed: ' + notifErr.message); }
+      }
       return respond({ success: true });
     }
 
@@ -743,6 +807,27 @@ function doPost(e) {
         } catch (fileErr) {
           Logger.log('Mockup files upload failed: ' + fileErr.message);
         }
+      }
+      // Send notification to job owner / Jim
+      if (data.status) {
+        try {
+          const rowVals   = mkSheet.getRange(rowIndex, 1, 1, mkSheet.getLastColumn()).getValues()[0];
+          const mkGet     = kw => { const i = mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowVals[i] ?? '').trim() : ''; };
+          const mkOwner   = mkGet('owner');
+          const mkCompany = mkGet('company') || mkGet('name_company');
+          const mkPrint   = mkGet('print')   || mkGet('name_print');
+          sendJobNotification(
+            data.changedBy, mkOwner,
+            '🖼️ Mockup status bijgewerkt: ' + mkCompany + ' – ' + mkPrint,
+            [
+              ['Actie',   'Mockup status gewijzigd'],
+              ['Bedrijf', mkCompany || '—'],
+              ['Product', mkPrint   || '—'],
+              ['Status',  data.status],
+              ['Door',    data.changedBy || '—']
+            ]
+          );
+        } catch(notifErr) { Logger.log('Mockup notification failed: ' + notifErr.message); }
       }
       return respond({ success: true });
     }
@@ -1035,6 +1120,21 @@ function doPost(e) {
 
     const rowData = values[rowIndex - 1]; // 0-based: row 2 → index 1
     const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
+
+    // If no explicit status was sent but quantity was updated, derive status from still-to-print
+    // This handles the case where quantity was manually entered in the sheet (still col is a formula)
+    if (!data.status && data.quantityPrinted !== undefined && statusCol > 0) {
+      const stillColIdx = headers.findIndex(h => h.toLowerCase().includes('quantity still'));
+      const qty         = parseInt(g('quantity')) || 0;
+      const printed     = parseInt(data.quantityPrinted) || 0;
+      const still       = qty - printed; // compute directly; sheet formula may lag
+      if (still <= 0) {
+        const needsSleeve = g('sleeve').toLowerCase() === 'yes' || g('to sleeve').toLowerCase() === 'yes';
+        const derivedStatus = needsSleeve ? 'Waiting' : 'Ready to Ship';
+        sheet.getRange(rowIndex, statusCol).setValue(derivedStatus);
+        Logger.log('Auto-derived status → ' + derivedStatus + ' (statusCol=' + statusCol + ')');
+      }
+    }
 
     // Get or create PrintLog sheet
     const ensureLogSheet = () => {
@@ -1345,6 +1445,22 @@ const GEERTJAN = 'geertjan@izybottles.com';
 const JIM      = 'jim@izybottles.com';
 const SHARON   = 'sharon@orderchamp.com';
 
+// Map owner display names (as stored in sheets) → email addresses
+const OWNER_EMAILS = {
+  'gerrit':   'geertjan@izybottles.com',
+  'geertjan': 'geertjan@izybottles.com',
+  'jim':      'jim@izybottles.com',
+  'daan':     'daan@izybottles.com',
+  'mees':     'mees@izybottles.com',
+  'skip':     'skip@izybottles.com',
+};
+
+function resolveOwnerEmail(owner) {
+  if (!owner) return null;
+  if (owner.includes('@')) return owner; // already an email
+  return OWNER_EMAILS[owner.toLowerCase().trim()] || null;
+}
+
 function buildHtmlEmail(subject, lines, changedBy) {
   var dashUrl = 'https://jimwoerdman.github.io/IZY-Production-Dashboard/';
   var rows = lines.map(function(l) {
@@ -1380,8 +1496,9 @@ function sendJobNotification(changedBy, owner, subject, lines) {
 
   const recipients = new Set();
 
-  // Notify the job owner if someone else made the change (Sharon nooit notificeren)
-  if (owner && owner !== changedBy && owner !== SHARON) recipients.add(owner);
+  // Resolve owner name → email, then notify if someone else made the change
+  const ownerEmail = resolveOwnerEmail(owner);
+  if (ownerEmail && ownerEmail !== changedBy && ownerEmail !== SHARON) recipients.add(ownerEmail);
 
   // Geertjan's changes always notify Jim
   if (changedBy === GEERTJAN) recipients.add(JIM);
@@ -1472,6 +1589,18 @@ function testAddJob() {
 }
 
 /***** DEBUG — run this manually in Apps Script to check column mapping *****/
+function testMoneybird() {
+  const resp = UrlFetchApp.fetch(
+    'https://moneybird.com/api/v2/374048181076362541/sales_invoices.json?per_page=3',
+    { headers: { 'Authorization': 'Bearer iDGsiCl_pWFKsauxj-ZRNuw5v7_qYCDfYqDH4yvlPNU' } }
+  );
+  const data = JSON.parse(resp.getContentText());
+  Logger.log('Moneybird test — invoices fetched: ' + data.length);
+  data.forEach(function(inv) {
+    Logger.log(inv.id + ' | ' + (inv.contact && inv.contact.company_name) + ' | ' + inv.state);
+  });
+}
+
 function debugStatusColumn() {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const sheet   = ss.getSheetByName('Workfile');

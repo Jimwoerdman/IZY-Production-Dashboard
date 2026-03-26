@@ -14,6 +14,9 @@ function todayStr() {
 }
 function withDate(note) { return note ? `[${todayStr()}] ${note}` : ''; }
 
+// ── Known owners (always appear in dropdowns) ─────────────────
+const KNOWN_OWNERS = ['Daan','Geertjan','Jim','Mees','Skip'];
+
 // ── Auth ──────────────────────────────────────────────────────
 const ALLOWED_EMAILS = [
   'daan@izybottles.com',
@@ -1463,7 +1466,7 @@ function sleeveSortOrder(r) {
 }
 
 function populateSleeveOwners() {
-  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(r => get(r,'Owner')).filter(Boolean)])].sort();
   const sel = document.getElementById('sv-owner');
   sel.innerHTML = '<option value="">Select owner…</option>' +
     owners.map(o => `<option value="${o}">${o}</option>`).join('');
@@ -1922,7 +1925,7 @@ function openEditJobModal(rowIdx, type) {
   }
 
   // Populate owner dropdown
-  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(r => get(r,'Owner')).filter(Boolean)])].sort();
   const ownerSel = document.getElementById('ej-owner');
   ownerSel.innerHTML = '<option value="">Select owner…</option>' +
     owners.map(o => `<option value="${o}">${o}</option>`).join('');
@@ -2029,7 +2032,7 @@ async function submitEditJob() {
 // ── Add Mockup Job ────────────────────────────────────────────
 
 function populateMockupOwners() {
-  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(r => get(r,'Owner')).filter(Boolean)])].sort();
   const sel = document.getElementById('mk-form-owner');
   sel.innerHTML = '<option value="">Select owner…</option>' +
     owners.map(o => `<option value="${o}">${o}</option>`).join('');
@@ -3271,7 +3274,7 @@ async function submitPrintUpdate() {
 
 // ── Add Job ────────────────────────────────────────────────────
 function populateAddJobOwners() {
-  const owners = [...new Set(allRows.map(r => get(r,'Owner')).filter(Boolean))].sort();
+  const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(r => get(r,'Owner')).filter(Boolean)])].sort();
   const sel = document.getElementById('nj-owner');
   sel.innerHTML = '<option value="">Select owner…</option>' +
     owners.map(o => `<option value="${o}">${o}</option>`).join('');
