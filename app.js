@@ -2060,7 +2060,6 @@ if (document.getElementById('mk-files-list')) addMkFileRow();
 document.getElementById('mk-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('mk-soort').value;
   const company   = document.getElementById('mk-company').value.trim();
-  const printName = '';
   const quantity  = document.getElementById('mk-quantity').value;
   const deadline     = document.getElementById('mk-deadline').value;
   const owner        = document.getElementById('mk-form-owner').value;
@@ -2069,7 +2068,7 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
   const notes        = withDate(document.getElementById('mk-notes').value.trim());
   const statusEl  = document.getElementById('mk-form-status');
 
-  if (!soort || !company || !printName) {
+  if (!soort || !company) {
     statusEl.className   = 'form-status error';
     statusEl.textContent = 'Please fill in all required fields.';
     return;
@@ -2096,7 +2095,7 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
       mode:   'no-cors',
       body:   JSON.stringify({
         action:    'add_mockup_job',
-        soort, company, printName,
+        soort, company, printName: '',
         quantity:  quantity ? parseInt(quantity) : '',
         deadline, owner, bottleColor, lidColor, notes,
         designFiles,
