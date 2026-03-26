@@ -15,7 +15,9 @@ function todayStr() {
 function withDate(note) { return note ? `[${todayStr()}] ${note}` : ''; }
 
 // ── Known owners (always appear in dropdowns) ─────────────────
-const KNOWN_OWNERS = ['Daan','Geertjan','Jim','Mees','Skip'];
+const KNOWN_OWNERS = ['Daan','Gerrit','Jim','Mees','Skip'];
+const OWNER_ALIASES = { 'geertjan': 'Gerrit', 'gerrit': 'Gerrit' };
+function normOwner(name) { return OWNER_ALIASES[(name||'').toLowerCase()] || name; }
 
 // ── Auth ──────────────────────────────────────────────────────
 const ALLOWED_EMAILS = [
@@ -2941,7 +2943,8 @@ async function refreshData() {
       Promise.race([fetchPromise, timeoutPromise]),
       loadInvoices(),
     ]);
-    const parsed  = (fetchData.rows || []).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
+    const parsed  = (fetchData.rows || []).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0')
+      .map(r => { if (r['Owner']) r['Owner'] = normOwner(r['Owner']); return r; });
     printLogRows = fetchData.printLog || [];
 
     if (parsed.length > 0) {
