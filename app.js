@@ -76,6 +76,45 @@ let printLogRows = []; // append-only log from PrintLog sheet
 let shippedRows  = []; // confirmed matched shipping rows
 let reviewRows   = []; // unmatched / low-confidence rows for review
 let charts       = {};
+let invoiceData  = []; // Moneybird invoices
+
+// ── Moneybird helpers ─────────────────────────────────────────
+async function loadInvoices() {
+  try {
+    const data = await fetch(SCRIPT_URL + '?sheet=invoices&t=' + Date.now()).then(r => r.json());
+    invoiceData = data.invoices || [];
+  } catch(_) { invoiceData = []; }
+}
+
+function normCompany(s) {
+  return (s || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function matchInvoice(companyName) {
+  if (!invoiceData.length || !companyName) return null;
+  const jobNorm = normCompany(companyName);
+  if (jobNorm.length < 3) return null;
+  const matches = invoiceData.filter(inv => {
+    const n = normCompany(inv.company);
+    return n.includes(jobNorm) || jobNorm.includes(n);
+  });
+  if (!matches.length) return null;
+  const priority = { late: 0, open: 1, draft: 2, paid: 3 };
+  matches.sort((a, b) => {
+    const pd = (priority[a.state] ?? 4) - (priority[b.state] ?? 4);
+    return pd !== 0 ? pd : (b.date || '').localeCompare(a.date || '');
+  });
+  return matches[0];
+}
+
+function invoiceBadge(inv) {
+  if (!inv) return '<span class="inv-badge inv-none">No invoice</span>';
+  const labels = { draft: 'Draft', open: 'Sent', late: 'Overdue', paid: 'Paid' };
+  const cls    = { draft: 'inv-draft', open: 'inv-open', late: 'inv-late', paid: 'inv-paid' };
+  return `<span class="inv-badge ${cls[inv.state] || 'inv-none'}">${labels[inv.state] || inv.state}</span>`;
+}
 
 // ── Fetch & Parse ─────────────────────────────────────────────
 async function fetchData() {
@@ -602,13 +641,14 @@ function renderActiveQueue() {
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open file">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
         : '';
 
+      const inv  = matchInvoice(get(r,'Name_Company'));
       const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}" style="--tc:${c.text};--tb:${c.bg}">
         <div class="aq-card-top">
           <div class="aq-card-left">
             <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
-          ${badge(displayStatus)}
+          <div class="aq-badges">${badge(displayStatus)}${invoiceBadge(inv)}</div>
         </div>
         ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
         ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
@@ -628,6 +668,7 @@ function renderActiveQueue() {
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge(displayStatus)}</td>
+        <td>${invoiceBadge(inv)}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
@@ -2893,7 +2934,10 @@ async function refreshData() {
       setTimeout(() => reject(new Error('timeout')), 35000)
     );
 
-    const fetchData = await Promise.race([fetchPromise, timeoutPromise]);
+    const [fetchData] = await Promise.all([
+      Promise.race([fetchPromise, timeoutPromise]),
+      loadInvoices(),
+    ]);
     const parsed  = (fetchData.rows || []).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0');
     printLogRows = fetchData.printLog || [];
 

@@ -1349,6 +1349,18 @@ td.notes-cell {
 
 .aq-card-actions { display: flex; gap: 10px; margin-top: 4px; }
 
+/* ── Invoice badges ── */
+.aq-badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.inv-badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
+  padding: 2px 7px; border-radius: 20px; white-space: nowrap;
+}
+.inv-none    { background: #f1f5f9; color: #94a3b8; }
+.inv-draft   { background: #fef9c3; color: #854d0e; }
+.inv-open    { background: #dbeafe; color: #1d4ed8; }
+.inv-late    { background: #fee2e2; color: #b91c1c; }
+.inv-paid    { background: #dcfce7; color: #15803d; }
+
 /* Desktop table action cell: space between buttons */
 .aq-table-wrap td .btn-log,
 .aq-table-wrap td .btn-sleeve,
