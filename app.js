@@ -760,7 +760,6 @@ function renderActiveQueue() {
         <td>${num(r,'Quantity') || '—'}</td>
         <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
         <td>${daysCell(days)}</td>
-        <td>${aqFileUrls.length ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${aqFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ') : '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
       return { card, row };
@@ -776,7 +775,7 @@ function renderActiveQueue() {
           <thead style="background:#15803d;background-image:none;"><tr>
             <th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
             <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-            <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
+            <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
           </tr></thead>
           <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
         </table>
