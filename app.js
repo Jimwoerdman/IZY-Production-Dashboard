@@ -3429,7 +3429,7 @@ async function submitShipment() {
       (result.labelUrl ? `<div class="ship-result-row" style="margin-top:10px;"><a href="${result.labelUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="width:100%;text-align:center;">🖨 Download shipping label</a></div>` : '');
 
     submitBtn.textContent = '✓ Booked';
-    setTimeout(() => { closeShipModal(); refreshData(); }, 5000);
+    refreshData();
   } catch (err) {
     statusEl.textContent = 'Error: ' + err.message;
     statusEl.className   = 'form-status error';
