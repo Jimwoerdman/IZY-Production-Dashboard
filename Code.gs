@@ -283,6 +283,12 @@ function doGet(e) {
     return respondGet({ photoUrl: url || null });
   }
 
+  if (e.parameter.action === 'get_wf_headers') {
+    const sheet = ss.getSheetByName('Workfile');
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    return respondGet({ headers: headers });
+  }
+
   // Get CheapCargo rates
   if (e.parameter.action === 'get_ship_rates') {
     try {
@@ -645,14 +651,13 @@ function doPost(e) {
       vals[21] = data.tosleeve  || '';
       vals[25] = data.notes     || '';
       vals[35] = data.changedBy || '';
-      setW('ontvanger contactpersoon', data.shipContact || '');
-      setW('ontvanger telefoon',       data.shipPhone   || '');
-      setW('ontvanger email',          data.shipEmail   || '');
-      setW('ontvanger straat',         data.shipStreet  || '');
-      setW('ontvanger nummer',         data.shipNumber  || '');
-      setW('ontvanger postcode',       data.shipZipcode || '');
-      setW('ontvanger plaats',         data.shipCity    || '');
-      setW('ontvanger land',           data.shipCountry || '');
+      setW('contactpersoon', data.shipContact || '');
+      setW('telefoonnummer', data.shipPhone   || '');
+      setW('e-mailadres',    data.shipEmail   || '');
+      setW('straat',         data.shipStreet  || '');
+      setW('postcode',       data.shipZipcode || '');
+      setW('plaats',         data.shipCity    || '');
+      setW('land',           data.shipCountry || '');
       sheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
 
       // Find last row with a valid (non-#ERROR!) formula in col K to copy from

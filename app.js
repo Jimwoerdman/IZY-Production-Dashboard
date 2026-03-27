@@ -3304,14 +3304,14 @@ function shipJob(rowIdx) {
     `<strong>#${get(job,'Priority')} — ${get(job,'Name_Company')}</strong> &nbsp;·&nbsp; ${get(job,'Soort') || ''} &nbsp;·&nbsp; Qty: ${get(job,'Quantity') || '—'}`;
 
   document.getElementById('ship-company').value = get(job,'Name_Company');
-  document.getElementById('ship-contact').value = get(job,'Ontvanger contactpersoon') || '';
-  document.getElementById('ship-phone').value   = get(job,'Ontvanger telefoon')       || '';
-  document.getElementById('ship-email').value   = get(job,'Ontvanger email')          || '';
-  document.getElementById('ship-street').value  = get(job,'Ontvanger straat')         || '';
-  document.getElementById('ship-number').value  = get(job,'Ontvanger nummer')         || '';
-  document.getElementById('ship-zipcode').value = get(job,'Ontvanger postcode')       || '';
-  document.getElementById('ship-city').value    = get(job,'Ontvanger plaats')         || '';
-  document.getElementById('ship-country').value = get(job,'Ontvanger land')           || 'NL';
+  document.getElementById('ship-contact').value = get(job,'Contactpersoon')  || '';
+  document.getElementById('ship-phone').value   = get(job,'Telefoonnummer')  || '';
+  document.getElementById('ship-email').value   = get(job,'E-mailadres')     || '';
+  document.getElementById('ship-street').value  = get(job,'Straat')          || '';
+  document.getElementById('ship-number').value  = '';
+  document.getElementById('ship-zipcode').value = get(job,'Postcode')        || '';
+  document.getElementById('ship-city').value    = get(job,'Plaats')          || '';
+  document.getElementById('ship-country').value = get(job,'Land')            || 'NL';
 
   // Reset packages — one default row
   document.getElementById('ship-packages-list').innerHTML = '';
