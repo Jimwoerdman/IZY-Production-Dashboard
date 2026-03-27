@@ -701,7 +701,7 @@ function renderActiveQueue() {
             <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
               <th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
               <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
+              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
@@ -745,17 +745,20 @@ function renderActiveQueue() {
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
+      const inv   = matchInvoice(get(r,'Name_Company'));
+      const still = num(r,'Quantity still to print');
       const row = `<tr>
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge('Ready to Ship')}</td>
+        <td>${invoiceBadge(inv)}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
         <td>${get(r,'Lid') || '—'}</td>
         <td>${num(r,'Quantity') || '—'}</td>
-        <td>—</td>
+        <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
         <td>${daysCell(days)}</td>
         <td>${aqFileUrls.length ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${aqFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ') : '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
