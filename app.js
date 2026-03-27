@@ -3250,6 +3250,7 @@ async function loadShipRates() {
   const pkgs = getShipPackages();
   const params = new URLSearchParams({
     action:    'get_ship_rates',
+    owner:     get(allRows[shipModalRowIdx], 'Owner') || '',
     rcZipcode: zipcode, rcCity: city, rcCountry: country,
     pkgsJson:  JSON.stringify(pkgs),
     t:         Date.now(),
@@ -3360,6 +3361,7 @@ async function submitShipment() {
     const params = new URLSearchParams({
       action:    'book_shipment',
       sheetRow:  job['_sheetRow'],
+      owner:     get(job,'Owner') || '',
       reference: get(job,'Priority'),
       rcCompany: company,
       rcStreet:  street,
