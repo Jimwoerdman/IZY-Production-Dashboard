@@ -1366,6 +1366,20 @@ td.notes-cell {
 }
 .modal-btn-submit:hover    { background: #2563eb; }
 .modal-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.modal-btn-secondary {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.modal-btn-secondary:hover    { background: var(--bg); }
+.modal-btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .modal-success { color: var(--green);  font-size: 13px; font-weight: 500; }
 .modal-error   { color: var(--red);    font-size: 13px; font-weight: 500; }

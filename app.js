@@ -3322,6 +3322,26 @@ function closeShipModal() {
   shipModalRowIdx = null;
 }
 
+async function markShippedManually() {
+  const job = allRows[shipModalRowIdx];
+  if (!job) return;
+  const btn = document.getElementById('ship-manual');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    const params = new URLSearchParams({ action: 'mark_shipped', sheetRow: job['_sheetRow'], t: Date.now() });
+    const data = await fetch(SCRIPT_URL + '?' + params.toString()).then(r => r.json());
+    if (data.error) throw new Error(data.error);
+    btn.textContent = '✓ Marked shipped';
+    setTimeout(() => { closeShipModal(); refreshData(); }, 1500);
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = '✓ Mark as Shipped';
+    document.getElementById('ship-status').textContent = 'Error: ' + err.message;
+    document.getElementById('ship-status').className = 'form-status error';
+  }
+}
+
 document.getElementById('ship-modal-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeShipModal();
 });

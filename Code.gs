@@ -367,6 +367,22 @@ function doGet(e) {
     }
   }
 
+  // Manually mark a Workfile row as Shipped (no CheapCargo)
+  if (e.parameter.action === 'mark_shipped') {
+    try {
+      const rowIndex  = parseInt(e.parameter.sheetRow);
+      const wfSheet   = ss.getSheetByName('Workfile');
+      const wfH       = wfSheet.getRange(1, 1, 1, wfSheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const statusIdx  = wfH.findIndex(h => h === 'Status');
+      const shippedIdx = wfH.findIndex(h => h.toLowerCase().includes('shipped'));
+      if (statusIdx  >= 0) wfSheet.getRange(rowIndex, statusIdx  + 1).setValue('Shipped');
+      if (shippedIdx >= 0) wfSheet.getRange(rowIndex, shippedIdx + 1).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+      return respondGet({ success: true });
+    } catch(err) {
+      return respondGet({ error: err.message });
+    }
+  }
+
   // Book CheapCargo shipment (GET so the response is readable by the browser)
   if (e.parameter.action === 'book_shipment') {
     try {
