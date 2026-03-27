@@ -3317,6 +3317,8 @@ function shipJob(rowIdx) {
   document.getElementById('ship-result').style.display = 'none';
   document.getElementById('ship-submit').disabled     = false;
   document.getElementById('ship-submit').textContent  = '📦 Book Shipment';
+  document.getElementById('ship-manual').disabled     = false;
+  document.getElementById('ship-manual').textContent  = '✓ Mark as Shipped';
 
   document.getElementById('ship-modal-overlay').style.display = 'flex';
 }
