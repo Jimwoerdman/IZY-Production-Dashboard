@@ -424,7 +424,8 @@ function doGet(e) {
         if (shippedIdx >= 0) wfSheet.getRange(rowIndex, shippedIdx + 1).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
       }
 
-      return respondGet({ success: true, orderNumber: result.orderNumber, awb: result.awb, carrier: result.carrier, trackAndTrace: result.trackAndTrace });
+      const label = getCheapCargoLabel(result.orderNumber);
+      return respondGet({ success: true, orderNumber: result.orderNumber, awb: result.awb, carrier: result.carrier, trackAndTrace: result.trackAndTrace, labelUrl: label.url || '' });
     } catch(err) {
       return respondGet({ error: err.message });
     }

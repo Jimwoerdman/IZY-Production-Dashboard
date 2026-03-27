@@ -3394,10 +3394,11 @@ async function submitShipment() {
       `<div class="ship-result-row"><span>Order</span><strong>CC-${result.orderNumber}</strong></div>` +
       `<div class="ship-result-row"><span>Carrier</span><strong>${result.carrier || '—'}</strong></div>` +
       `<div class="ship-result-row"><span>AWB</span><strong>${result.awb || '—'}</strong></div>` +
-      (result.trackAndTrace ? `<div class="ship-result-row"><span>Tracking</span><a href="${result.trackAndTrace}" target="_blank" rel="noopener">Track shipment →</a></div>` : '');
+      (result.trackAndTrace ? `<div class="ship-result-row"><span>Tracking</span><a href="${result.trackAndTrace}" target="_blank" rel="noopener">Track shipment →</a></div>` : '') +
+      (result.labelUrl ? `<div class="ship-result-row" style="margin-top:10px;"><a href="${result.labelUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="width:100%;text-align:center;">🖨 Download shipping label</a></div>` : '');
 
     submitBtn.textContent = '✓ Booked';
-    setTimeout(() => { closeShipModal(); refreshData(); }, 3000);
+    setTimeout(() => { closeShipModal(); refreshData(); }, 5000);
   } catch (err) {
     statusEl.textContent = 'Error: ' + err.message;
     statusEl.className   = 'form-status error';
