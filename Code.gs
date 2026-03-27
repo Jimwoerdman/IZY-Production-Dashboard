@@ -416,31 +416,45 @@ function doGet(e) {
         const shipHeaders = shipSheet.getRange(1, 1, 1, Math.max(shipSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim().toLowerCase());
         const sc = kw => shipHeaders.findIndex(h => h.includes(kw)) + 1;
         const nr = shipSheet.getLastRow() + 1;
-        const pkgsArr = p.pkgsJson ? JSON.parse(p.pkgsJson) : [];
-        const firstPkg = pkgsArr[0] || {};
+        const pkgsArr     = p.pkgsJson ? JSON.parse(p.pkgsJson) : [];
+        const firstPkg    = pkgsArr[0] || {};
         const totalWeight = pkgsArr.reduce((s, pkg) => s + (parseFloat(pkg.weight) || 0), 0);
+        const now         = new Date();
+        // Exact-first column lookup to avoid ambiguous partial matches
+        const col = kw => { const i = shipHeaders.findIndex(h => h === kw); return i >= 0 ? i + 1 : 0; };
+        const colInc = kw => { const i = shipHeaders.findIndex(h => h.includes(kw)); return i >= 0 ? i + 1 : 0; };
 
-        if (sc('ordernummer')  > 0) shipSheet.getRange(nr, sc('ordernummer')).setValue('CC-' + result.orderNumber);
-        if (sc('datum')        > 0) shipSheet.getRange(nr, sc('datum')).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
-        if (sc('ophaling')     > 0) shipSheet.getRange(nr, sc('ophaling')).setValue(p.ratePickup   || result.datePickup   || '');
-        if (sc('aflevering')   > 0) shipSheet.getRange(nr, sc('aflevering')).setValue(p.rateDelivery || result.dateDelivery || '');
-        if (sc('status')       > 0) shipSheet.getRange(nr, sc('status')).setValue('Booked');
-        if (sc('vervoerder')   > 0) shipSheet.getRange(nr, sc('vervoerder')).setValue(result.carrier || '');
-        if (sc('awb')          > 0) shipSheet.getRange(nr, sc('awb')).setValue(result.awb || '');
-        if (sc('track')        > 0) shipSheet.getRange(nr, sc('track')).setValue(result.trackAndTrace || '');
-        if (sc('referentie')   > 0) shipSheet.getRange(nr, sc('referentie')).setValue(p.reference || '');
-        if (sc('bedrijfsnaam') > 0) shipSheet.getRange(nr, sc('bedrijfsnaam')).setValue(p.rcCompany || '');
-        if (sc('straat')       > 0) shipSheet.getRange(nr, sc('straat')).setValue(p.rcStreet  || '');
-        if (sc('nummer')       > 0) shipSheet.getRange(nr, sc('nummer')).setValue(p.rcNumber  || '');
-        if (sc('postcode')     > 0) shipSheet.getRange(nr, sc('postcode')).setValue(p.rcZipcode || '');
-        if (sc('plaats')       > 0) shipSheet.getRange(nr, sc('plaats')).setValue(p.rcCity    || '');
-        if (sc('land')         > 0) shipSheet.getRange(nr, sc('land')).setValue(p.rcCountry  || '');
-        if (sc('aantal')       > 0) shipSheet.getRange(nr, sc('aantal')).setValue(p.quantity  || '');
-        if (sc('lengte')       > 0) shipSheet.getRange(nr, sc('lengte')).setValue(firstPkg.length || '');
-        if (sc('breedte')      > 0) shipSheet.getRange(nr, sc('breedte')).setValue(firstPkg.width  || '');
-        if (sc('hoogte')       > 0) shipSheet.getRange(nr, sc('hoogte')).setValue(firstPkg.height || '');
-        if (sc('gewicht')      > 0) shipSheet.getRange(nr, sc('gewicht')).setValue(totalWeight || firstPkg.weight || '');
-        if (sc('prijs')        > 0) shipSheet.getRange(nr, sc('prijs')).setValue(p.ratePrice  || '');
+        const set = (kw, val, exact) => { const c = exact ? col(kw) : colInc(kw); if (c > 0) shipSheet.getRange(nr, c).setValue(val); };
+
+        set('ordernummer',          'CC-' + result.orderNumber,                        false);
+        set('boekdatum',            Utilities.formatDate(now, tz, 'dd/MM/yyyy'),       false);
+        set('gebruiker',            p.owner || '',                                     false);
+        set('ophaling',             p.ratePickup   || result.datePickup   || '',       false);
+        set('aflevering',           p.rateDelivery || result.dateDelivery || '',       false);
+        set('land',                 p.rcCountry || '',                                 true);  // top-level 'Land' col
+        set('postcode',             p.rcZipcode || '',                                 true);  // top-level 'Postcode' col
+        set('ontvanger bedrijfsnaam', p.rcCompany  || '',                              true);
+        set('ontvanger straat',     p.rcStreet  || '',                                 true);
+        set('ontvanger nummer',     p.rcNumber  || '',                                 true);
+        set('ontvanger postcode',   p.rcZipcode || '',                                 true);
+        set('ontvanger plaats',     p.rcCity    || '',                                 true);
+        set('ontvanger land',       p.rcCountry || '',                                 true);
+        set('aantal',               p.quantity  || '',                                 true);
+        set('lengte',               firstPkg.length || '',                             true);
+        set('breedte',              firstPkg.width  || '',                             true);
+        set('hoogte',               firstPkg.height || '',                             true);
+        set('gewicht',              totalWeight || firstPkg.weight || '',              true);
+        set('prijs',                p.ratePrice || '',                                 true);
+        set('status',               'Booked',                                          true);
+        set('vervoerder',           result.carrier || '',                              true);
+        set('service level',        p.rateService || '',                               true);
+        set('awb',                  result.awb || '',                                  true);
+        set('aantal colli',         pkgsArr.length || 1,                               true);
+        set('referentie',           p.reference || '',                                 true);
+        set('omschrijving',         'Printed bottles / merchandise',                   true);
+        set('track & trace',        result.trackAndTrace || '',                        true);
+        set('datum',                Utilities.formatDate(now, tz, 'dd/MM/yyyy'),       true);
+        set('tijd',                 Utilities.formatDate(now, tz, 'HH:mm'),            true);
       }
 
       // Mark Workfile row Shipped
