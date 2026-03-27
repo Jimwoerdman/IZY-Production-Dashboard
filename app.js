@@ -3222,7 +3222,7 @@ function resetShipRates() {
 }
 
 function getShipPackages() {
-  return [...document.getElementById('ship-packages-list').querySelectorAll('.sv-file-row')].map(row => ({
+  return [...document.getElementById('ship-packages-list').querySelectorAll('.ship-pkg-row')].map(row => ({
     length: parseFloat(row.querySelector('.pkg-length').value) || 40,
     width:  parseFloat(row.querySelector('.pkg-width').value)  || 40,
     height: parseFloat(row.querySelector('.pkg-height').value) || 30,
@@ -3258,8 +3258,9 @@ async function loadShipRates() {
   try {
     const data = await fetch(SCRIPT_URL + '?' + params.toString()).then(r => r.json());
     if (data.error) throw new Error(data.error);
+    if (data._debug) console.log('CheapCargo raw response:', data._debug);
     const rates = data.rates || [];
-    if (!rates.length) { statusEl.textContent = 'No rates available.'; btn.disabled = false; btn.textContent = '🔍 Get rates'; return; }
+    if (!rates.length) { statusEl.textContent = 'No rates available. Check console for details.'; console.log('CheapCargo debug:', data._debug); btn.disabled = false; btn.textContent = '🔍 Get rates'; return; }
 
     listEl.innerHTML = rates.map((r, i) => `
       <label class="ship-rate-option">
