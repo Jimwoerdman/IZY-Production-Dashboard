@@ -241,7 +241,7 @@ function activateTab(tabName) {
   const content = document.getElementById('tab-' + tabName);
   if (content) content.classList.add('active');
   if (tabName === 'shipping') loadShipping();
-  if (tabName === 'add-job') populateAddJobOwners();
+  if (tabName === 'add-job') { populateAddJobOwners(); if (!mockupLoaded) loadMockups().then(populateApprovedMockups); else populateApprovedMockups(); }
   if (tabName === 'sleeves') { populateSleeveOwners(); loadSleeves(); }
   if (tabName === 'mockups') loadMockups();
   if (tabName === 'stock') loadStock();
@@ -3312,6 +3312,36 @@ async function submitPrintUpdate() {
 }
 
 // ── Add Job ────────────────────────────────────────────────────
+function populateApprovedMockups() {
+  const sel = document.getElementById('nj-mockup-select');
+  if (!sel) return;
+  const approved = mockupRows.filter(r => get(r,'Status').toLowerCase() === 'approved');
+  sel.innerHTML = '<option value="">— Select an approved mockup to pre-fill —</option>' +
+    approved.map(r => {
+      const label = [get(r,'Name_Company'), get(r,'Soort'), get(r,'Bottle color')].filter(Boolean).join(' · ');
+      return `<option value="${mockupRows.indexOf(r)}">${label}</option>`;
+    }).join('');
+}
+
+document.getElementById('nj-mockup-select').addEventListener('change', function() {
+  const idx = parseInt(this.value);
+  if (isNaN(idx)) return;
+  const r = mockupRows[idx];
+  if (!r) return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  setVal('nj-soort',    get(r,'Soort'));
+  setVal('nj-company',  get(r,'Name_Company'));
+  setVal('nj-color',    get(r,'Bottle color') || get(r,'Color'));
+  setVal('nj-lid',      get(r,'Lid'));
+  setVal('nj-owner',    normOwner(get(r,'Owner')));
+  setVal('nj-deadline', get(r,'Deadline'));
+  setVal('nj-quantity', get(r,'Quantity'));
+  // Trigger priority hint update
+  document.getElementById('nj-soort').dispatchEvent(new Event('change'));
+  // Update progress bar
+  document.getElementById('nj-company').dispatchEvent(new Event('input'));
+});
+
 function populateAddJobOwners() {
   const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(r => get(r,'Owner')).filter(Boolean)])].sort();
   const sel = document.getElementById('nj-owner');

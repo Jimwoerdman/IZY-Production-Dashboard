@@ -1113,6 +1113,16 @@
         <div class="add-job-subtitle">Fill in the details below to add a job to the Workfile</div>
       </div>
     </div>
+
+    <div class="form-section" id="nj-mockup-prefill-section">
+      <div class="form-section-label">Import from Approved Mockup <span style="font-weight:400;color:#94a3b8;">(optional)</span></div>
+      <div class="form-group">
+        <select id="nj-mockup-select">
+          <option value="">— Select an approved mockup to pre-fill —</option>
+        </select>
+      </div>
+    </div>
+
     <div class="form-completion-bar" style="padding: 14px 0 0;">
       <div class="form-completion-bar-track"><div class="form-completion-bar-fill" id="nj-progress-fill"></div></div>
       <div class="form-completion-label" id="nj-progress-label">0 / 4 required fields</div>
@@ -1247,7 +1257,7 @@
   </div>
 </section>
 
-<script src="app.js?v=35"></script>
+<script src="app.js?v=36"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
