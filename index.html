@@ -760,9 +760,15 @@
 
       <div class="form-section">
         <div class="form-section-label">Receiver</div>
-        <div class="form-group">
-          <label>Company name <span class="req">*</span></label>
-          <input type="text" id="ship-company" placeholder="Receiver company" />
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Company name <span class="req">*</span></label>
+            <input type="text" id="ship-company" placeholder="Receiver company" />
+          </div>
+          <div class="form-group">
+            <label>Contact person <span class="req">*</span></label>
+            <input type="text" id="ship-contact" placeholder="Full name" />
+          </div>
         </div>
         <div class="form-grid form-grid-2" style="margin-top:10px;">
           <div class="form-group">
@@ -1329,7 +1335,7 @@
   </div>
 </section>
 
-<script src="app.js?v=41"></script>
+<script src="app.js?v=42"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
