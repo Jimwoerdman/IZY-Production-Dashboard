@@ -3304,8 +3304,14 @@ function shipJob(rowIdx) {
     `<strong>#${get(job,'Priority')} — ${get(job,'Name_Company')}</strong> &nbsp;·&nbsp; ${get(job,'Soort') || ''} &nbsp;·&nbsp; Qty: ${get(job,'Quantity') || '—'}`;
 
   document.getElementById('ship-company').value = get(job,'Name_Company');
-  ['ship-contact','ship-phone','ship-email','ship-street','ship-number','ship-zipcode','ship-city'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('ship-country').value = 'NL';
+  document.getElementById('ship-contact').value = get(job,'Ontvanger contactpersoon') || '';
+  document.getElementById('ship-phone').value   = get(job,'Ontvanger telefoon')       || '';
+  document.getElementById('ship-email').value   = get(job,'Ontvanger email')          || '';
+  document.getElementById('ship-street').value  = get(job,'Ontvanger straat')         || '';
+  document.getElementById('ship-number').value  = get(job,'Ontvanger nummer')         || '';
+  document.getElementById('ship-zipcode').value = get(job,'Ontvanger postcode')       || '';
+  document.getElementById('ship-city').value    = get(job,'Ontvanger plaats')         || '';
+  document.getElementById('ship-country').value = get(job,'Ontvanger land')           || 'NL';
 
   // Reset packages — one default row
   document.getElementById('ship-packages-list').innerHTML = '';
@@ -3625,6 +3631,14 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const needmockup = document.getElementById('nj-needmockup').dataset.value;
   const tosleeve   = document.getElementById('nj-tosleeve').dataset.value;
   const notes     = withDate(document.getElementById('nj-notes').value.trim());
+  const shipContact = document.getElementById('nj-ship-contact').value.trim();
+  const shipPhone   = document.getElementById('nj-ship-phone').value.trim();
+  const shipEmail   = document.getElementById('nj-ship-email').value.trim();
+  const shipStreet  = document.getElementById('nj-ship-street').value.trim();
+  const shipNumber  = document.getElementById('nj-ship-number').value.trim();
+  const shipZipcode = document.getElementById('nj-ship-zipcode').value.trim();
+  const shipCity    = document.getElementById('nj-ship-city').value.trim();
+  const shipCountry = document.getElementById('nj-ship-country').value.trim().toUpperCase() || '';
   const mockupFile = document.getElementById('nj-mockup').files[0];
   const designFileInputs = document.getElementById('nj-files-list').querySelectorAll('input[type="file"]');
   const statusEl  = document.getElementById('nj-status');
@@ -3684,6 +3698,8 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         quantity:  parseInt(quantity),
         color, lid, deadline, owner, tosleeve, needmockup, notes,
         mockupBase64, designFiles,
+        shipContact, shipPhone, shipEmail,
+        shipStreet, shipNumber, shipZipcode, shipCity, shipCountry,
         changedBy: currentUser?.email,
         status:    'To Print',
       }),

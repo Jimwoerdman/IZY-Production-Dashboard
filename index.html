@@ -1327,6 +1327,48 @@
       </div>
 
       <div class="form-section">
+        <div class="form-section-label">Shipping <span style="font-weight:400;color:#94a3b8;">(optional — pre-fills ship modal)</span></div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Contact person</label>
+            <input type="text" id="nj-ship-contact" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="nj-ship-phone" placeholder="+31612345678" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="text" id="nj-ship-email" placeholder="contact@company.com" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Street</label>
+            <input type="text" id="nj-ship-street" placeholder="Street name" />
+          </div>
+          <div class="form-group">
+            <label>Number</label>
+            <input type="text" id="nj-ship-number" placeholder="12a" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Postcode</label>
+            <input type="text" id="nj-ship-zipcode" placeholder="1234 AB" />
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="nj-ship-city" placeholder="Amsterdam" />
+          </div>
+          <div class="form-group">
+            <label>Country</label>
+            <input type="text" id="nj-ship-country" placeholder="NL" maxlength="2" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
         <div class="form-section-label">Notes</div>
         <div class="form-group">
           <textarea id="nj-notes" rows="3" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
@@ -1346,7 +1388,7 @@
   </div>
 </section>
 
-<script src="app.js?v=52"></script>
+<script src="app.js?v=53"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
