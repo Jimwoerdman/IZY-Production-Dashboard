@@ -772,6 +772,16 @@
         </div>
         <div class="form-grid form-grid-2" style="margin-top:10px;">
           <div class="form-group">
+            <label>Phone <span class="req">*</span></label>
+            <input type="text" id="ship-phone" placeholder="+31612345678" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="text" id="ship-email" placeholder="receiver@example.com" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-2" style="margin-top:10px;">
+          <div class="form-group">
             <label>Street <span class="req">*</span></label>
             <input type="text" id="ship-street" placeholder="Street name" />
           </div>
@@ -1335,7 +1345,7 @@
   </div>
 </section>
 
-<script src="app.js?v=42"></script>
+<script src="app.js?v=43"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

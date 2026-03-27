@@ -286,9 +286,11 @@ function doGet(e) {
   // Get CheapCargo rates
   if (e.parameter.action === 'get_ship_rates') {
     try {
-      const p    = e.parameter;
-      const pkgs = JSON.parse(p.pkgsJson || '[{}]');
-      const auth = ccAuth_();
+      const p       = e.parameter;
+      let pkgs = JSON.parse(p.pkgsJson || '[{}]');
+      if (!pkgs.length) pkgs = [{}];
+      const auth    = ccAuth_();
+      const contact = ccOwnerContact_(p.owner);
 
       const colliXml = pkgs.map(function(pkg) {
         return '<colli>' +
@@ -305,40 +307,51 @@ function doGet(e) {
       const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
         '<shipments>' +
           '<authentication>' + auth + '</authentication>' +
-          '<version>2.0</version>' +
+          '<version>2.1</version>' +
           ccUserBlock_() +
           '<shipment orderBy="price">' +
             '<sender>' +
-              '<zipcode>' + CC_SENDER.zipcode  + '</zipcode>' +
-              '<city>'    + CC_SENDER.city     + '</city>' +
-              '<country>' + CC_SENDER.country  + '</country>' +
+              '<companyName>'   + CC_SENDER.companyName  + '</companyName>' +
+              '<contactPerson>' + contact.name           + '</contactPerson>' +
+              '<phone>'         + contact.phone          + '</phone>' +
+              '<email>'         + contact.email          + '</email>' +
+              '<street>'        + CC_SENDER.street       + '</street>' +
+              '<number>'        + CC_SENDER.number       + '</number>' +
+              '<zipcode>'       + CC_SENDER.zipcode      + '</zipcode>' +
+              '<city>'          + CC_SENDER.city         + '</city>' +
+              '<country>'       + CC_SENDER.country      + '</country>' +
               '<type>business</type>' +
             '</sender>' +
             '<receiver>' +
-              '<zipcode>' + (p.rcZipcode || '') + '</zipcode>' +
-              '<city>'    + (p.rcCity    || '') + '</city>' +
-              '<country>' + (p.rcCountry || 'NL') + '</country>' +
+              '<companyName>' + (p.rcCompany  || '') + '</companyName>' +
+              '<zipcode>'     + (p.rcZipcode  || '') + '</zipcode>' +
+              '<city>'        + (p.rcCity     || '') + '</city>' +
+              '<country>'     + (p.rcCountry  || 'NL') + '</country>' +
               '<type>business</type>' +
             '</receiver>' +
             '<content>' + colliXml + '</content>' +
+            '<incoterm>DAP</incoterm>' +
           '</shipment>' +
         '</shipments>';
 
+      Logger.log('get_ship_rates XML: ' + xml);
       const resp  = UrlFetchApp.fetch(CC_BASE_URL + '/rateRequest', {
         method: 'post', contentType: 'text/xml; charset=UTF-8', payload: xml, muteHttpExceptions: true
       });
       const body  = resp.getContentText();
+      Logger.log('get_ship_rates response (' + resp.getResponseCode() + '): ' + body.substring(0, 500));
       const status = ccXmlVal_(body, 'status');
-      if (status !== 'ok') return respondGet({ error: 'CheapCargo: ' + body.substring(0, 200) });
+      if (status !== 'ok') return respondGet({ error: 'CheapCargo: ' + body.substring(0, 500) });
 
-      // Parse all <rate> blocks
+      // Parse all <rate id="..."> blocks
       const rates = [];
-      const rateRegex = /<rate>([\s\S]*?)<\/rate>/g;
+      const rateRegex = /<rate\s+id="([^"]+)">([\s\S]*?)<\/rate>/g;
       let m;
       while ((m = rateRegex.exec(body)) !== null) {
-        const r = m[1];
+        const id = m[1];
+        const r  = m[2];
         rates.push({
-          id:           ccXmlVal_(r, 'id'),
+          id:           id,
           carrierCode:  ccXmlVal_(r, 'carrierCode'),
           carrierName:  ccXmlVal_(r, 'carrierName'),
           serviceLevel: ccXmlVal_(r, 'serviceLevel'),
@@ -348,7 +361,7 @@ function doGet(e) {
           modality:     ccXmlVal_(r, 'modality'),
         });
       }
-      return respondGet({ rates: rates });
+      return respondGet({ rates: rates, _debug: rates.length === 0 ? body.substring(0, 1000) : undefined });
     } catch(err) {
       return respondGet({ error: err.message });
     }
@@ -366,9 +379,12 @@ function doGet(e) {
       const result = bookCheapCargoShipment({
         reference: p.reference || '',
         rateId:    p.rateId    || '',
+        owner:     p.owner     || '',
         receiver: {
           companyName:   p.rcCompany   || '',
           contactPerson: p.rcContact   || '',
+          phone:         p.rcPhone     || '',
+          email:         p.rcEmail     || '',
           street:        p.rcStreet    || '',
           number:        p.rcNumber    || '',
           zipcode:       p.rcZipcode   || '',
@@ -1724,6 +1740,31 @@ function testAddJob() {
 }
 
 /***** DEBUG — run this manually in Apps Script to check column mapping *****/
+function testCheapCargoRates() {
+  const result = JSON.stringify({
+    rates: []
+  });
+  const auth = ccAuth_();
+  Logger.log('Auth token: ' + auth);
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<shipments>' +
+      '<authentication>' + auth + '</authentication>' +
+      '<version>2.0</version>' +
+      ccUserBlock_() +
+      '<shipment orderBy="price">' +
+        '<sender><zipcode>2811DZ</zipcode><city>Reeuwijk</city><country>NL</country><type>business</type></sender>' +
+        '<receiver><zipcode>1000AA</zipcode><city>Amsterdam</city><country>NL</country><type>business</type></receiver>' +
+        '<content><colli><description>Test</description><weight>12</weight><length>40</length><width>40</width><height>30</height><package>PACKAGE</package><quantity>1</quantity></colli></content>' +
+      '</shipment>' +
+    '</shipments>';
+  Logger.log('XML: ' + xml);
+  const resp = UrlFetchApp.fetch(CC_BASE_URL + '/rateRequest', {
+    method: 'post', contentType: 'text/xml; charset=UTF-8', payload: xml, muteHttpExceptions: true
+  });
+  Logger.log('HTTP ' + resp.getResponseCode());
+  Logger.log('Response: ' + resp.getContentText());
+}
+
 function testMoneybird() {
   const resp = UrlFetchApp.fetch(
     'https://moneybird.com/api/v2/374048181076362541/sales_invoices.json?per_page=3',
@@ -1765,14 +1806,26 @@ const CC_PASSWORD = 'a07f6c4e6104f67740d3ef96a084a421'; // MD5 of account passwo
 const CC_BASE_URL = 'https://www.cheapcargo.com/api';
 
 const CC_SENDER = {
-  companyName:   'IZY',
-  street:        'Jan Tinbergenstraat',
-  number:        '20',
-  zipcode:       '2811DZ',
-  city:          'Reeuwijk',
-  country:       'NL',
-  type:          'business'
+  companyName: 'IZY',
+  street:      'Jan Tinbergenstraat',
+  number:      '20',
+  zipcode:     '2811DZ',
+  city:        'Reeuwijk',
+  country:     'NL',
+  type:        'business'
 };
+
+const CC_OWNER_CONTACTS = {
+  'jim':    { name: 'Jim Woerdman',       phone: '+31612633990', email: 'jim@izybottles.com'     },
+  'gerrit': { name: 'Geertjan Valkenberg', phone: '+31653497625', email: 'geertjan@izybottles.com' },
+  'daan':   { name: 'Daan Bertholet',     phone: '+31612529556', email: 'daan@izybottles.com'    },
+  'mees':   { name: 'Mees Krijgsman',     phone: '+31640804118', email: 'mees@izybottles.com'    },
+  'skip':   { name: 'Skip van Schijndel', phone: '+31627879463', email: 'skip@izybottles.com'    },
+};
+
+function ccOwnerContact_(owner) {
+  return CC_OWNER_CONTACTS[(owner || '').toLowerCase()] || CC_OWNER_CONTACTS['jim'];
+}
 
 function ccAuth_() {
   const now   = new Date();
@@ -1792,9 +1845,11 @@ function ccXmlVal_(xml, tag) {
 }
 
 function bookCheapCargoShipment(data) {
-  const auth = ccAuth_();
-  const r    = data.receiver;
-  const pkgs = data.packages || [data.package || {}];
+  const auth    = ccAuth_();
+  const r       = data.receiver;
+  const contact = ccOwnerContact_(data.owner);
+  let pkgs = data.packages || [data.package || {}];
+  if (!pkgs.length) pkgs = [{}];
 
   const colliXml = pkgs.map(function(p) {
     return '<colli>' +
@@ -1817,17 +1872,22 @@ function bookCheapCargoShipment(data) {
       ccUserBlock_() +
       '<shipment pay="true" waitForLabel="false" orderBy="price">' +
         '<sender>' +
-          '<companyName>'   + CC_SENDER.companyName + '</companyName>' +
-          '<street>'        + CC_SENDER.street      + '</street>' +
-          '<number>'        + CC_SENDER.number      + '</number>' +
-          '<zipcode>'       + CC_SENDER.zipcode     + '</zipcode>' +
-          '<city>'          + CC_SENDER.city        + '</city>' +
-          '<country>'       + CC_SENDER.country     + '</country>' +
-          '<type>'          + CC_SENDER.type        + '</type>' +
+          '<companyName>'   + CC_SENDER.companyName  + '</companyName>' +
+          '<contactPerson>' + contact.name           + '</contactPerson>' +
+          '<phone>'         + contact.phone          + '</phone>' +
+          '<email>'         + contact.email          + '</email>' +
+          '<street>'        + CC_SENDER.street       + '</street>' +
+          '<number>'        + CC_SENDER.number       + '</number>' +
+          '<zipcode>'       + CC_SENDER.zipcode      + '</zipcode>' +
+          '<city>'          + CC_SENDER.city         + '</city>' +
+          '<country>'       + CC_SENDER.country      + '</country>' +
+          '<type>'          + CC_SENDER.type         + '</type>' +
         '</sender>' +
         '<receiver>' +
           '<companyName>'   + (r.companyName   || '') + '</companyName>' +
           '<contactPerson>' + (r.contactPerson || '') + '</contactPerson>' +
+          '<phone>'         + (r.phone         || '') + '</phone>' +
+          (r.email ? '<email>' + r.email + '</email>' : '') +
           '<street>'        + (r.street        || '') + '</street>' +
           '<number>'        + (r.number        || '') + '</number>' +
           '<zipcode>'       + (r.zipcode       || '') + '</zipcode>' +

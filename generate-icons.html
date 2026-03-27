@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+<canvas id="c192" width="192" height="192"></canvas>
+<canvas id="c512" width="512" height="512"></canvas>
+<br>
+<button onclick="download()">Download Icons</button>
+
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  const r = s * 0.15; // corner radius
+
+  // Background
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, r);
+  ctx.fillStyle = '#111827';
+  ctx.fill();
+
+  // "IZY" text
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `bold ${s * 0.3}px Inter, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('IZY', s / 2, s * 0.38);
+
+  // Small subtitle
+  ctx.font = `${s * 0.1}px Inter, sans-serif`;
+  ctx.fillStyle = '#9CA3AF';
+  ctx.fillText('PRINTS', s / 2, s * 0.65);
+}
+
+function download() {
+  ['c192', 'c512'].forEach(id => {
+    const canvas = document.getElementById(id);
+    drawIcon(canvas);
+    const a = document.createElement('a');
+    a.download = `icon-${canvas.width}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+}
+
+// Draw on load
+drawIcon(document.getElementById('c192'));
+drawIcon(document.getElementById('c512'));
+</script>
+</body>
+</html>

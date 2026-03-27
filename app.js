@@ -3300,7 +3300,7 @@ function shipJob(rowIdx) {
     `<strong>#${get(job,'Priority')} — ${get(job,'Name_Company')}</strong> &nbsp;·&nbsp; ${get(job,'Soort') || ''} &nbsp;·&nbsp; Qty: ${get(job,'Quantity') || '—'}`;
 
   document.getElementById('ship-company').value = get(job,'Name_Company');
-  ['ship-contact','ship-street','ship-number','ship-zipcode','ship-city'].forEach(id => document.getElementById(id).value = '');
+  ['ship-contact','ship-phone','ship-email','ship-street','ship-number','ship-zipcode','ship-city'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ship-country').value = 'NL';
 
   // Reset packages — one default row
@@ -3333,6 +3333,8 @@ async function submitShipment() {
   const get_ = id => document.getElementById(id).value.trim();
   const company = get_('ship-company');
   const contact = get_('ship-contact');
+  const phone   = get_('ship-phone');
+  const email   = get_('ship-email');
   const street  = get_('ship-street');
   const number  = get_('ship-number');
   const zipcode = get_('ship-zipcode');
@@ -3340,7 +3342,7 @@ async function submitShipment() {
   const country = get_('ship-country').toUpperCase();
 
   const statusEl = document.getElementById('ship-status');
-  if (!company || !contact || !street || !number || !zipcode || !city || !country) {
+  if (!company || !contact || !phone || !street || !number || !zipcode || !city || !country) {
     statusEl.textContent = 'Please fill in all required receiver fields.';
     statusEl.className   = 'form-status error';
     return;
@@ -3366,6 +3368,8 @@ async function submitShipment() {
       reference: get(job,'Priority'),
       rcCompany: company,
       rcContact: contact,
+      rcPhone:   phone,
+      rcEmail:   email,
       rcStreet:  street,
       rcNumber:  number,
       rcZipcode: zipcode,
