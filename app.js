@@ -3308,7 +3308,7 @@ function shipJob(rowIdx) {
   document.getElementById('ship-phone').value   = get(job,'Telefoonnummer')  || '';
   document.getElementById('ship-email').value   = get(job,'E-mailadres')     || '';
   document.getElementById('ship-street').value  = get(job,'Straat')          || '';
-  document.getElementById('ship-number').value  = '';
+  document.getElementById('ship-number').value  = get(job,'Huisnummer') || '';
   document.getElementById('ship-zipcode').value = get(job,'Postcode')        || '';
   document.getElementById('ship-city').value    = get(job,'Plaats')          || '';
   document.getElementById('ship-country').value = get(job,'Land')            || 'NL';

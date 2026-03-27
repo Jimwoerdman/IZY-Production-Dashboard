@@ -651,10 +651,12 @@ function doPost(e) {
       vals[21] = data.tosleeve  || '';
       vals[25] = data.notes     || '';
       vals[35] = data.changedBy || '';
+      setW('ontvanger',      data.shipContact || '');
       setW('contactpersoon', data.shipContact || '');
       setW('telefoonnummer', data.shipPhone   || '');
       setW('e-mailadres',    data.shipEmail   || '');
       setW('straat',         data.shipStreet  || '');
+      setW('huisnummer',     data.shipNumber  || '');
       setW('postcode',       data.shipZipcode || '');
       setW('plaats',         data.shipCity    || '');
       setW('land',           data.shipCountry || '');
