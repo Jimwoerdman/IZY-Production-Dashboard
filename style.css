@@ -1129,9 +1129,11 @@ td.notes-cell {
   justify-content: space-between;
   margin-bottom: 2px;
 }
+#ship-modal { overflow-x: hidden; box-sizing: border-box; }
+#ship-modal * { min-width: 0; box-sizing: border-box; }
 .ship-pkg-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   gap: 8px;
   align-items: end;
   margin-bottom: 8px;
