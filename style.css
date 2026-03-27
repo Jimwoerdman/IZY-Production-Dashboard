@@ -1118,6 +1118,7 @@ td.notes-cell {
 #add-mockup-modal,
 #add-sleeve-modal,
 #delivery-modal,
+#ship-modal,
 #cal-edit-modal {
   background: var(--surface);
   border-radius: var(--radius-lg);

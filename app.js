@@ -3197,33 +3197,121 @@ async function unsleeveJob(rowIdx, btn) {
   }
 }
 
-let shipModalRowIdx = null;
+let shipModalRowIdx  = null;
+let shipSelectedRate = null;
+
+function addShipPackageRow() {
+  const list = document.getElementById('ship-packages-list');
+  const row  = document.createElement('div');
+  row.className = 'sv-file-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;';
+  row.innerHTML = `
+    <div><label style="font-size:11px;color:var(--text-3);">L (cm)</label><input type="number" class="pkg-length" value="40" min="1" /></div>
+    <div><label style="font-size:11px;color:var(--text-3);">W (cm)</label><input type="number" class="pkg-width"  value="40" min="1" /></div>
+    <div><label style="font-size:11px;color:var(--text-3);">H (cm)</label><input type="number" class="pkg-height" value="30" min="1" /></div>
+    <div><label style="font-size:11px;color:var(--text-3);">kg</label><input type="number" class="pkg-weight" value="12" min="0.1" step="0.1" /></div>
+    <button type="button" class="btn-remove-file" title="Remove" style="margin-bottom:0;">✕</button>`;
+  row.querySelector('.btn-remove-file').addEventListener('click', () => { row.remove(); shipSelectedRate = null; resetShipRates(); });
+  list.appendChild(row);
+}
+
+function resetShipRates() {
+  document.getElementById('ship-rates-list').style.display = 'none';
+  document.getElementById('ship-rates-list').innerHTML = '';
+  document.getElementById('ship-rates-status').textContent = '';
+  shipSelectedRate = null;
+}
+
+function getShipPackages() {
+  return [...document.getElementById('ship-packages-list').querySelectorAll('.sv-file-row')].map(row => ({
+    length: parseFloat(row.querySelector('.pkg-length').value) || 40,
+    width:  parseFloat(row.querySelector('.pkg-width').value)  || 40,
+    height: parseFloat(row.querySelector('.pkg-height').value) || 30,
+    weight: parseFloat(row.querySelector('.pkg-weight').value) || 12,
+  }));
+}
+
+async function loadShipRates() {
+  const zipcode = document.getElementById('ship-zipcode').value.trim();
+  const city    = document.getElementById('ship-city').value.trim();
+  const country = document.getElementById('ship-country').value.trim().toUpperCase() || 'NL';
+  if (!zipcode || !city) {
+    document.getElementById('ship-rates-status').textContent = 'Fill in postcode and city first.';
+    return;
+  }
+  const statusEl = document.getElementById('ship-rates-status');
+  const listEl   = document.getElementById('ship-rates-list');
+  const btn      = document.getElementById('ship-rates-btn');
+  btn.disabled   = true;
+  btn.textContent = 'Loading…';
+  statusEl.textContent = '';
+  listEl.style.display = 'none';
+  shipSelectedRate = null;
+
+  const pkgs = getShipPackages();
+  const params = new URLSearchParams({
+    action:    'get_ship_rates',
+    rcZipcode: zipcode, rcCity: city, rcCountry: country,
+    pkgsJson:  JSON.stringify(pkgs),
+    t:         Date.now(),
+  });
+
+  try {
+    const data = await fetch(SCRIPT_URL + '?' + params.toString()).then(r => r.json());
+    if (data.error) throw new Error(data.error);
+    const rates = data.rates || [];
+    if (!rates.length) { statusEl.textContent = 'No rates available.'; btn.disabled = false; btn.textContent = '🔍 Get rates'; return; }
+
+    listEl.innerHTML = rates.map((r, i) => `
+      <label class="ship-rate-option" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;">
+        <input type="radio" name="ship-rate" value="${i}" style="flex-shrink:0;" />
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;">${r.carrierName} — ${r.serviceLevel}</div>
+          <div style="font-size:12px;color:var(--text-3);">Pickup: ${r.pickup || '—'} · Delivery: ${r.delivery || '—'}</div>
+        </div>
+        <div style="font-weight:700;font-size:14px;color:var(--blue);">€${parseFloat(r.price).toFixed(2)}</div>
+      </label>`).join('');
+
+    listEl.querySelectorAll('input[type="radio"]').forEach(radio => {
+      radio.addEventListener('change', () => { shipSelectedRate = rates[parseInt(radio.value)]; });
+    });
+
+    // Auto-select cheapest
+    const firstRadio = listEl.querySelector('input[type="radio"]');
+    if (firstRadio) { firstRadio.checked = true; shipSelectedRate = rates[0]; }
+
+    listEl.style.display = 'block';
+    statusEl.textContent = '';
+  } catch(err) {
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+  btn.disabled = false;
+  btn.textContent = '🔍 Get rates';
+}
 
 function shipJob(rowIdx) {
   const job = allRows[rowIdx];
   if (!job) return;
-  shipModalRowIdx = rowIdx;
+  shipModalRowIdx  = rowIdx;
+  shipSelectedRate = null;
 
-  // Pre-fill job info
   document.getElementById('ship-job-info').innerHTML =
     `<strong>#${get(job,'Priority')} — ${get(job,'Name_Company')}</strong> &nbsp;·&nbsp; ${get(job,'Soort') || ''} &nbsp;·&nbsp; Qty: ${get(job,'Quantity') || '—'}`;
 
-  // Pre-fill receiver from job if available
-  const setVal = (id, v) => { if (v) document.getElementById(id).value = v; };
-  setVal('ship-company', get(job,'Name_Company'));
-
-  // Reset other fields to defaults
+  document.getElementById('ship-company').value = get(job,'Name_Company');
   ['ship-street','ship-number','ship-zipcode','ship-city'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ship-country').value = 'NL';
-  document.getElementById('ship-length').value  = '40';
-  document.getElementById('ship-width').value   = '40';
-  document.getElementById('ship-height').value  = '30';
-  document.getElementById('ship-weight').value  = '12';
-  document.getElementById('ship-status').textContent = '';
-  document.getElementById('ship-status').className   = 'form-status';
+
+  // Reset packages — one default row
+  document.getElementById('ship-packages-list').innerHTML = '';
+  addShipPackageRow();
+
+  resetShipRates();
+  document.getElementById('ship-status').textContent  = '';
+  document.getElementById('ship-status').className    = 'form-status';
   document.getElementById('ship-result').style.display = 'none';
-  document.getElementById('ship-submit').disabled = false;
-  document.getElementById('ship-submit').textContent = '📦 Book Shipment';
+  document.getElementById('ship-submit').disabled     = false;
+  document.getElementById('ship-submit').textContent  = '📦 Book Shipment';
 
   document.getElementById('ship-modal-overlay').style.display = 'flex';
 }
@@ -3249,20 +3337,25 @@ async function submitShipment() {
   const city    = get_('ship-city');
   const country = get_('ship-country').toUpperCase();
 
+  const statusEl = document.getElementById('ship-status');
   if (!company || !street || !number || !zipcode || !city || !country) {
-    const el = document.getElementById('ship-status');
-    el.textContent = 'Please fill in all required receiver fields.';
-    el.className   = 'form-status error';
+    statusEl.textContent = 'Please fill in all required receiver fields.';
+    statusEl.className   = 'form-status error';
+    return;
+  }
+  if (!shipSelectedRate) {
+    statusEl.textContent = 'Please get rates and select a carrier first.';
+    statusEl.className   = 'form-status error';
     return;
   }
 
   const submitBtn = document.getElementById('ship-submit');
-  const statusEl  = document.getElementById('ship-status');
   submitBtn.disabled    = true;
   submitBtn.textContent = 'Booking…';
   statusEl.textContent  = 'Contacting CheapCargo…';
   statusEl.className    = 'form-status';
 
+  const pkgs = getShipPackages();
   try {
     const params = new URLSearchParams({
       action:    'book_shipment',
@@ -3274,10 +3367,8 @@ async function submitShipment() {
       rcZipcode: zipcode,
       rcCity:    city,
       rcCountry: country,
-      pkgLength: get_('ship-length') || 40,
-      pkgWidth:  get_('ship-width')  || 40,
-      pkgHeight: get_('ship-height') || 30,
-      pkgWeight: get_('ship-weight') || 12,
+      rateId:    shipSelectedRate.id || '',
+      pkgsJson:  JSON.stringify(pkgs),
       t:         Date.now(),
     });
     const resp = await fetch(SCRIPT_URL + '?' + params.toString());

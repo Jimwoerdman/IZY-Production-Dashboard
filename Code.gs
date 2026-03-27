@@ -283,6 +283,77 @@ function doGet(e) {
     return respondGet({ photoUrl: url || null });
   }
 
+  // Get CheapCargo rates
+  if (e.parameter.action === 'get_ship_rates') {
+    try {
+      const p    = e.parameter;
+      const pkgs = JSON.parse(p.pkgsJson || '[{}]');
+      const auth = ccAuth_();
+
+      const colliXml = pkgs.map(function(pkg) {
+        return '<colli>' +
+          '<description>Printed bottles / merchandise</description>' +
+          '<weight>'   + (pkg.weight || 12) + '</weight>' +
+          '<length>'   + (pkg.length || 40) + '</length>' +
+          '<width>'    + (pkg.width  || 40) + '</width>' +
+          '<height>'   + (pkg.height || 30) + '</height>' +
+          '<package>PACKAGE</package>' +
+          '<quantity>1</quantity>' +
+        '</colli>';
+      }).join('');
+
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<shipments>' +
+          '<authentication>' + auth + '</authentication>' +
+          '<version>2.0</version>' +
+          ccUserBlock_() +
+          '<shipment orderBy="price">' +
+            '<sender>' +
+              '<zipcode>' + CC_SENDER.zipcode  + '</zipcode>' +
+              '<city>'    + CC_SENDER.city     + '</city>' +
+              '<country>' + CC_SENDER.country  + '</country>' +
+              '<type>business</type>' +
+            '</sender>' +
+            '<receiver>' +
+              '<zipcode>' + (p.rcZipcode || '') + '</zipcode>' +
+              '<city>'    + (p.rcCity    || '') + '</city>' +
+              '<country>' + (p.rcCountry || 'NL') + '</country>' +
+              '<type>business</type>' +
+            '</receiver>' +
+            '<content>' + colliXml + '</content>' +
+          '</shipment>' +
+        '</shipments>';
+
+      const resp  = UrlFetchApp.fetch(CC_BASE_URL + '/rateRequest', {
+        method: 'post', contentType: 'text/xml; charset=UTF-8', payload: xml, muteHttpExceptions: true
+      });
+      const body  = resp.getContentText();
+      const status = ccXmlVal_(body, 'status');
+      if (status !== 'ok') return respondGet({ error: 'CheapCargo: ' + body.substring(0, 200) });
+
+      // Parse all <rate> blocks
+      const rates = [];
+      const rateRegex = /<rate>([\s\S]*?)<\/rate>/g;
+      let m;
+      while ((m = rateRegex.exec(body)) !== null) {
+        const r = m[1];
+        rates.push({
+          id:           ccXmlVal_(r, 'id'),
+          carrierCode:  ccXmlVal_(r, 'carrierCode'),
+          carrierName:  ccXmlVal_(r, 'carrierName'),
+          serviceLevel: ccXmlVal_(r, 'serviceLevel'),
+          price:        ccXmlVal_(r, 'price'),
+          pickup:       ccXmlVal_(r, 'pickup'),
+          delivery:     ccXmlVal_(r, 'delivery'),
+          modality:     ccXmlVal_(r, 'modality'),
+        });
+      }
+      return respondGet({ rates: rates });
+    } catch(err) {
+      return respondGet({ error: err.message });
+    }
+  }
+
   // Book CheapCargo shipment (GET so the response is readable by the browser)
   if (e.parameter.action === 'book_shipment') {
     try {
@@ -291,8 +362,10 @@ function doGet(e) {
       const wfVals  = wfSheet.getDataRange().getValues();
       const wfH     = wfVals[0].map(h => String(h).trim());
 
+      const pkgs = p.pkgsJson ? JSON.parse(p.pkgsJson) : [{ length: 40, width: 40, height: 30, weight: 12 }];
       const result = bookCheapCargoShipment({
         reference: p.reference || '',
+        rateId:    p.rateId    || '',
         receiver: {
           companyName:   p.rcCompany   || '',
           contactPerson: p.rcContact   || '',
@@ -302,12 +375,7 @@ function doGet(e) {
           city:          p.rcCity      || '',
           country:       p.rcCountry   || 'NL',
         },
-        package: {
-          length: parseFloat(p.pkgLength) || 40,
-          width:  parseFloat(p.pkgWidth)  || 40,
-          height: parseFloat(p.pkgHeight) || 30,
-          weight: parseFloat(p.pkgWeight) || 12,
-        },
+        packages: pkgs,
       });
 
       // Write to ShippingHistory
@@ -1726,7 +1794,21 @@ function ccXmlVal_(xml, tag) {
 function bookCheapCargoShipment(data) {
   const auth = ccAuth_();
   const r    = data.receiver;
-  const p    = data.package;
+  const pkgs = data.packages || [data.package || {}];
+
+  const colliXml = pkgs.map(function(p) {
+    return '<colli>' +
+      '<description>Printed bottles / merchandise</description>' +
+      '<weight>'   + (p.weight || 12) + '</weight>' +
+      '<length>'   + (p.length || 40) + '</length>' +
+      '<width>'    + (p.width  || 40) + '</width>' +
+      '<height>'   + (p.height || 30) + '</height>' +
+      '<package>PACKAGE</package>' +
+      '<quantity>1</quantity>' +
+    '</colli>';
+  }).join('');
+
+  const rateIdXml = data.rateId ? '<rateId>' + data.rateId + '</rateId>' : '';
 
   const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
     '<shipments>' +
@@ -1753,17 +1835,8 @@ function bookCheapCargoShipment(data) {
           '<country>'       + (r.country       || 'NL') + '</country>' +
           '<type>business</type>' +
         '</receiver>' +
-        '<content>' +
-          '<colli>' +
-            '<description>Printed bottles / merchandise</description>' +
-            '<weight>'   + (p.weight || 12)  + '</weight>' +
-            '<length>'   + (p.length || 40)  + '</length>' +
-            '<width>'    + (p.width  || 40)  + '</width>' +
-            '<height>'   + (p.height || 30)  + '</height>' +
-            '<package>PACKAGE</package>' +
-            '<quantity>1</quantity>' +
-          '</colli>' +
-        '</content>' +
+        '<content>' + colliXml + '</content>' +
+        rateIdXml +
         '<reference>' + (data.reference || '') + '</reference>' +
       '</shipment>' +
     '</shipments>';
