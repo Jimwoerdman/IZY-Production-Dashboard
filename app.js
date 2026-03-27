@@ -3203,15 +3203,14 @@ let shipSelectedRate = null;
 function addShipPackageRow() {
   const list = document.getElementById('ship-packages-list');
   const row  = document.createElement('div');
-  row.className = 'sv-file-row';
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;';
+  row.className = 'ship-pkg-row';
   row.innerHTML = `
-    <div><label style="font-size:11px;color:var(--text-3);">L (cm)</label><input type="number" class="pkg-length" value="40" min="1" /></div>
-    <div><label style="font-size:11px;color:var(--text-3);">W (cm)</label><input type="number" class="pkg-width"  value="40" min="1" /></div>
-    <div><label style="font-size:11px;color:var(--text-3);">H (cm)</label><input type="number" class="pkg-height" value="30" min="1" /></div>
-    <div><label style="font-size:11px;color:var(--text-3);">kg</label><input type="number" class="pkg-weight" value="12" min="0.1" step="0.1" /></div>
-    <button type="button" class="btn-remove-file" title="Remove" style="margin-bottom:0;">✕</button>`;
-  row.querySelector('.btn-remove-file').addEventListener('click', () => { row.remove(); shipSelectedRate = null; resetShipRates(); });
+    <div class="form-group"><label>L (cm)</label><input type="number" class="pkg-length" value="40" min="1" /></div>
+    <div class="form-group"><label>W (cm)</label><input type="number" class="pkg-width"  value="40" min="1" /></div>
+    <div class="form-group"><label>H (cm)</label><input type="number" class="pkg-height" value="30" min="1" /></div>
+    <div class="form-group"><label>kg</label><input type="number" class="pkg-weight" value="12" min="0.1" step="0.1" /></div>
+    <button type="button" class="btn-remove-file ship-pkg-remove" title="Remove">✕</button>`;
+  row.querySelector('.ship-pkg-remove').addEventListener('click', () => { row.remove(); shipSelectedRate = null; resetShipRates(); });
   list.appendChild(row);
 }
 
@@ -3263,13 +3262,13 @@ async function loadShipRates() {
     if (!rates.length) { statusEl.textContent = 'No rates available.'; btn.disabled = false; btn.textContent = '🔍 Get rates'; return; }
 
     listEl.innerHTML = rates.map((r, i) => `
-      <label class="ship-rate-option" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;">
-        <input type="radio" name="ship-rate" value="${i}" style="flex-shrink:0;" />
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:13px;">${r.carrierName} — ${r.serviceLevel}</div>
-          <div style="font-size:12px;color:var(--text-3);">Pickup: ${r.pickup || '—'} · Delivery: ${r.delivery || '—'}</div>
+      <label class="ship-rate-option">
+        <input type="radio" name="ship-rate" value="${i}" />
+        <div class="ship-rate-info">
+          <div class="ship-rate-name">${r.carrierName} <span class="ship-rate-service">— ${r.serviceLevel}</span></div>
+          <div class="ship-rate-dates">Pickup: ${r.pickup || '—'} · Delivery: ${r.delivery || '—'}</div>
         </div>
-        <div style="font-weight:700;font-size:14px;color:var(--blue);">€${parseFloat(r.price).toFixed(2)}</div>
+        <div class="ship-rate-price">€${parseFloat(r.price).toFixed(2)}</div>
       </label>`).join('');
 
     listEl.querySelectorAll('input[type="radio"]').forEach(radio => {
@@ -3382,10 +3381,11 @@ async function submitShipment() {
     const resultEl = document.getElementById('ship-result');
     resultEl.style.display = 'block';
     resultEl.innerHTML =
-      `<div style="margin-bottom:6px;"><strong>Order:</strong> CC-${result.orderNumber}</div>` +
-      `<div style="margin-bottom:6px;"><strong>Carrier:</strong> ${result.carrier || '—'}</div>` +
-      `<div style="margin-bottom:6px;"><strong>AWB:</strong> ${result.awb || '—'}</div>` +
-      (result.trackAndTrace ? `<div><a href="${result.trackAndTrace}" target="_blank" rel="noopener" style="color:var(--blue);">Track shipment →</a></div>` : '');
+      `<div class="ship-result-title">✓ Shipment booked</div>` +
+      `<div class="ship-result-row"><span>Order</span><strong>CC-${result.orderNumber}</strong></div>` +
+      `<div class="ship-result-row"><span>Carrier</span><strong>${result.carrier || '—'}</strong></div>` +
+      `<div class="ship-result-row"><span>AWB</span><strong>${result.awb || '—'}</strong></div>` +
+      (result.trackAndTrace ? `<div class="ship-result-row"><span>Tracking</span><a href="${result.trackAndTrace}" target="_blank" rel="noopener">Track shipment →</a></div>` : '');
 
     submitBtn.textContent = '✓ Booked';
     setTimeout(() => { closeShipModal(); refreshData(); }, 3000);

@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=18" />
+  <link rel="stylesheet" href="style.css?v=19" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
@@ -748,24 +748,23 @@
 
 <!-- ─── SHIP JOB MODAL (CheapCargo) ─── -->
 <div id="ship-modal-overlay" style="display:none;">
-  <div id="ship-modal" class="modal" style="max-width:640px;">
+  <div id="ship-modal" class="modal">
     <div class="modal-header">
       <span class="logo" style="font-size:11px;padding:4px 9px;">IZY</span>
       <h2>Book Shipment</h2>
       <button class="modal-close" onclick="closeShipModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div id="ship-job-info" style="background:var(--bg-2);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;"></div>
+
+      <div id="ship-job-info" class="ship-job-info"></div>
 
       <div class="form-section">
         <div class="form-section-label">Receiver</div>
-        <div class="form-grid form-grid-1">
-          <div class="form-group">
-            <label>Company name <span class="req">*</span></label>
-            <input type="text" id="ship-company" placeholder="Receiver company" />
-          </div>
+        <div class="form-group">
+          <label>Company name <span class="req">*</span></label>
+          <input type="text" id="ship-company" placeholder="Receiver company" />
         </div>
-        <div class="form-grid form-grid-2">
+        <div class="form-grid form-grid-2" style="margin-top:10px;">
           <div class="form-group">
             <label>Street <span class="req">*</span></label>
             <input type="text" id="ship-street" placeholder="Street name" />
@@ -775,7 +774,7 @@
             <input type="text" id="ship-number" placeholder="12a" />
           </div>
         </div>
-        <div class="form-grid form-grid-3">
+        <div class="form-grid ship-addr-grid" style="margin-top:10px;">
           <div class="form-group">
             <label>Postcode <span class="req">*</span></label>
             <input type="text" id="ship-zipcode" placeholder="1234 AB" />
@@ -786,32 +785,32 @@
           </div>
           <div class="form-group">
             <label>Country <span class="req">*</span></label>
-            <input type="text" id="ship-country" value="NL" placeholder="NL" maxlength="2" style="text-transform:uppercase;" />
+            <input type="text" id="ship-country" value="NL" placeholder="NL" maxlength="2" />
           </div>
         </div>
       </div>
 
       <div class="form-section">
-        <div class="form-section-label" style="display:flex;align-items:center;justify-content:space-between;">
-          Packages
-          <button type="button" onclick="addShipPackageRow()" class="btn-add-file" style="margin:0;">+ Add package</button>
+        <div class="ship-section-header">
+          <span class="form-section-label" style="margin:0;border:none;padding:0;">Packages</span>
+          <button type="button" onclick="addShipPackageRow()" class="btn-add-file">+ Add package</button>
         </div>
-        <div id="ship-packages-list"></div>
+        <div id="ship-packages-list" style="margin-top:10px;"></div>
       </div>
 
       <div class="form-section">
-        <div class="form-section-label" style="display:flex;align-items:center;justify-content:space-between;">
-          Carrier
-          <button type="button" id="ship-rates-btn" onclick="loadShipRates()" class="btn-add-file" style="margin:0;">🔍 Get rates</button>
+        <div class="ship-section-header">
+          <span class="form-section-label" style="margin:0;border:none;padding:0;">Carrier</span>
+          <button type="button" id="ship-rates-btn" onclick="loadShipRates()" class="btn-add-file">🔍 Get rates</button>
         </div>
-        <div id="ship-rates-list" style="display:none;margin-top:8px;"></div>
-        <select id="ship-carrier-select" style="display:none;width:100%;margin-top:8px;"></select>
-        <div id="ship-rates-status" style="font-size:12px;color:var(--text-3);margin-top:6px;"></div>
+        <div id="ship-rates-status" class="ship-rates-status"></div>
+        <div id="ship-rates-list" style="display:none;margin-top:10px;"></div>
       </div>
 
-      <div id="ship-status" class="form-status" style="margin-top:8px;"></div>
-      <div id="ship-result" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:12px 14px;margin-top:12px;font-size:13px;"></div>
-      <div class="modal-actions" style="margin-top:16px;">
+      <div id="ship-status" class="form-status"></div>
+      <div id="ship-result" class="ship-result" style="display:none;"></div>
+
+      <div class="modal-actions">
         <button class="modal-btn-cancel" onclick="closeShipModal()">Cancel</button>
         <button class="modal-btn-submit" id="ship-submit" onclick="submitShipment()">📦 Book Shipment</button>
       </div>
@@ -1330,7 +1329,7 @@
   </div>
 </section>
 
-<script src="app.js?v=38"></script>
+<script src="app.js?v=39"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

@@ -1114,6 +1114,81 @@ td.notes-cell {
   padding: 16px;
 }
 
+/* ── Ship modal ──────────────────────────────────────────────── */
+.ship-job-info {
+  background: var(--bg-2);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.ship-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.ship-pkg-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+.ship-pkg-remove {
+  align-self: end;
+  margin-bottom: 2px;
+}
+.ship-rate-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ship-rate-option:hover { background: var(--hover); }
+.ship-rate-option:has(input:checked) {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+}
+.ship-rate-option input[type="radio"] { flex-shrink: 0; accent-color: var(--blue); }
+.ship-rate-info { flex: 1; }
+.ship-rate-name { font-weight: 600; font-size: 13px; color: var(--text-1); }
+.ship-rate-service { font-weight: 400; color: var(--text-2); }
+.ship-rate-dates { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.ship-rate-price { font-weight: 700; font-size: 15px; color: var(--blue); white-space: nowrap; }
+.ship-rates-status { font-size: 12px; color: var(--text-3); margin-top: 6px; min-height: 18px; }
+.ship-addr-grid { grid-template-columns: 1fr 2fr 80px; }
+.ship-result {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-top: 12px;
+}
+.ship-result-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #15803d;
+  margin-bottom: 10px;
+}
+.ship-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 5px;
+  gap: 12px;
+}
+.ship-result-row span { color: var(--text-3); }
+.ship-result-row a { color: var(--blue); text-decoration: none; }
+.ship-result-row a:hover { text-decoration: underline; }
+
 #edit-job-modal,
 #add-mockup-modal,
 #add-sleeve-modal,
