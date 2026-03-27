@@ -1133,7 +1133,7 @@ td.notes-cell {
 #ship-modal * { min-width: 0; box-sizing: border-box; }
 .ship-pkg-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: 110px repeat(4, minmax(0, 1fr)) auto;
   gap: 8px;
   align-items: end;
   margin-bottom: 8px;

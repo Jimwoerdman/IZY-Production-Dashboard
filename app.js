@@ -3205,6 +3205,7 @@ function addShipPackageRow() {
   const row  = document.createElement('div');
   row.className = 'ship-pkg-row';
   row.innerHTML = `
+    <div class="form-group"><label>Type</label><select class="pkg-type"><option value="PACKAGE">Package</option><option value="PALLET">Pallet</option></select></div>
     <div class="form-group"><label>L (cm)</label><input type="number" class="pkg-length" value="40" min="1" /></div>
     <div class="form-group"><label>W (cm)</label><input type="number" class="pkg-width"  value="40" min="1" /></div>
     <div class="form-group"><label>H (cm)</label><input type="number" class="pkg-height" value="30" min="1" /></div>
@@ -3223,6 +3224,7 @@ function resetShipRates() {
 
 function getShipPackages() {
   return [...document.getElementById('ship-packages-list').querySelectorAll('.ship-pkg-row')].map(row => ({
+    type:   row.querySelector('.pkg-type').value || 'PACKAGE',
     length: parseFloat(row.querySelector('.pkg-length').value) || 40,
     width:  parseFloat(row.querySelector('.pkg-width').value)  || 40,
     height: parseFloat(row.querySelector('.pkg-height').value) || 30,

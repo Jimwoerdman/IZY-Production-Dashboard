@@ -299,7 +299,7 @@ function doGet(e) {
           '<length>'   + (pkg.length || 40) + '</length>' +
           '<width>'    + (pkg.width  || 40) + '</width>' +
           '<height>'   + (pkg.height || 30) + '</height>' +
-          '<package>PACKAGE</package>' +
+          '<package>'  + (pkg.type   || 'PACKAGE') + '</package>' +
           '<quantity>1</quantity>' +
         '</colli>';
       }).join('');
@@ -1875,7 +1875,7 @@ function bookCheapCargoShipment(data) {
       '<length>'   + (p.length || 40) + '</length>' +
       '<width>'    + (p.width  || 40) + '</width>' +
       '<height>'   + (p.height || 30) + '</height>' +
-      '<package>PACKAGE</package>' +
+      '<package>'  + (p.type   || 'PACKAGE') + '</package>' +
       '<quantity>1</quantity>' +
     '</colli>';
   }).join('');
