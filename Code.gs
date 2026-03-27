@@ -283,6 +283,69 @@ function doGet(e) {
     return respondGet({ photoUrl: url || null });
   }
 
+  // Book CheapCargo shipment (GET so the response is readable by the browser)
+  if (e.parameter.action === 'book_shipment') {
+    try {
+      const p       = e.parameter;
+      const wfSheet = ss.getSheetByName('Workfile');
+      const wfVals  = wfSheet.getDataRange().getValues();
+      const wfH     = wfVals[0].map(h => String(h).trim());
+
+      const result = bookCheapCargoShipment({
+        reference: p.reference || '',
+        receiver: {
+          companyName:   p.rcCompany   || '',
+          contactPerson: p.rcContact   || '',
+          street:        p.rcStreet    || '',
+          number:        p.rcNumber    || '',
+          zipcode:       p.rcZipcode   || '',
+          city:          p.rcCity      || '',
+          country:       p.rcCountry   || 'NL',
+        },
+        package: {
+          length: parseFloat(p.pkgLength) || 40,
+          width:  parseFloat(p.pkgWidth)  || 40,
+          height: parseFloat(p.pkgHeight) || 30,
+          weight: parseFloat(p.pkgWeight) || 12,
+        },
+      });
+
+      // Write to ShippingHistory
+      const shipSheet = ss.getSheetByName('ShippingHistory');
+      if (shipSheet) {
+        const shipHeaders = shipSheet.getRange(1, 1, 1, Math.max(shipSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim().toLowerCase());
+        const sc = kw => shipHeaders.findIndex(h => h.includes(kw)) + 1;
+        const nr = shipSheet.getLastRow() + 1;
+        if (sc('ordernummer') > 0) shipSheet.getRange(nr, sc('ordernummer')).setValue('CC-' + result.orderNumber);
+        if (sc('datum')       > 0) shipSheet.getRange(nr, sc('datum')).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+        if (sc('bedrijfsnaam')> 0) shipSheet.getRange(nr, sc('bedrijfsnaam')).setValue(p.rcCompany || '');
+        if (sc('vervoerder')  > 0) shipSheet.getRange(nr, sc('vervoerder')).setValue(result.carrier || '');
+        if (sc('awb')         > 0) shipSheet.getRange(nr, sc('awb')).setValue(result.awb || '');
+        if (sc('referentie')  > 0) shipSheet.getRange(nr, sc('referentie')).setValue(p.reference || '');
+        if (sc('track')       > 0) shipSheet.getRange(nr, sc('track')).setValue(result.trackAndTrace || '');
+        const placeIdx = shipHeaders.findIndex(h => h.includes('plaats'));
+        const landIdx  = shipHeaders.findIndex(h => h.includes('land') && !h.includes('neder'));
+        const zipIdx   = shipHeaders.findIndex(h => h.includes('postcode'));
+        if (placeIdx >= 0) shipSheet.getRange(nr, placeIdx + 1).setValue(p.rcCity    || '');
+        if (landIdx  >= 0) shipSheet.getRange(nr, landIdx  + 1).setValue(p.rcCountry || '');
+        if (zipIdx   >= 0) shipSheet.getRange(nr, zipIdx   + 1).setValue(p.rcZipcode || '');
+      }
+
+      // Mark Workfile row Shipped
+      if (p.sheetRow) {
+        const rowIndex    = parseInt(p.sheetRow);
+        const statusIdx   = wfH.findIndex(h => h === 'Status');
+        const shippedIdx  = wfH.findIndex(h => h.toLowerCase().includes('shipped'));
+        if (statusIdx  >= 0) wfSheet.getRange(rowIndex, statusIdx  + 1).setValue('Shipped');
+        if (shippedIdx >= 0) wfSheet.getRange(rowIndex, shippedIdx + 1).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+      }
+
+      return respondGet({ success: true, orderNumber: result.orderNumber, awb: result.awb, carrier: result.carrier, trackAndTrace: result.trackAndTrace });
+    } catch(err) {
+      return respondGet({ error: err.message });
+    }
+  }
+
   // Moneybird invoices
   if (e.parameter.sheet === 'invoices') {
     const MB_ADMIN = '374048181076362541';
@@ -770,6 +833,8 @@ function doPost(e) {
       const mkSheet   = ss.getSheetByName('Mockups');
       const mkHeaders = mkSheet.getRange(1, 1, 1, Math.max(mkSheet.getLastColumn(), 30)).getValues()[0].map(h => String(h).trim());
       const rowIndex  = data.sheetRow ? parseInt(data.sheetRow) : -1;
+      Logger.log('update_mockup: sheetRow=' + data.sheetRow + ' rowIndex=' + rowIndex + ' status=' + data.status);
+      Logger.log('update_mockup: headers=' + JSON.stringify(mkHeaders));
       if (rowIndex < 2) return respond({ error: 'Invalid sheet row: ' + data.sheetRow });
 
       const findCol  = kw => mkHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())) + 1;
@@ -777,6 +842,7 @@ function doPost(e) {
 
       if (data.status) {
         const c = findCol('status');
+        Logger.log('update_mockup: status col=' + c);
         if (c > 0) mkSheet.getRange(rowIndex, c).setValue(data.status);
       }
       if (data.changedBy) {
@@ -1429,6 +1495,7 @@ function doPost(e) {
 
     return respond({ success: true });
 
+
   } catch (err) {
     return respond({ error: err.message });
   }
@@ -1620,4 +1687,186 @@ function columnToLetter_(col) {
   let s = '', n = col;
   while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
   return s;
+}
+
+// ── CheapCargo integration ────────────────────────────────────
+
+const CC_API_KEY  = 'GZg63HeMzWgUsOmHDtxdkKDlNWwknW7F';
+const CC_EMAIL    = 'jim@izybottles.com';
+const CC_PASSWORD = 'a07f6c4e6104f67740d3ef96a084a421'; // MD5 of account password
+const CC_BASE_URL = 'https://www.cheapcargo.com/api';
+
+const CC_SENDER = {
+  companyName:   'IZY',
+  street:        'Jan Tinbergenstraat',
+  number:        '20',
+  zipcode:       '2811DZ',
+  city:          'Reeuwijk',
+  country:       'NL',
+  type:          'business'
+};
+
+function ccAuth_() {
+  const now   = new Date();
+  const pad   = n => String(n).padStart(2, '0');
+  const stamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + pad(now.getHours());
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, CC_API_KEY + stamp);
+  return bytes.map(b => (b < 0 ? b + 256 : b).toString(16).padStart(2, '0')).join('');
+}
+
+function ccUserBlock_() {
+  return '<user><email>' + CC_EMAIL + '</email><password>' + CC_PASSWORD + '</password></user>';
+}
+
+function ccXmlVal_(xml, tag) {
+  const m = xml.match(new RegExp('<' + tag + '>([\\s\\S]*?)<\\/' + tag + '>'));
+  return m ? m[1].trim() : '';
+}
+
+function bookCheapCargoShipment(data) {
+  const auth = ccAuth_();
+  const r    = data.receiver;
+  const p    = data.package;
+
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<shipments>' +
+      '<authentication>' + auth + '</authentication>' +
+      '<version>2.1</version>' +
+      ccUserBlock_() +
+      '<shipment pay="true" waitForLabel="false" orderBy="price">' +
+        '<sender>' +
+          '<companyName>'   + CC_SENDER.companyName + '</companyName>' +
+          '<street>'        + CC_SENDER.street      + '</street>' +
+          '<number>'        + CC_SENDER.number      + '</number>' +
+          '<zipcode>'       + CC_SENDER.zipcode     + '</zipcode>' +
+          '<city>'          + CC_SENDER.city        + '</city>' +
+          '<country>'       + CC_SENDER.country     + '</country>' +
+          '<type>'          + CC_SENDER.type        + '</type>' +
+        '</sender>' +
+        '<receiver>' +
+          '<companyName>'   + (r.companyName   || '') + '</companyName>' +
+          '<contactPerson>' + (r.contactPerson || '') + '</contactPerson>' +
+          '<street>'        + (r.street        || '') + '</street>' +
+          '<number>'        + (r.number        || '') + '</number>' +
+          '<zipcode>'       + (r.zipcode       || '') + '</zipcode>' +
+          '<city>'          + (r.city          || '') + '</city>' +
+          '<country>'       + (r.country       || 'NL') + '</country>' +
+          '<type>business</type>' +
+        '</receiver>' +
+        '<content>' +
+          '<colli>' +
+            '<description>Printed bottles / merchandise</description>' +
+            '<weight>'   + (p.weight || 12)  + '</weight>' +
+            '<length>'   + (p.length || 40)  + '</length>' +
+            '<width>'    + (p.width  || 40)  + '</width>' +
+            '<height>'   + (p.height || 30)  + '</height>' +
+            '<package>PACKAGE</package>' +
+            '<quantity>1</quantity>' +
+          '</colli>' +
+        '</content>' +
+        '<reference>' + (data.reference || '') + '</reference>' +
+      '</shipment>' +
+    '</shipments>';
+
+  const resp = UrlFetchApp.fetch(CC_BASE_URL + '/createShipment', {
+    method: 'post',
+    contentType: 'text/xml; charset=UTF-8',
+    payload: xml,
+    muteHttpExceptions: true
+  });
+
+  const body   = resp.getContentText();
+  const status = ccXmlVal_(body, 'status');
+  if (status !== 'ok') throw new Error('CheapCargo error: ' + body.substring(0, 300));
+
+  return {
+    orderNumber:   ccXmlVal_(body, 'number'),
+    awb:           ccXmlVal_(body, 'awb'),
+    carrier:       ccXmlVal_(body, 'carrierName'),
+    trackAndTrace: ccXmlVal_(body, 'trackAndTrace'),
+    datePickup:    ccXmlVal_(body, 'datePickup'),
+    dateDelivery:  ccXmlVal_(body, 'dateDelivery'),
+  };
+}
+
+function getCheapCargoLabel(orderNumber) {
+  const auth = ccAuth_();
+  const xml  = '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<labels>' +
+      '<authentication>' + auth + '</authentication>' +
+      '<version>1.6</version>' +
+      ccUserBlock_() +
+      '<label>' +
+        '<orderNumber>' + orderNumber + '</orderNumber>' +
+        '<type>pdf</type>' +
+      '</label>' +
+    '</labels>';
+
+  const resp = UrlFetchApp.fetch(CC_BASE_URL + '/getLabel', {
+    method: 'post',
+    contentType: 'text/xml; charset=UTF-8',
+    payload: xml,
+    muteHttpExceptions: true
+  });
+
+  const body = resp.getContentText();
+  return { status: ccXmlVal_(body, 'status'), url: ccXmlVal_(body, 'url') };
+}
+
+// Time-triggered: update open shipments in ShippingHistory
+function syncCheapCargoStatuses() {
+  const ss      = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet   = ss.getSheetByName('ShippingHistory');
+  if (!sheet) return;
+  const data    = sheet.getDataRange().getValues();
+  const headers = data[0].map(h => String(h).trim().toLowerCase());
+  const orderCol  = headers.findIndex(h => h.includes('ordernummer'));
+  const statusCol = headers.findIndex(h => h.includes('bericht') || h.includes('status'));
+  const awbCol    = headers.findIndex(h => h === 'awb' || h.includes('awb'));
+  if (orderCol < 0) return;
+
+  const auth = ccAuth_();
+  for (let i = 1; i < data.length; i++) {
+    const orderNum = String(data[i][orderCol] || '').trim();
+    if (!orderNum || orderNum.startsWith('CC-') === false) continue; // only CC orders
+    const rowStatus = statusCol >= 0 ? String(data[i][statusCol] || '').toLowerCase() : '';
+    if (rowStatus === 'delivered' || rowStatus === 'afgeleverd') continue; // already done
+
+    try {
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<shipments>' +
+          '<authentication>' + auth + '</authentication>' +
+          '<version>1.9</version>' +
+          ccUserBlock_() +
+          '<status><orderNumber>' + orderNum + '</orderNumber></status>' +
+        '</shipments>';
+
+      const resp = UrlFetchApp.fetch(CC_BASE_URL + '/getStatus', {
+        method: 'post',
+        contentType: 'text/xml; charset=UTF-8',
+        payload: xml,
+        muteHttpExceptions: true
+      });
+
+      const body    = resp.getContentText();
+      const st      = ccXmlVal_(body, 'status');
+      const message = ccXmlVal_(body, 'message') || st;
+      const awb     = ccXmlVal_(body, 'awb');
+
+      if (statusCol >= 0 && message) sheet.getRange(i + 1, statusCol + 1).setValue(message);
+      if (awbCol    >= 0 && awb)     sheet.getRange(i + 1, awbCol    + 1).setValue(awb);
+    } catch(e) {
+      Logger.log('syncCheapCargoStatuses row ' + (i+1) + ': ' + e.message);
+    }
+  }
+}
+
+function installCheapCargoSyncTrigger() {
+  // Run every hour — remove existing first to avoid duplicates
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'syncCheapCargoStatuses')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('syncCheapCargoStatuses')
+    .timeBased().everyHours(1).create();
+  Logger.log('CheapCargo sync trigger installed');
 }

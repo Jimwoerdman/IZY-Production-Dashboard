@@ -3197,26 +3197,112 @@ async function unsleeveJob(rowIdx, btn) {
   }
 }
 
-async function shipJob(rowIdx, btn) {
+let shipModalRowIdx = null;
+
+function shipJob(rowIdx) {
   const job = allRows[rowIdx];
   if (!job) return;
-  if (!confirm(`Mark "${get(job,'Name_Company')} #${get(job,'Priority')}" as Shipped?`)) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Shipping…'; }
+  shipModalRowIdx = rowIdx;
+
+  // Pre-fill job info
+  document.getElementById('ship-job-info').innerHTML =
+    `<strong>#${get(job,'Priority')} — ${get(job,'Name_Company')}</strong> &nbsp;·&nbsp; ${get(job,'Soort') || ''} &nbsp;·&nbsp; Qty: ${get(job,'Quantity') || '—'}`;
+
+  // Pre-fill receiver from job if available
+  const setVal = (id, v) => { if (v) document.getElementById(id).value = v; };
+  setVal('ship-company', get(job,'Name_Company'));
+
+  // Reset other fields to defaults
+  ['ship-street','ship-number','ship-zipcode','ship-city'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ship-country').value = 'NL';
+  document.getElementById('ship-length').value  = '40';
+  document.getElementById('ship-width').value   = '40';
+  document.getElementById('ship-height').value  = '30';
+  document.getElementById('ship-weight').value  = '12';
+  document.getElementById('ship-status').textContent = '';
+  document.getElementById('ship-status').className   = 'form-status';
+  document.getElementById('ship-result').style.display = 'none';
+  document.getElementById('ship-submit').disabled = false;
+  document.getElementById('ship-submit').textContent = '📦 Book Shipment';
+
+  document.getElementById('ship-modal-overlay').style.display = 'flex';
+}
+
+function closeShipModal() {
+  document.getElementById('ship-modal-overlay').style.display = 'none';
+  shipModalRowIdx = null;
+}
+
+document.getElementById('ship-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeShipModal();
+});
+
+async function submitShipment() {
+  const job = allRows[shipModalRowIdx];
+  if (!job) return;
+
+  const get_ = id => document.getElementById(id).value.trim();
+  const company = get_('ship-company');
+  const street  = get_('ship-street');
+  const number  = get_('ship-number');
+  const zipcode = get_('ship-zipcode');
+  const city    = get_('ship-city');
+  const country = get_('ship-country').toUpperCase();
+
+  if (!company || !street || !number || !zipcode || !city || !country) {
+    const el = document.getElementById('ship-status');
+    el.textContent = 'Please fill in all required receiver fields.';
+    el.className   = 'form-status error';
+    return;
+  }
+
+  const submitBtn = document.getElementById('ship-submit');
+  const statusEl  = document.getElementById('ship-status');
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Booking…';
+  statusEl.textContent  = 'Contacting CheapCargo…';
+  statusEl.className    = 'form-status';
+
   try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify({
-        sheetRow:     job['_sheetRow'],
-        status:       'Shipped',
-        shippingDate: new Date().toLocaleDateString('en-GB'),
-        changedBy:    currentUser?.email,
-      }),
+    const params = new URLSearchParams({
+      action:    'book_shipment',
+      sheetRow:  job['_sheetRow'],
+      reference: get(job,'Priority'),
+      rcCompany: company,
+      rcStreet:  street,
+      rcNumber:  number,
+      rcZipcode: zipcode,
+      rcCity:    city,
+      rcCountry: country,
+      pkgLength: get_('ship-length') || 40,
+      pkgWidth:  get_('ship-width')  || 40,
+      pkgHeight: get_('ship-height') || 30,
+      pkgWeight: get_('ship-weight') || 12,
+      t:         Date.now(),
     });
-    refreshData();
+    const resp = await fetch(SCRIPT_URL + '?' + params.toString());
+
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+
+    statusEl.textContent = '✓ Shipment booked!';
+    statusEl.className   = 'form-status success';
+
+    const resultEl = document.getElementById('ship-result');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML =
+      `<div style="margin-bottom:6px;"><strong>Order:</strong> CC-${result.orderNumber}</div>` +
+      `<div style="margin-bottom:6px;"><strong>Carrier:</strong> ${result.carrier || '—'}</div>` +
+      `<div style="margin-bottom:6px;"><strong>AWB:</strong> ${result.awb || '—'}</div>` +
+      (result.trackAndTrace ? `<div><a href="${result.trackAndTrace}" target="_blank" rel="noopener" style="color:var(--blue);">Track shipment →</a></div>` : '');
+
+    submitBtn.textContent = '✓ Booked';
+    setTimeout(() => { closeShipModal(); refreshData(); }, 3000);
   } catch (err) {
-    if (btn) { btn.disabled = false; btn.textContent = '✓ Ship'; }
-    alert('Could not update: ' + err.message);
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.className   = 'form-status error';
+    submitBtn.disabled    = false;
+    submitBtn.textContent = '📦 Book Shipment';
   }
 }
 
