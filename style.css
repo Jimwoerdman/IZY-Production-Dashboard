@@ -1102,6 +1102,7 @@ td.notes-cell {
 #add-mockup-modal-overlay,
 #add-sleeve-modal-overlay,
 #delivery-modal-overlay,
+#ship-modal-overlay,
 #cal-edit-overlay {
   position: fixed;
   inset: 0;
