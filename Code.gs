@@ -776,7 +776,7 @@ function doPost(e) {
       const exactCol = name => mkHeaders.findIndex(h => h.toLowerCase() === name.toLowerCase()) + 1;
 
       if (data.status) {
-        const c = exactCol('status');
+        const c = findCol('status');
         if (c > 0) mkSheet.getRange(rowIndex, c).setValue(data.status);
       }
       if (data.changedBy) {
