@@ -3401,9 +3401,13 @@ async function submitShipment() {
       rcZipcode: zipcode,
       rcCity:    city,
       rcCountry: country,
-      rateId:    shipSelectedRate.id || '',
-      pkgsJson:  JSON.stringify(pkgs),
-      t:         Date.now(),
+      rateId:      shipSelectedRate.id       || '',
+      ratePrice:   shipSelectedRate.price    || '',
+      ratePickup:  shipSelectedRate.pickup   || '',
+      rateDelivery:shipSelectedRate.delivery || '',
+      quantity:    get(job,'Quantity') || '',
+      pkgsJson:    JSON.stringify(pkgs),
+      t:           Date.now(),
     });
     const resp = await fetch(SCRIPT_URL + '?' + params.toString());
 

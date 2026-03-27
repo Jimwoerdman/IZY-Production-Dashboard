@@ -416,19 +416,31 @@ function doGet(e) {
         const shipHeaders = shipSheet.getRange(1, 1, 1, Math.max(shipSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim().toLowerCase());
         const sc = kw => shipHeaders.findIndex(h => h.includes(kw)) + 1;
         const nr = shipSheet.getLastRow() + 1;
-        if (sc('ordernummer') > 0) shipSheet.getRange(nr, sc('ordernummer')).setValue('CC-' + result.orderNumber);
-        if (sc('datum')       > 0) shipSheet.getRange(nr, sc('datum')).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
-        if (sc('bedrijfsnaam')> 0) shipSheet.getRange(nr, sc('bedrijfsnaam')).setValue(p.rcCompany || '');
-        if (sc('vervoerder')  > 0) shipSheet.getRange(nr, sc('vervoerder')).setValue(result.carrier || '');
-        if (sc('awb')         > 0) shipSheet.getRange(nr, sc('awb')).setValue(result.awb || '');
-        if (sc('referentie')  > 0) shipSheet.getRange(nr, sc('referentie')).setValue(p.reference || '');
-        if (sc('track')       > 0) shipSheet.getRange(nr, sc('track')).setValue(result.trackAndTrace || '');
-        const placeIdx = shipHeaders.findIndex(h => h.includes('plaats'));
-        const landIdx  = shipHeaders.findIndex(h => h.includes('land') && !h.includes('neder'));
-        const zipIdx   = shipHeaders.findIndex(h => h.includes('postcode'));
-        if (placeIdx >= 0) shipSheet.getRange(nr, placeIdx + 1).setValue(p.rcCity    || '');
-        if (landIdx  >= 0) shipSheet.getRange(nr, landIdx  + 1).setValue(p.rcCountry || '');
-        if (zipIdx   >= 0) shipSheet.getRange(nr, zipIdx   + 1).setValue(p.rcZipcode || '');
+        const pkgsArr = p.pkgsJson ? JSON.parse(p.pkgsJson) : [];
+        const firstPkg = pkgsArr[0] || {};
+        const totalWeight = pkgsArr.reduce((s, pkg) => s + (parseFloat(pkg.weight) || 0), 0);
+
+        if (sc('ordernummer')  > 0) shipSheet.getRange(nr, sc('ordernummer')).setValue('CC-' + result.orderNumber);
+        if (sc('datum')        > 0) shipSheet.getRange(nr, sc('datum')).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy'));
+        if (sc('ophaling')     > 0) shipSheet.getRange(nr, sc('ophaling')).setValue(p.ratePickup   || result.datePickup   || '');
+        if (sc('aflevering')   > 0) shipSheet.getRange(nr, sc('aflevering')).setValue(p.rateDelivery || result.dateDelivery || '');
+        if (sc('status')       > 0) shipSheet.getRange(nr, sc('status')).setValue('Booked');
+        if (sc('vervoerder')   > 0) shipSheet.getRange(nr, sc('vervoerder')).setValue(result.carrier || '');
+        if (sc('awb')          > 0) shipSheet.getRange(nr, sc('awb')).setValue(result.awb || '');
+        if (sc('track')        > 0) shipSheet.getRange(nr, sc('track')).setValue(result.trackAndTrace || '');
+        if (sc('referentie')   > 0) shipSheet.getRange(nr, sc('referentie')).setValue(p.reference || '');
+        if (sc('bedrijfsnaam') > 0) shipSheet.getRange(nr, sc('bedrijfsnaam')).setValue(p.rcCompany || '');
+        if (sc('straat')       > 0) shipSheet.getRange(nr, sc('straat')).setValue(p.rcStreet  || '');
+        if (sc('nummer')       > 0) shipSheet.getRange(nr, sc('nummer')).setValue(p.rcNumber  || '');
+        if (sc('postcode')     > 0) shipSheet.getRange(nr, sc('postcode')).setValue(p.rcZipcode || '');
+        if (sc('plaats')       > 0) shipSheet.getRange(nr, sc('plaats')).setValue(p.rcCity    || '');
+        if (sc('land')         > 0) shipSheet.getRange(nr, sc('land')).setValue(p.rcCountry  || '');
+        if (sc('aantal')       > 0) shipSheet.getRange(nr, sc('aantal')).setValue(p.quantity  || '');
+        if (sc('lengte')       > 0) shipSheet.getRange(nr, sc('lengte')).setValue(firstPkg.length || '');
+        if (sc('breedte')      > 0) shipSheet.getRange(nr, sc('breedte')).setValue(firstPkg.width  || '');
+        if (sc('hoogte')       > 0) shipSheet.getRange(nr, sc('hoogte')).setValue(firstPkg.height || '');
+        if (sc('gewicht')      > 0) shipSheet.getRange(nr, sc('gewicht')).setValue(totalWeight || firstPkg.weight || '');
+        if (sc('prijs')        > 0) shipSheet.getRange(nr, sc('prijs')).setValue(p.ratePrice  || '');
       }
 
       // Mark Workfile row Shipped
