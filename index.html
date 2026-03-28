@@ -296,7 +296,7 @@
       <div class="printed-summary" id="pr-summary"></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Type</th><th>Date</th><th>Qty</th></tr></thead>
+          <thead><tr><th>Company</th><th>Print Name</th><th>Owner</th><th>Type</th><th>Date</th><th>Qty</th></tr></thead>
           <tbody id="rep-printed"></tbody>
         </table>
       </div>
@@ -307,7 +307,7 @@
       <div class="report-card accent-red">
         <div class="report-card-header"><h3>🚨 Overdue Jobs</h3><p class="report-desc">Deadline passed, not yet shipped</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Days Late</th><th>Qty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Days Late</th><th>Qty</th></tr></thead>
           <tbody id="rep-overdue"></tbody></table>
         </div>
       </div>
@@ -315,7 +315,7 @@
       <div class="report-card accent-orange">
         <div class="report-card-header"><h3>⚠️ Jobs With Faulty Prints</h3><p class="report-desc">Any job with recorded faulty prints</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Qty</th><th>Faulty</th><th>% Faulty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Print Name</th><th>Owner</th><th>Qty</th><th>Faulty</th><th>% Faulty</th></tr></thead>
           <tbody id="rep-faulty"></tbody></table>
         </div>
       </div>
@@ -323,7 +323,7 @@
       <div class="report-card accent-purple">
         <div class="report-card-header"><h3>🧴 Needs Sleeving</h3><p class="report-desc">To sleeve = Yes, but not yet sleeved</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Owner</th><th>Qty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Print Name</th><th>Status</th><th>Owner</th><th>Qty</th></tr></thead>
           <tbody id="rep-sleeve"></tbody></table>
         </div>
       </div>
@@ -331,7 +331,7 @@
       <div class="report-card accent-blue">
         <div class="report-card-header"><h3>🖨️ Ready to Print</h3><p class="report-desc">Status = "To Print" — next in queue</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Deadline</th><th>Type</th><th>Color</th><th>Qty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Print Name</th><th>Owner</th><th>Deadline</th><th>Type</th><th>Color</th><th>Qty</th></tr></thead>
           <tbody id="rep-to-print"></tbody></table>
         </div>
       </div>
@@ -339,7 +339,7 @@
       <div class="report-card accent-yellow">
         <div class="report-card-header"><h3>⏳ Waiting Jobs</h3><p class="report-desc">Status = "Waiting" — blocked or pending</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Deadline</th><th>Qty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Print Name</th><th>Owner</th><th>Deadline</th><th>Qty</th></tr></thead>
           <tbody id="rep-waiting"></tbody></table>
         </div>
       </div>
@@ -347,7 +347,7 @@
       <div class="report-card accent-green">
         <div class="report-card-header"><h3>✅ Print Ready, Not Yet Shipped</h3><p class="report-desc">Printing done, sleeved if needed, waiting for shipment</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Type</th><th>Qty</th><th>Sleeve</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Print Name</th><th>Owner</th><th>Type</th><th>Qty</th><th>Sleeve</th></tr></thead>
           <tbody id="rep-ready-ship"></tbody></table>
         </div>
       </div>
@@ -355,7 +355,7 @@
       <div class="report-card">
         <div class="report-card-header"><h3>📅 Deadlines This Week</h3><p class="report-desc">Jobs with a deadline in the next 7 days</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Days Left</th><th>Qty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Status</th><th>Owner</th><th>Deadline</th><th>Days Left</th><th>Qty</th></tr></thead>
           <tbody id="rep-this-week"></tbody></table>
         </div>
       </div>
@@ -363,7 +363,7 @@
       <div class="report-card">
         <div class="report-card-header"><h3>📦 Recently Shipped</h3><p class="report-desc">Shipped in the last 30 days</p></div>
         <div class="table-wrap">
-          <table><thead><tr><th>#</th><th>Company</th><th>Print Name</th><th>Owner</th><th>Shipped Date</th><th>Qty</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Print Name</th><th>Owner</th><th>Shipped Date</th><th>Qty</th></tr></thead>
           <tbody id="rep-recent-shipped"></tbody></table>
         </div>
       </div>
@@ -532,14 +532,14 @@
       <div class="chart-card">
         <h3>🐢 Slowest Turnarounds</h3>
         <div class="table-wrap" style="max-height:280px;overflow-y:auto;border-radius:8px;box-shadow:none;border:none;">
-          <table><thead><tr><th>#</th><th>Company</th><th>Owner</th><th>Days</th><th>Shipped</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Owner</th><th>Days</th><th>Shipped</th></tr></thead>
           <tbody id="sh-slowest-list"></tbody></table>
         </div>
       </div>
       <div class="chart-card">
         <h3>🚀 Fastest Turnarounds</h3>
         <div class="table-wrap" style="max-height:280px;overflow-y:auto;border-radius:8px;box-shadow:none;border:none;">
-          <table><thead><tr><th>#</th><th>Company</th><th>Owner</th><th>Days</th><th>Shipped</th></tr></thead>
+          <table><thead><tr><th>Company</th><th>Owner</th><th>Days</th><th>Shipped</th></tr></thead>
           <tbody id="sh-fastest-list"></tbody></table>
         </div>
       </div>
@@ -567,7 +567,6 @@
       <table>
         <thead>
           <tr>
-            <th>#</th>
             <th>Print Job</th>
             <th>Recipient</th>
             <th>Owner</th>
@@ -599,7 +598,6 @@
         <table>
           <thead>
             <tr>
-              <th>#</th>
               <th>Company</th>
               <th>Print Name</th>
               <th>Owner</th>
@@ -1401,7 +1399,7 @@
   <span id="selection-bar-text"></span>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=60"></script>
+<script src="app.js?v=61"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

@@ -512,7 +512,6 @@ function renderAllJobs() {
         const faulty = num(r,'Faulty prints');
         const overdue = isOverdue(r);
         return `<tr class="${!isActive(r) ? 'row-shipped' : ''} ${overdue ? 'row-overdue' : ''}">
-          <td>${get(r,'Priority')}</td>
           <td><strong>${get(r,'Name_Company')}</strong></td>
           <td class="print-name">${get(r,'Name_Print') || '—'}</td>
           <td>${badge(get(r,'Status'))}</td>
@@ -671,7 +670,6 @@ function renderActiveQueue() {
         <div class="aq-card-top">
           <div class="aq-card-left">
             <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
-            <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
           <div class="aq-badges">${badge(displayStatus)}${invoiceBadge(inv)}</div>
@@ -691,7 +689,6 @@ function renderActiveQueue() {
 
       const row = `<tr class="${isOverdue(r) ? 'row-overdue' : ''}${aqSelected.has(idx) ? ' row-selected' : ''}">
         <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
-        <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge(displayStatus)}</td>
@@ -720,7 +717,7 @@ function renderActiveQueue() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
-              <th></th><th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
+              <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
               <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
               <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
             </tr></thead>
@@ -752,7 +749,6 @@ function renderActiveQueue() {
         <div class="aq-card-top">
           <div class="aq-card-left">
             <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
-            <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
           ${badge('Ready to Ship')}
@@ -771,7 +767,6 @@ function renderActiveQueue() {
       const still = num(r,'Quantity still to print');
       const row = `<tr class="${aqSelected.has(idx) ? 'row-selected' : ''}">
         <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
-        <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge('Ready to Ship')}</td>
@@ -796,7 +791,7 @@ function renderActiveQueue() {
       <div class="aq-table-wrap table-wrap">
         <table>
           <thead style="background:#15803d;background-image:none;"><tr>
-            <th></th><th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
+            <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
             <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
             <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
           </tr></thead>
@@ -870,7 +865,7 @@ function renderReports() {
     : overdue.map(r => {
         const d = parseDate(get(r,'Deadline'));
         const late = d ? Math.round((today - d)/86400000) : '?';
-        return `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+        return `<tr><td>${get(r,'Name_Company')}</td>
           <td>${badge(get(r,'Status'))}</td><td>${get(r,'Owner')}</td>
           <td>${get(r,'Deadline')}</td><td class="cell-danger">${late}d</td>
           <td>${num(r,'Quantity')}</td></tr>`;
@@ -883,7 +878,7 @@ function renderReports() {
     : faulty.map(r => {
         const f = num(r,'Faulty prints'), q = num(r,'Quantity');
         const pct = q ? ((f/q)*100).toFixed(1)+'%' : '—';
-        return `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+        return `<tr><td>${get(r,'Name_Company')}</td>
           <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
           <td>${q}</td><td class="cell-danger">${f}</td><td class="cell-warn">${pct}</td></tr>`;
       }).join('');
@@ -892,7 +887,7 @@ function renderReports() {
   const sleeve = base.filter(r => getCI(r,'sleeve').toLowerCase() === 'yes' && get(r,'Gesleeved?') !== 'Yes' && isActive(r));
   document.getElementById('rep-sleeve').innerHTML = sleeve.length === 0
     ? '<tr><td colspan="6" class="cell-ok">All sleeveable jobs are done!</td></tr>'
-    : sleeve.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+    : sleeve.map(r => `<tr><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${badge(get(r,'Status'))}</td>
         <td>${get(r,'Owner')}</td><td>${num(r,'Quantity')}</td></tr>`).join('');
 
@@ -901,7 +896,7 @@ function renderReports() {
     .sort((a,b) => num(a,'Priority') - num(b,'Priority'));
   document.getElementById('rep-to-print').innerHTML = toPrint.length === 0
     ? '<tr><td colspan="8">No jobs queued to print.</td></tr>'
-    : toPrint.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+    : toPrint.map(r => `<tr><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
         <td>${get(r,'Deadline') || '—'}</td><td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Bottle color') || '—'}</td><td>${num(r,'Quantity')}</td></tr>`).join('');
@@ -911,7 +906,7 @@ function renderReports() {
     .sort((a,b) => num(a,'Priority') - num(b,'Priority'));
   document.getElementById('rep-waiting').innerHTML = waiting.length === 0
     ? '<tr><td colspan="6">No waiting jobs.</td></tr>'
-    : waiting.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+    : waiting.map(r => `<tr><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
         <td>${get(r,'Deadline') || '—'}</td><td>${num(r,'Quantity')}</td></tr>`).join('');
 
@@ -923,7 +918,7 @@ function renderReports() {
   });
   document.getElementById('rep-ready-ship').innerHTML = readyToShip.length === 0
     ? '<tr><td colspan="7">Nothing ready for shipment.</td></tr>'
-    : readyToShip.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+    : readyToShip.map(r => `<tr><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${num(r,'Quantity')}</td><td>${getCI(r,'sleeve').toLowerCase() === 'yes' ? '✅' : '—'}</td></tr>`).join('');
@@ -937,7 +932,7 @@ function renderReports() {
     ? '<tr><td colspan="7">No deadlines in the next 7 days.</td></tr>'
     : thisWeek.map(r => {
         const d = parseDate(get(r,'Deadline'));
-        return `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+        return `<tr><td>${get(r,'Name_Company')}</td>
           <td>${badge(get(r,'Status'))}</td><td>${get(r,'Owner')}</td>
           <td>${get(r,'Deadline')}</td><td>${daysCell(daysFrom(d))}</td>
           <td>${num(r,'Quantity')}</td></tr>`;
@@ -951,7 +946,7 @@ function renderReports() {
   }).sort((a,b) => parseDate(get(b,'Shipped')) - parseDate(get(a,'Shipped')));
   document.getElementById('rep-recent-shipped').innerHTML = recentShipped.length === 0
     ? '<tr><td colspan="6">No recent shipments.</td></tr>'
-    : recentShipped.map(r => `<tr><td>${get(r,'Priority')}</td><td>${get(r,'Name_Company')}</td>
+    : recentShipped.map(r => `<tr><td>${get(r,'Name_Company')}</td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td><td>${get(r,'Owner')}</td>
         <td>${get(r,'Shipped') || '—'}</td><td>${num(r,'Quantity')}</td></tr>`).join('');
 }
@@ -1012,7 +1007,6 @@ function renderPrintedReport() {
   document.getElementById('rep-printed').innerHTML = rows.length === 0
     ? '<tr><td colspan="7" style="text-align:center;color:var(--text-2);padding:20px;">Geen geprinte jobs voor deze periode.</td></tr>'
     : rows.map(r => `<tr>
-        <td>${r['Priority'] || '—'}</td>
         <td>${r['Company'] || '—'}</td>
         <td class="print-name">${r['Print Name'] || '—'}</td>
         <td>${r['Owner'] || '—'}</td>
@@ -1401,7 +1395,7 @@ function renderShipping() {
 
   // Slowest / fastest tables
   const sorted = [...withTurnaround].sort((a,b) => b.turnaround - a.turnaround);
-  const row10 = r => `<tr><td>${r.priority}</td><td>${r.company}</td><td>${r.owner}</td><td>${turnaroundColor(r.turnaround)}</td><td>${fmtDate(r.shipDate)}</td></tr>`;
+  const row10 = r => `<tr><td>${r.company}</td><td>${r.owner}</td><td>${turnaroundColor(r.turnaround)}</td><td>${fmtDate(r.shipDate)}</td></tr>`;
   document.getElementById('sh-slowest-list').innerHTML = sorted.slice(0,10).map(row10).join('');
   document.getElementById('sh-fastest-list').innerHTML = [...sorted].reverse().slice(0,10).map(row10).join('');
 
@@ -1409,7 +1403,6 @@ function renderShipping() {
   document.getElementById('sh-body').innerHTML = rows.length === 0
     ? '<tr><td colspan="14">No matched shipments found.</td></tr>'
     : rows.map(r => `<tr>
-        <td>${r.priority || '—'}</td>
         <td><strong>${r.company}</strong></td>
         <td class="print-name" title="${r.recipient}">${r.recipient || '—'}</td>
         <td>${r.owner || '—'}</td>
@@ -1476,7 +1469,6 @@ function renderReview() {
   tbody.innerHTML = visible.length === 0
     ? '<tr><td colspan="8" style="color:#94a3b8;text-align:center;">All clear — no unmatched shipped jobs.</td></tr>'
     : visible.map(r => `<tr>
-        <td>${r.priority || '—'}</td>
         <td><strong>${r.company}</strong></td>
         <td class="print-name">${r.printName || '—'}</td>
         <td>${r.owner || '—'}</td>
@@ -1582,7 +1574,6 @@ function renderSleeves() {
         <div class="aq-card-top">
           <div class="aq-card-left">
             ${svChk}
-            <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
           ${badge(get(r,'Status'))}
@@ -1605,7 +1596,6 @@ function renderSleeves() {
 
       const row = `<tr class="${isDone ? 'row-shipped' : ''}${svSelected.has(idx) ? ' row-selected' : ''}">
         <td><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></td>
-        <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
@@ -1631,7 +1621,7 @@ function renderSleeves() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead><tr>
-              <th></th><th>#</th><th>Company</th><th>Status</th>
+              <th></th><th>Company</th><th>Status</th>
               <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
@@ -2344,7 +2334,6 @@ function renderMockups() {
         <div class="aq-card-top">
           <div class="aq-card-left">
             ${mkChk}
-            <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
           ${badge(get(r,'Status'))}
@@ -2367,7 +2356,6 @@ function renderMockups() {
 
       const row = `<tr class="${isDone ? 'row-shipped' : ''}${mkSelected.has(idx) ? ' row-selected' : ''}">
         <td><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></td>
-        <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
@@ -2393,7 +2381,7 @@ function renderMockups() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead><tr>
-              <th></th><th>#</th><th>Company</th><th>Status</th>
+              <th></th><th>Company</th><th>Status</th>
               <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
