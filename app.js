@@ -40,6 +40,25 @@ let mockupRows    = [];
 let mockupLoaded  = false;
 let mkTypeFilter  = '';
 
+// Multi-select state
+const aqSelected = new Set(); // indices into allRows
+const svSelected = new Set(); // indices into sleeveRows
+const mkSelected = new Set(); // indices into mockupRows
+
+function updateSelectionBar() {
+  const total = aqSelected.size + svSelected.size + mkSelected.size;
+  const bar   = document.getElementById('selection-bar');
+  if (total === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('selection-bar-text').textContent = `${total} row${total !== 1 ? 's' : ''} selected`;
+}
+
+function clearSelection() {
+  aqSelected.clear(); svSelected.clear(); mkSelected.clear();
+  document.querySelectorAll('.row-select').forEach(cb => { cb.checked = false; });
+  updateSelectionBar();
+}
+
 function handleCredentialResponse(response) {
   const payload = parseJwt(response.credential);
   const email = (payload.email || '').toLowerCase();
@@ -648,9 +667,10 @@ function renderActiveQueue() {
         : '';
 
       const inv  = matchInvoice(get(r,'Name_Company'));
-      const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}" style="--tc:${c.text};--tb:${c.bg}">
+      const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}${aqSelected.has(idx) ? ' row-selected' : ''}" style="--tc:${c.text};--tb:${c.bg}">
         <div class="aq-card-top">
           <div class="aq-card-left">
+            <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
             <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
@@ -669,7 +689,8 @@ function renderActiveQueue() {
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
 
-      const row = `<tr class="${isOverdue(r) ? 'row-overdue' : ''}">
+      const row = `<tr class="${isOverdue(r) ? 'row-overdue' : ''}${aqSelected.has(idx) ? ' row-selected' : ''}">
+        <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
@@ -699,7 +720,7 @@ function renderActiveQueue() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
-              <th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
+              <th></th><th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
               <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
               <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
             </tr></thead>
@@ -727,9 +748,10 @@ function renderActiveQueue() {
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
         : '';
-      const card = `<div class="aq-card" style="--tc:#15803d;--tb:#dcfce7">
+      const card = `<div class="aq-card${aqSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#15803d;--tb:#dcfce7">
         <div class="aq-card-top">
           <div class="aq-card-left">
+            <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
             <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
@@ -747,7 +769,8 @@ function renderActiveQueue() {
       </div>`;
       const inv   = matchInvoice(get(r,'Name_Company'));
       const still = num(r,'Quantity still to print');
-      const row = `<tr>
+      const row = `<tr class="${aqSelected.has(idx) ? 'row-selected' : ''}">
+        <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
@@ -773,7 +796,7 @@ function renderActiveQueue() {
       <div class="aq-table-wrap table-wrap">
         <table>
           <thead style="background:#15803d;background-image:none;"><tr>
-            <th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
+            <th></th><th>#</th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
             <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
             <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
           </tr></thead>
@@ -799,10 +822,17 @@ document.getElementById('aq-type-tabs').addEventListener('click', e => {
 
 // Log + Sleeve + Reset buttons — event delegation on section container
 document.getElementById('tab-active-queue').addEventListener('click', function(e) {
+  const selectCb  = e.target.closest('.aq-select');
   const logBtn    = e.target.closest('.btn-log');
   const sleeveBtn = e.target.closest('.btn-sleeve');
   const resetBtn  = e.target.closest('.btn-reset');
   const shipBtn   = e.target.closest('.btn-ship');
+  if (selectCb && e.target.tagName === 'INPUT') {
+    const idx = parseInt(selectCb.dataset.rowidx);
+    if (selectCb.checked) aqSelected.add(idx); else aqSelected.delete(idx);
+    updateSelectionBar();
+    return;
+  }
   if (logBtn)   openPrintModal(parseInt(logBtn.dataset.rowidx));
   if (resetBtn) resetJob(parseInt(resetBtn.dataset.rowidx));
   if (shipBtn)  shipJob(parseInt(shipBtn.dataset.rowidx), shipBtn);
@@ -1540,6 +1570,7 @@ function renderSleeves() {
       const isDone = get(r,'Status').toLowerCase() === 'done';
 
       const actionBtns = `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Update</button><button class="btn-log sv-btn-edit" data-svidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
+      const svChk = `<label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></label>`;
 
       // Support multiple file URLs (newline or comma separated)
       const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
@@ -1547,9 +1578,10 @@ function renderSleeves() {
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open file">📎 File${rawFileUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join(' ')
         : '';
 
-      const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}" style="--tc:${c.text};--tb:${c.bg}">
+      const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}${svSelected.has(idx) ? ' row-selected' : ''}" style="--tc:${c.text};--tb:${c.bg}">
         <div class="aq-card-top">
           <div class="aq-card-left">
+            ${svChk}
             <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
@@ -1571,7 +1603,8 @@ function renderSleeves() {
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
         : '—';
 
-      const row = `<tr class="${isDone ? 'row-shipped' : ''}">
+      const row = `<tr class="${isDone ? 'row-shipped' : ''}${svSelected.has(idx) ? ' row-selected' : ''}">
+        <td><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></td>
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td>${badge(get(r,'Status'))}</td>
@@ -1598,7 +1631,7 @@ function renderSleeves() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead><tr>
-              <th>#</th><th>Company</th><th>Status</th>
+              <th></th><th>#</th><th>Company</th><th>Status</th>
               <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
@@ -1624,6 +1657,13 @@ document.getElementById('sv-type-tabs').addEventListener('click', e => {
 
 // Sleeve tab button delegation
 document.getElementById('tab-sleeves').addEventListener('click', function(e) {
+  const selectCb = e.target.closest('.sv-select');
+  if (selectCb && e.target.tagName === 'INPUT') {
+    const idx = parseInt(selectCb.dataset.svidx);
+    if (selectCb.checked) svSelected.add(idx); else svSelected.delete(idx);
+    updateSelectionBar();
+    return;
+  }
   const logBtn  = e.target.closest('.sv-btn-log');
   if (logBtn) openSleeveModal(parseInt(logBtn.dataset.svidx));
   const editBtn = e.target.closest('.sv-btn-edit');
@@ -1731,6 +1771,18 @@ async function submitSleeveUpdate() {
         changedBy:   currentUser?.email,
       }),
     });
+    // Apply to all other selected sleeve rows (status only, no files)
+    const otherSvIdxs = [...svSelected].filter(i => sleeveRows[i] !== sleeveModalJob);
+    for (const i of otherSvIdxs) {
+      const r = sleeveRows[i];
+      if (!r) continue;
+      await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({
+        action: 'update_sleeve', sheetRow: r['_sheetRow'], status: chosenStatus, changedBy: currentUser?.email,
+      })});
+    }
+    svSelected.clear();
+    updateSelectionBar();
+
     submitBtn.textContent = 'Submit';
     submitBtn.disabled    = false;
     statusEl.textContent  = '✅ Saved!';
@@ -2281,15 +2333,17 @@ function renderMockups() {
       const idx    = mockupRows.indexOf(r);
       const isDone = ['approved','finished'].includes(get(r,'Status').toLowerCase());
       const actionBtns = `<button class="btn-log mk-btn-log" data-mkidx="${idx}">✏️ Update</button><button class="btn-log mk-btn-edit" data-mkidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
+      const mkChk = `<label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></label>`;
 
       const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const fileLinks = rawFileUrls.length
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;" title="Open file">📎 File${rawFileUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join(' ')
         : '';
 
-      const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}" style="--tc:${c.text};--tb:${c.bg}">
+      const card = `<div class="aq-card${isDone ? ' sv-card-done' : ''}${mkSelected.has(idx) ? ' row-selected' : ''}" style="--tc:${c.text};--tb:${c.bg}">
         <div class="aq-card-top">
           <div class="aq-card-left">
+            ${mkChk}
             <span class="aq-prio">#${get(r,'Priority')}</span>
             <span class="aq-company">${get(r,'Name_Company')}</span>
           </div>
@@ -2311,7 +2365,8 @@ function renderMockups() {
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
         : '—';
 
-      const row = `<tr class="${isDone ? 'row-shipped' : ''}">
+      const row = `<tr class="${isDone ? 'row-shipped' : ''}${mkSelected.has(idx) ? ' row-selected' : ''}">
+        <td><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></td>
         <td>${get(r,'Priority')}</td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td>${badge(get(r,'Status'))}</td>
@@ -2338,7 +2393,7 @@ function renderMockups() {
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead><tr>
-              <th>#</th><th>Company</th><th>Status</th>
+              <th></th><th>#</th><th>Company</th><th>Status</th>
               <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
@@ -2363,6 +2418,13 @@ document.getElementById('mk-type-tabs').addEventListener('click', e => {
 });
 
 document.getElementById('tab-mockups').addEventListener('click', function(e) {
+  const selectCb = e.target.closest('.mk-select');
+  if (selectCb && e.target.tagName === 'INPUT') {
+    const idx = parseInt(selectCb.dataset.mkidx);
+    if (selectCb.checked) mkSelected.add(idx); else mkSelected.delete(idx);
+    updateSelectionBar();
+    return;
+  }
   const logBtn  = e.target.closest('.mk-btn-log');
   if (logBtn) openMockupModal(parseInt(logBtn.dataset.mkidx));
   const editBtn = e.target.closest('.mk-btn-edit');
@@ -2466,6 +2528,18 @@ async function submitMockupUpdate() {
         changedBy:   currentUser?.email,
       }),
     });
+    // Apply to all other selected mockup rows (status only, no files)
+    const otherMkIdxs = [...mkSelected].filter(i => mockupRows[i] !== mockupModalJob);
+    for (const i of otherMkIdxs) {
+      const r = mockupRows[i];
+      if (!r) continue;
+      await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({
+        action: 'update_mockup', sheetRow: r['_sheetRow'], status: chosenStatus, changedBy: currentUser?.email,
+      })});
+    }
+    mkSelected.clear();
+    updateSelectionBar();
+
     statusEl.textContent = '✓ Updated!';
     statusEl.className   = 'modal-success';
     mockupLoaded = false;
@@ -3014,6 +3088,7 @@ async function submitDelivery() {
 }
 
 async function refreshData() {
+  clearSelection();
   const lu = document.getElementById('last-updated');
   lu.textContent = 'Updating…';
 
@@ -3593,6 +3668,26 @@ async function submitPrintUpdate() {
     submitBtn.disabled = false;
     statusEl.textContent = '✅ Saved! The sheet will update within a few seconds.';
     statusEl.className = 'modal-success';
+
+    // Apply to all other selected AQ rows (no photo for bulk)
+    const otherAqIdxs = [...aqSelected].filter(i => allRows[i] !== modalJob);
+    for (const i of otherAqIdxs) {
+      const r = allRows[i];
+      if (!r) continue;
+      const alreadyP  = num(r,'Quantity printed ') || num(r,'Quantity printed') || 0;
+      const totalP    = alreadyP + sessionPrinted;
+      const qty       = num(r,'Quantity') || 0;
+      const left      = qty - totalP;
+      const needsSl   = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase() === 'yes';
+      const autoSt    = left <= 0 ? (needsSl ? 'Waiting' : 'Ready to ship') : null;
+      await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({
+        sheetRow: r['_sheetRow'], priority: get(r,'Priority'), soort: get(r,'Soort'),
+        quantityPrinted: totalP, sessionPrinted, faultyPrints: faulty, printer,
+        ...(autoSt ? { status: autoSt } : {}), changedBy: currentUser?.email,
+      })});
+    }
+    aqSelected.clear();
+    updateSelectionBar();
 
     // Close after 2 seconds and refresh data
     setTimeout(() => { closeModal(); refreshData(); }, 2200);
