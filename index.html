@@ -1021,6 +1021,7 @@
           <div class="form-grid form-grid-1">
             <div class="form-group">
               <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI, image…)</span></label>
+              <div id="sv-mockup-files" style="display:none;margin-bottom:6px;"></div>
               <div id="sv-files-list"></div>
               <button type="button" id="sv-add-file" class="btn-add-file">+ Add file</button>
             </div>
@@ -1396,7 +1397,7 @@
   </div>
 </section>
 
-<script src="app.js?v=57"></script>
+<script src="app.js?v=58"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

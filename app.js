@@ -1803,10 +1803,14 @@ function populateApprovedMockupsSv() {
 
 document.getElementById('sv-mockup-select').addEventListener('change', function() {
   const idx = parseInt(this.value);
-  if (isNaN(idx)) return;
+  const filesDiv = document.getElementById('sv-mockup-files');
+
+  // Clear on empty selection
+  if (isNaN(idx)) { filesDiv.style.display = 'none'; filesDiv.innerHTML = ''; return; }
   const r = mockupRows[idx];
   if (!r) return;
-  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
   setVal('sv-soort',        get(r,'Soort'));
   setVal('sv-company',      get(r,'Name_Company'));
   setVal('sv-bottle-color', get(r,'Bottle color') || get(r,'Color'));
@@ -1814,6 +1818,19 @@ document.getElementById('sv-mockup-select').addEventListener('change', function(
   setVal('sv-owner',        normOwner(get(r,'Owner')));
   setVal('sv-deadline',     get(r,'Deadline'));
   setVal('sv-quantity',     get(r,'Quantity'));
+  setVal('sv-notes',        get(r,'Notes'));
+
+  // Show Drive file links from the mockup (can't pre-load into file inputs due to browser security)
+  const rawUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+  if (rawUrls.length) {
+    filesDiv.innerHTML = '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Files from mockup:</div>' +
+      rawUrls.map((u, i) => `<a href="${u}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-size:13px;text-decoration:none;margin-right:10px;margin-bottom:4px;">📎 File${rawUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join('');
+    filesDiv.style.display = 'block';
+  } else {
+    filesDiv.style.display = 'none';
+    filesDiv.innerHTML = '';
+  }
+
   document.getElementById('sv-company').dispatchEvent(new Event('input'));
 });
 
@@ -1826,6 +1843,9 @@ function toggleAddSleeveForm() {
 function closeAddSleeveModal() {
   document.getElementById('add-sleeve-modal-overlay').style.display = 'none';
   document.getElementById('sv-files-list').innerHTML = '';
+  document.getElementById('sv-mockup-files').style.display = 'none';
+  document.getElementById('sv-mockup-files').innerHTML = '';
+  document.getElementById('sv-mockup-select').value = '';
   addSvFileRow();
 }
 
