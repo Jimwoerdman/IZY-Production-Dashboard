@@ -949,6 +949,14 @@
       <div class="form-completion-label" id="sv-progress-label">0 / 3 required fields</div>
     </div>
     <div class="modal-body">
+      <div class="form-section" style="padding-bottom:0;">
+        <div class="form-section-label">Import from Approved Mockup <span style="font-weight:400;color:#94a3b8;">(optional)</span></div>
+        <div class="form-group">
+          <select id="sv-mockup-select">
+            <option value="">— Select an approved mockup to pre-fill —</option>
+          </select>
+        </div>
+      </div>
       <form id="add-sleeve-form" onsubmit="return false;">
         <div class="form-section">
           <div class="form-grid form-grid-3">
@@ -1388,7 +1396,7 @@
   </div>
 </section>
 
-<script src="app.js?v=56"></script>
+<script src="app.js?v=57"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

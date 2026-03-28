@@ -1790,10 +1790,38 @@ async function resetSleeveJob(rowIdx) {
 
 // ── Add Sleeve Job ────────────────────────────────────────────
 
+function populateApprovedMockupsSv() {
+  const sel = document.getElementById('sv-mockup-select');
+  if (!sel) return;
+  const approved = mockupRows.filter(r => get(r,'Status').toLowerCase() === 'approved');
+  sel.innerHTML = '<option value="">— Select an approved mockup to pre-fill —</option>' +
+    approved.map(r => {
+      const label = [get(r,'Name_Company'), get(r,'Soort'), get(r,'Bottle color')].filter(Boolean).join(' · ');
+      return `<option value="${mockupRows.indexOf(r)}">${label}</option>`;
+    }).join('');
+}
+
+document.getElementById('sv-mockup-select').addEventListener('change', function() {
+  const idx = parseInt(this.value);
+  if (isNaN(idx)) return;
+  const r = mockupRows[idx];
+  if (!r) return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  setVal('sv-soort',        get(r,'Soort'));
+  setVal('sv-company',      get(r,'Name_Company'));
+  setVal('sv-bottle-color', get(r,'Bottle color') || get(r,'Color'));
+  setVal('sv-lid-color',    get(r,'Lid'));
+  setVal('sv-owner',        normOwner(get(r,'Owner')));
+  setVal('sv-deadline',     get(r,'Deadline'));
+  setVal('sv-quantity',     get(r,'Quantity'));
+  document.getElementById('sv-company').dispatchEvent(new Event('input'));
+});
+
 function toggleAddSleeveForm() {
   const overlay = document.getElementById('add-sleeve-modal-overlay');
   overlay.style.display = 'flex';
   populateSleeveOwners();
+  if (!mockupLoaded) loadMockups().then(populateApprovedMockupsSv); else populateApprovedMockupsSv();
 }
 function closeAddSleeveModal() {
   document.getElementById('add-sleeve-modal-overlay').style.display = 'none';
