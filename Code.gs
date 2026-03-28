@@ -283,10 +283,33 @@ function doGet(e) {
     return respondGet({ photoUrl: url || null });
   }
 
+  if (e.parameter.action === 'get_sh_last') {
+    const sheet   = ss.getSheetByName('ShippingHistory');
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const lastRow = sheet.getLastRow();
+    const values  = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const row = {};
+    headers.forEach((h, i) => { row[h] = values[i]; });
+    return respondGet({ row: row, rowNum: lastRow });
+  }
+  if (e.parameter.action === 'get_sh_headers') {
+    const sheet = ss.getSheetByName('ShippingHistory');
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    return respondGet({ headers: headers });
+  }
   if (e.parameter.action === 'get_wf_headers') {
     const sheet = ss.getSheetByName('Workfile');
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
     return respondGet({ headers: headers });
+  }
+  if (e.parameter.action === 'get_wf_row') {
+    const rowNum = parseInt(e.parameter.row);
+    const sheet  = ss.getSheetByName('Workfile');
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const values  = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const row = {};
+    headers.forEach((h, i) => { row[h] = values[i]; });
+    return respondGet({ row: row });
   }
 
   // Get CheapCargo rates
@@ -986,6 +1009,18 @@ function doPost(e) {
         const c = findCol('status');
         Logger.log('update_mockup: status col=' + c);
         if (c > 0) mkSheet.getRange(rowIndex, c).setValue(data.status);
+
+        // Stamp approved date when status becomes Approved
+        if (data.status.toLowerCase() === 'approved') {
+          let approvedCol = findCol('approved');
+          if (approvedCol <= 0) {
+            // Append a new "Approved" column
+            const lastCol = mkSheet.getLastColumn();
+            mkSheet.getRange(1, lastCol + 1).setValue('Approved');
+            approvedCol = lastCol + 1;
+          }
+          mkSheet.getRange(rowIndex, approvedCol).setValue(Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'));
+        }
       }
       if (data.changedBy) {
         const c = findCol('changed');
@@ -2012,7 +2047,7 @@ function syncCheapCargoStatuses() {
   const data    = sheet.getDataRange().getValues();
   const headers = data[0].map(h => String(h).trim().toLowerCase());
   const orderCol  = headers.findIndex(h => h.includes('ordernummer'));
-  const statusCol = headers.findIndex(h => h.includes('bericht') || h.includes('status'));
+  const statusCol = headers.findIndex(h => h === 'bericht');
   const awbCol    = headers.findIndex(h => h === 'awb' || h.includes('awb'));
   if (orderCol < 0) return;
 

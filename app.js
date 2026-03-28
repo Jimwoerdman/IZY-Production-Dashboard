@@ -2240,8 +2240,18 @@ function renderMockups() {
   const status   = document.getElementById('mk-status').value;
   const hideDone = document.getElementById('mk-hide-done').checked;
 
+  const oneDayMs = 24 * 60 * 60 * 1000;
   const filtered = mockupRows.filter(r => {
-    if (hideDone && ['approved','finished'].includes(get(r,'Status').toLowerCase())) return false;
+    const st = get(r,'Status').toLowerCase();
+    // Auto-hide approved mockups after 1 day
+    if (st === 'approved') {
+      const approvedStr = getCI(r, 'approved');
+      if (approvedStr) {
+        const approvedDate = new Date(approvedStr.split(' ')[0].split('/').reverse().join('-'));
+        if (!isNaN(approvedDate) && (Date.now() - approvedDate.getTime()) >= oneDayMs) return false;
+      }
+    }
+    if (hideDone && ['approved','finished'].includes(st)) return false;
     if (status && get(r,'Status') !== status) return false;
     if (search && !(
       get(r,'Name_Company').toLowerCase().includes(search) ||
