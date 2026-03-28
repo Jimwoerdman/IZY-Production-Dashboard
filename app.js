@@ -3202,17 +3202,29 @@ async function unsleeveJob(rowIdx, btn) {
 let shipModalRowIdx  = null;
 let shipSelectedRate = null;
 
+const PKG_DEFAULTS  = { length: 42, width: 42, height: 31 };
+const PALLET_DEFAULTS = { length: 120, width: 80, height: '' };
+
+function applyPkgTypeDefaults(row) {
+  const type = row.querySelector('.pkg-type').value;
+  const d = type === 'PALLET' ? PALLET_DEFAULTS : PKG_DEFAULTS;
+  row.querySelector('.pkg-length').value = d.length;
+  row.querySelector('.pkg-width').value  = d.width;
+  row.querySelector('.pkg-height').value = d.height;
+}
+
 function addShipPackageRow() {
   const list = document.getElementById('ship-packages-list');
   const row  = document.createElement('div');
   row.className = 'ship-pkg-row';
   row.innerHTML = `
     <div class="form-group"><label>Type</label><select class="pkg-type"><option value="PACKAGE">Package</option><option value="PALLET">Pallet</option></select></div>
-    <div class="form-group"><label>L (cm)</label><input type="number" class="pkg-length" value="40" min="1" /></div>
-    <div class="form-group"><label>W (cm)</label><input type="number" class="pkg-width"  value="40" min="1" /></div>
-    <div class="form-group"><label>H (cm)</label><input type="number" class="pkg-height" value="30" min="1" /></div>
+    <div class="form-group"><label>L (cm)</label><input type="number" class="pkg-length" value="42" min="1" /></div>
+    <div class="form-group"><label>W (cm)</label><input type="number" class="pkg-width"  value="42" min="1" /></div>
+    <div class="form-group"><label>H (cm)</label><input type="number" class="pkg-height" value="31" min="1" /></div>
     <div class="form-group"><label>kg</label><input type="number" class="pkg-weight" value="12" min="0.1" step="0.1" /></div>
     <button type="button" class="btn-remove-file ship-pkg-remove" title="Remove">✕</button>`;
+  row.querySelector('.pkg-type').addEventListener('change', () => { applyPkgTypeDefaults(row); resetShipRates(); });
   row.querySelector('.ship-pkg-remove').addEventListener('click', () => { row.remove(); shipSelectedRate = null; resetShipRates(); });
   list.appendChild(row);
 }
@@ -3227,9 +3239,9 @@ function resetShipRates() {
 function getShipPackages() {
   return [...document.getElementById('ship-packages-list').querySelectorAll('.ship-pkg-row')].map(row => ({
     type:   row.querySelector('.pkg-type').value || 'PACKAGE',
-    length: parseFloat(row.querySelector('.pkg-length').value) || 40,
-    width:  parseFloat(row.querySelector('.pkg-width').value)  || 40,
-    height: parseFloat(row.querySelector('.pkg-height').value) || 30,
+    length: parseFloat(row.querySelector('.pkg-length').value) || 42,
+    width:  parseFloat(row.querySelector('.pkg-width').value)  || 42,
+    height: parseFloat(row.querySelector('.pkg-height').value) || 0,
     weight: parseFloat(row.querySelector('.pkg-weight').value) || 12,
   }));
 }
