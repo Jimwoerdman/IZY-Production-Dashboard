@@ -658,7 +658,7 @@ function renderActiveQueue() {
         displayStatus.toLowerCase() === 'ready to ship'
           ? `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`
           : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
-      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
 
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
@@ -740,7 +740,7 @@ function renderActiveQueue() {
       const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
       const sleeveBtn = sleeveVal !== 'yes' ? '' :
         `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`;
-      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button>${sleeveBtn}<button class="btn-ship" data-rowidx="${idx}" style="background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">✓ Ship</button><button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-ship" data-rowidx="${idx}" style="background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">✓ Ship</button><button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
@@ -828,7 +828,9 @@ document.getElementById('tab-active-queue').addEventListener('click', function(e
     updateSelectionBar();
     return;
   }
-  if (logBtn)   openPrintModal(parseInt(logBtn.dataset.rowidx));
+  const aqEditBtn = e.target.closest('.aq-btn-edit');
+  if (logBtn && !aqEditBtn)   openPrintModal(parseInt(logBtn.dataset.rowidx));
+  if (aqEditBtn) openEditJobModal(parseInt(aqEditBtn.dataset.rowidx), 'active');
   if (resetBtn) resetJob(parseInt(resetBtn.dataset.rowidx));
   if (shipBtn)  shipJob(parseInt(shipBtn.dataset.rowidx), shipBtn);
   if (sleeveBtn) {
@@ -2011,13 +2013,13 @@ let editJobType = null; // 'sleeve' or 'mockup'
 let editJobRow  = null; // the row object
 
 function openEditJobModal(rowIdx, type) {
-  const rows = type === 'sleeve' ? sleeveRows : mockupRows;
+  const rows = type === 'sleeve' ? sleeveRows : type === 'active' ? allRows : mockupRows;
   editJobRow  = rows[rowIdx];
   editJobType = type;
   if (!editJobRow) return;
 
   document.getElementById('edit-job-modal-title').textContent =
-    type === 'sleeve' ? 'Edit Sleeve Job' : 'Edit Mockup Job';
+    type === 'sleeve' ? 'Edit Sleeve Job' : type === 'active' ? 'Edit Active Job' : 'Edit Mockup Job';
 
   document.getElementById('ej-company').value    = get(editJobRow, 'Name_Company') || '';
   document.getElementById('ej-soort').value       = get(editJobRow, 'Soort')        || '';
@@ -2109,7 +2111,7 @@ async function submitEditJob() {
       method: 'POST',
       mode:   'no-cors',
       body:   JSON.stringify({
-        action:      editJobType === 'sleeve' ? 'edit_sleeve_job' : 'edit_mockup_job',
+        action:      editJobType === 'sleeve' ? 'edit_sleeve_job' : editJobType === 'active' ? 'edit_active_job' : 'edit_mockup_job',
         sheetRow:    editJobRow['_sheetRow'],
         company,
         soort:       document.getElementById('ej-soort').value,

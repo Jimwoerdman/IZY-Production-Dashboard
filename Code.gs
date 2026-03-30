@@ -1260,6 +1260,57 @@ function doPost(e) {
       return respond({ success: true });
     }
 
+    // Edit active queue job (Workfile sheet)
+    if (data.action === 'edit_active_job') {
+      const wfSheet   = ss.getSheetByName('Workfile');
+      const wfHeaders = wfSheet.getRange(1, 1, 1, wfSheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const rowIdx    = parseInt(data.sheetRow);
+      if (rowIdx < 2) return respond({ error: 'Invalid sheet row' });
+      const findWf = kw => wfHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+      const setWf  = (kw, val) => { const c = findWf(kw); if (c >= 0) wfSheet.getRange(rowIdx, c + 1).setValue(val); };
+      setWf('name_company',  data.company     || '');
+      setWf('name_print',    data.printName   || '');
+      setWf('soort',         data.soort       || '');
+      setWf('bottle color',  data.bottleColor || '');
+      setWf('lid',           data.lidColor    || '');
+      setWf('quantity',      data.quantity    || '');
+      setWf('deadline',      data.deadline    || '');
+      setWf('owner',         data.owner       || '');
+      setWf('notes',         data.notes       || '');
+      if (data.designFiles && data.designFiles.length > 0) {
+        try {
+          const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+          const fileCol = findWf('file');
+          const newUrls = [];
+          data.designFiles.forEach(function(df) {
+            try {
+              const raw  = df.base64.includes(',') ? df.base64.split(',')[1] : df.base64;
+              const blob = Utilities.newBlob(Utilities.base64Decode(raw), df.mime || 'application/octet-stream', df.name || ('file_' + Date.now()));
+              const file = folder.createFile(blob);
+              file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+              newUrls.push('https://drive.google.com/file/d/' + file.getId() + '/view');
+            } catch(e) { Logger.log('edit_active file error: ' + e.message); }
+          });
+          if (fileCol >= 0 && newUrls.length > 0) {
+            const existing = String(wfSheet.getRange(rowIdx, fileCol + 1).getValue() || '').trim();
+            wfSheet.getRange(rowIdx, fileCol + 1).setValue([existing, ...newUrls].filter(Boolean).join('\n'));
+          }
+        } catch(fileErr) { Logger.log('edit_active files failed: ' + fileErr.message); }
+      }
+      Logger.log('edit_active_job: updated row ' + rowIdx);
+      sendJobNotification(
+        data.changedBy, data.owner,
+        '✏️ Active job gewijzigd: ' + (data.company || ''),
+        [
+          ['Actie',    'Active job aangepast'],
+          ['Bedrijf',  data.company  || '—'],
+          ['Type',     data.soort    || '—'],
+          ['Deadline', data.deadline || '—']
+        ]
+      );
+      return respond({ success: true });
+    }
+
     // Add stock delivery
     if (data.action === 'add_stock') {
       const stSheet = ss.getSheetByName('Stock');
