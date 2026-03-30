@@ -1479,11 +1479,33 @@ td.notes-cell {
 .inv-late    { background: #fee2e2; color: #b91c1c; }
 .inv-paid    { background: #dcfce7; color: #15803d; }
 
-/* Desktop table action cell: space between buttons */
+/* Desktop table: compact layout to prevent horizontal scroll */
+.aq-table-wrap table { table-layout: fixed; width: 100%; }
+.aq-table-wrap thead th,
+.aq-table-wrap tbody td { padding: 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Column widths: checkbox, Company, Print Name, Status, Invoice, Type, Deadline, Color, Lid, Qty, Still, Days, Files, Actions */
+.aq-table-wrap th:nth-child(1)  { width: 32px; }
+.aq-table-wrap th:nth-child(2)  { width: 14%; }  /* Company */
+.aq-table-wrap th:nth-child(3)  { width: 13%; }  /* Print Name */
+.aq-table-wrap th:nth-child(4)  { width: 9%;  }  /* Status */
+.aq-table-wrap th:nth-child(5)  { width: 7%;  }  /* Invoice */
+.aq-table-wrap th:nth-child(6)  { width: 7%;  }  /* Type */
+.aq-table-wrap th:nth-child(7)  { width: 7%;  }  /* Deadline */
+.aq-table-wrap th:nth-child(8)  { width: 6%;  }  /* Color */
+.aq-table-wrap th:nth-child(9)  { width: 5%;  }  /* Lid */
+.aq-table-wrap th:nth-child(10) { width: 4%;  }  /* Qty */
+.aq-table-wrap th:nth-child(11) { width: 5%;  }  /* Still */
+.aq-table-wrap th:nth-child(12) { width: 5%;  }  /* Days */
+.aq-table-wrap th:nth-child(13) { width: 4%;  }  /* Files */
+.aq-table-wrap th:nth-child(14) { width: 14%; }  /* Actions */
+
+/* Compact action buttons in table rows */
 .aq-table-wrap td .btn-log,
 .aq-table-wrap td .btn-sleeve,
-.aq-table-wrap td .btn-reset { margin-right: 6px; }
+.aq-table-wrap td .btn-reset { margin-right: 4px; padding: 4px 8px; font-size: 11px; }
 .aq-table-wrap td .btn-reset { margin-right: 0; }
+.aq-table-wrap td[style*="white-space:nowrap"] { white-space: nowrap; }
 
 .btn-log, .btn-sleeve, .btn-reset {
   flex: 1; padding: 9px 6px;
