@@ -2859,6 +2859,16 @@ function renderCalendar() {
     byDate[key].push(r);
   });
 
+  // Group PrintLog actual output by date
+  const logByDate = {};
+  printLogRows.forEach(r => {
+    const d = parseDate(r['Date']);
+    if (!d) return;
+    const key = d.toDateString();
+    if (!logByDate[key]) logByDate[key] = [];
+    logByDate[key].push(r);
+  });
+
   // Week totals (all entries for all days)
   const allWeekEntries = days.flatMap(d => byDate[d.toDateString()] || []);
   const totalHours     = allWeekEntries.reduce((s, r) => s + r.hoursTotal, 0);
@@ -2904,12 +2914,34 @@ function renderCalendar() {
       }).join('<div class="cal-worker-divider"></div>');
     }
 
+    // Actual output from PrintLog for past days
+    let actualHtml = '';
+    if (isPast || isToday) {
+      const logEntries = logByDate[d.toDateString()] || [];
+      if (logEntries.length > 0) {
+        const byOwner = {};
+        logEntries.forEach(e => {
+          const o = e['Owner'] || 'Unknown';
+          byOwner[o] = (byOwner[o] || 0) + (parseInt(e['Quantity']) || 0);
+        });
+        const total = Object.values(byOwner).reduce((s, n) => s + n, 0);
+        const ownerLines = Object.entries(byOwner)
+          .map(([o, q]) => `<span style="color:${workerColor(o)};font-weight:600;">${o}</span> ${q}`)
+          .join(', ');
+        actualHtml = `<div class="cal-actual-output">
+          <div class="cal-actual-label">✅ Actual output</div>
+          <div class="cal-actual-total">${total} printed</div>
+          <div class="cal-actual-detail">${ownerLines}</div>
+        </div>`;
+      }
+    }
+
     return `<div class="${classes}">
       <div class="cal-day-header">
         <span class="cal-day-name">${DAY_NAMES[i]}</span>
         <span class="cal-day-date">${d.getDate()}</span>
       </div>
-      <div class="cal-day-body">${body}</div>
+      <div class="cal-day-body">${body}${actualHtml}</div>
     </div>`;
   }).join('');
 }
