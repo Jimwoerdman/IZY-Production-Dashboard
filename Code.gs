@@ -1371,14 +1371,17 @@ function doPost(e) {
     const rowData = values[rowIndex - 1]; // 0-based: row 2 → index 1
     const g = (kw) => { const i = headers.findIndex(h => h.toLowerCase().includes(kw.toLowerCase())); return i >= 0 ? String(rowData[i] ?? '').trim() : ''; };
 
-    // If no explicit status was sent but quantity was updated, derive status from still-to-print
-    // This handles the case where quantity was manually entered in the sheet (still col is a formula)
-    if (!data.status && data.quantityPrinted !== undefined && statusCol > 0) {
+    // Update Quantity still to print and derive status when quantity was updated
+    if (data.quantityPrinted !== undefined) {
       const stillColIdx = headers.findIndex(h => h.toLowerCase().includes('quantity still'));
       const qty         = parseInt(g('quantity')) || 0;
       const printed     = parseInt(data.quantityPrinted) || 0;
-      const still       = qty - printed; // compute directly; sheet formula may lag
-      if (still <= 0) {
+      const still       = Math.max(0, qty - printed);
+      if (stillColIdx >= 0) {
+        sheet.getRange(rowIndex, stillColIdx + 1).setValue(still);
+        Logger.log('Quantity still to print updated → ' + still);
+      }
+      if (!data.status && statusCol > 0 && still <= 0) {
         const needsSleeve = g('sleeve').toLowerCase() === 'yes' || g('to sleeve').toLowerCase() === 'yes';
         const derivedStatus = needsSleeve ? 'Waiting' : 'Ready to Ship';
         sheet.getRange(rowIndex, statusCol).setValue(derivedStatus);
