@@ -1940,7 +1940,7 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   const notes        = withDate(document.getElementById('sv-notes').value.trim());
   const statusEl  = document.getElementById('sv-form-status');
 
-  if (!soort || !company || !printName || !quantity) {
+  if (!soort || !company || !quantity) {
     statusEl.className   = 'form-status error';
     statusEl.textContent = 'Please fill in all required fields.';
     return;
