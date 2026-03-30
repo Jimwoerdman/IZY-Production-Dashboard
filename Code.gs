@@ -913,10 +913,11 @@ function doPost(e) {
     if (data.action === 'add_sleeve_job') {
       const svSheet   = ss.getSheetByName('Sleeves');
       const lastRow   = svSheet.getLastRow();
-      const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 12)).getValues()[0].map(h => String(h).trim());
+      const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
       const newRow    = lastRow + 1;
 
       const findIdx = kw => svHeaders.findIndex(h => h.toLowerCase().includes(kw.toLowerCase()));
+      Logger.log('add_sleeve_job headers: ' + JSON.stringify(svHeaders));
 
       // Use passed priority if provided (e.g. from add_job auto-create), otherwise calculate
       let priority;
@@ -929,6 +930,13 @@ function doPost(e) {
           const soortVals = svSheet.getRange(2, soortIdx + 1, lastRow - 1, 1).getValues();
           priority = soortVals.filter(r => String(r[0]).trim() === String(data.soort).trim()).length + 1;
         }
+      }
+
+      // Convert deadline from YYYY-MM-DD (HTML date input) to DD/MM/YYYY (sheet format)
+      let deadline = data.deadline || '';
+      if (deadline && deadline.includes('-')) {
+        const [y, m, d] = deadline.split('-');
+        deadline = d + '/' + m + '/' + y;
       }
 
       const vals = new Array(svHeaders.length).fill('');
@@ -944,13 +952,12 @@ function doPost(e) {
       if (qIdx >= 0) vals[qIdx] = data.quantity ? parseInt(data.quantity) : '';
       set('status',   data.status || 'To Sleeve');
       set('owner',    data.owner    || '');
-      set('deadline', data.deadline || '');
-      const svBottleIdx = svHeaders.findIndex(h => h.toLowerCase() === 'bottle color');
-      if (svBottleIdx >= 0) vals[svBottleIdx] = data.bottleColor || '';
-      const svLidIdx = svHeaders.findIndex(h => h.toLowerCase() === 'lid');
-      if (svLidIdx >= 0) vals[svLidIdx] = data.lidColor || '';
+      set('deadline', deadline);
+      set('bottle',   data.bottleColor || '');
+      set('lid',      data.lidColor    || '');
       set('notes',    data.notes    || '');
       set('changed',  data.changedBy || '');
+      Logger.log('add_sleeve_job vals: ' + JSON.stringify(vals));
 
       svSheet.getRange(newRow, 1, 1, vals.length).setValues([vals]);
 
