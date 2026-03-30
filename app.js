@@ -788,7 +788,7 @@ function renderActiveQueue() {
         <span class="aq-section-count" style="color:#15803d;opacity:0.7;">${rtsFiltered.length} job${rtsFiltered.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
-      <div class="aq-table-wrap table-wrap">
+      <div class="aq-table-wrap aq-rts-table table-wrap">
         <table>
           <thead style="background:#15803d;background-image:none;"><tr>
             <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>

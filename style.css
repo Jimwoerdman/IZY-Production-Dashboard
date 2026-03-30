@@ -1502,6 +1502,9 @@ td.notes-cell {
 #tab-active-queue .aq-table-wrap th:nth-child(13) { width: 3%;  }  /* Files */
 #tab-active-queue .aq-table-wrap th:nth-child(14) { width: 21%; }  /* Actions */
 
+/* Ready to Ship table: 13 columns (no Files) */
+#tab-active-queue .aq-rts-table th:nth-child(13) { width: 21%; }  /* Actions — override the 3% Files rule */
+
 /* Compact action buttons in table rows (active queue only) */
 #tab-active-queue .aq-table-wrap td .btn-log,
 #tab-active-queue .aq-table-wrap td .btn-sleeve,
