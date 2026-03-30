@@ -1484,6 +1484,8 @@ function renderReview() {
 // ── Sleeve Queue ──────────────────────────────────────────────
 
 let svTypeFilter = '';
+let svCompletedOpen = false;
+const SV_COMPLETED_STATUSES = ['ordered', 'done', 'finished'];
 
 function sleeveSortOrder(r) {
   const s = get(r,'Status').toLowerCase();
@@ -1527,12 +1529,23 @@ function refreshSleeves() {
 }
 
 function renderSleeves() {
-  const search   = document.getElementById('sv-search').value.toLowerCase();
-  const status   = document.getElementById('sv-status').value;
-  const hideDone = document.getElementById('sv-hide-done').checked;
+  const search = document.getElementById('sv-search').value.toLowerCase();
+  const status = document.getElementById('sv-status').value;
+
+  const isCompleted = r => SV_COMPLETED_STATUSES.includes(get(r,'Status').toLowerCase());
 
   const filtered = sleeveRows.filter(r => {
-    if (hideDone && get(r,'Status').toLowerCase() === 'done') return false;
+    if (isCompleted(r)) return false; // handled separately
+    if (status && get(r,'Status') !== status) return false;
+    if (search && !(
+      get(r,'Name_Company').toLowerCase().includes(search) ||
+      (get(r,'Name_Print') || '').toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  const completedFiltered = sleeveRows.filter(r => {
+    if (!isCompleted(r)) return false;
     if (status && get(r,'Status') !== status) return false;
     if (search && !(
       get(r,'Name_Company').toLowerCase().includes(search) ||
@@ -1632,8 +1645,72 @@ function renderSleeves() {
       </div>`;
   }).join('');
 
-  document.getElementById('sv-sections').innerHTML = html ||
-    '<p style="color:#94a3b8;padding:20px;">No sleeve jobs match the current filters.</p>';
+  // Build completed (ordered/done/finished) collapsible section
+  let completedHtml = '';
+  if (completedFiltered.length > 0) {
+    const rowsHtml = completedFiltered.map(r => {
+      const idx = sleeveRows.indexOf(r);
+      const actionBtns = `<button class="btn-log sv-btn-log" data-svidx="${idx}">✏️ Update</button><button class="btn-log sv-btn-edit" data-svidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
+      const svChk = `<label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></label>`;
+      const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const fileLinks = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎 File${rawFileUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join(' ')
+        : '';
+      const fileCell = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
+        : '—';
+      const card = `<div class="aq-card sv-card-done${svSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#64748b;--tb:#f1f5f9">
+        <div class="aq-card-top">
+          <div class="aq-card-left">${svChk}<span class="aq-company">${get(r,'Name_Company')}</span></div>
+          ${badge(get(r,'Status'))}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
+        <div class="aq-meta">
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
+          ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
+          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+      const row = `<tr class="row-shipped${svSelected.has(idx) ? ' row-selected' : ''}">
+        <td><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td>${badge(get(r,'Status'))}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
+        <td>${get(r,'Owner') || '—'}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${fileCell}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+      return { card, row };
+    });
+
+    completedHtml = `<div class="sv-completed-section" style="margin-top:16px;">
+      <button class="sv-completed-toggle" onclick="svCompletedOpen=!svCompletedOpen;renderSleeves();" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--hover);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);">
+        <span>📦 Ordered &amp; Finished <span style="font-weight:400;opacity:0.7;">(${completedFiltered.length} job${completedFiltered.length !== 1 ? 's' : ''})</span></span>
+        <span>${svCompletedOpen ? '▲ Collapse' : '▼ Expand'}</span>
+      </button>
+      ${svCompletedOpen ? `
+        <div class="aq-cards" style="margin-top:10px;">${rowsHtml.map(x => x.card).join('')}</div>
+        <div class="aq-table-wrap table-wrap" style="margin-top:8px;">
+          <table>
+            <thead><tr>
+              <th></th><th>Company</th><th>Status</th>
+              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
+            </tr></thead>
+            <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+          </table>
+        </div>` : ''}
+    </div>`;
+  }
+
+  document.getElementById('sv-sections').innerHTML = (html ||
+    '<p style="color:#94a3b8;padding:20px;">No sleeve jobs match the current filters.</p>') + completedHtml;
 }
 
 ['sv-search','sv-status','sv-hide-done'].forEach(id => {
