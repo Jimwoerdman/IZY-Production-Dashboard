@@ -2021,13 +2021,32 @@ function openEditJobModal(rowIdx, type) {
   document.getElementById('edit-job-modal-title').textContent =
     type === 'sleeve' ? 'Edit Sleeve Job' : type === 'active' ? 'Edit Active Job' : 'Edit Mockup Job';
 
-  document.getElementById('ej-company').value    = get(editJobRow, 'Name_Company') || '';
-  document.getElementById('ej-soort').value       = get(editJobRow, 'Soort')        || '';
+  document.getElementById('ej-company').value      = get(editJobRow, 'Name_Company') || '';
+  document.getElementById('ej-print-name').value  = get(editJobRow, 'Name_Print')   || '';
+  document.getElementById('ej-soort').value        = get(editJobRow, 'Soort')        || '';
   document.getElementById('ej-bottle-color').value = get(editJobRow, 'Bottle color') || '';
-  document.getElementById('ej-lid-color').value   = get(editJobRow, 'Lid')          || '';
-  document.getElementById('ej-quantity').value    = get(editJobRow, 'Quantity')      || '';
+  document.getElementById('ej-lid-color').value    = get(editJobRow, 'Lid')          || '';
+  document.getElementById('ej-quantity').value     = get(editJobRow, 'Quantity')     || '';
   document.getElementById('ej-notes-display').textContent = get(editJobRow, 'Notes') || '—';
   document.getElementById('ej-new-note').value = '';
+
+  // Show active-queue-only fields
+  const activeFields = document.getElementById('ej-active-fields');
+  activeFields.style.display = type === 'active' ? '' : 'none';
+  if (type === 'active') {
+    const sleeveVal = (get(editJobRow,'To sleeve?') || getCI(editJobRow,'sleeve') || 'No');
+    const sleeveToggle = document.getElementById('ej-tosleeve');
+    sleeveToggle.dataset.value = sleeveVal;
+    sleeveToggle.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b.dataset.opt === sleeveVal));
+    document.getElementById('ej-ship-contact').value = get(editJobRow,'Contactpersoon')  || '';
+    document.getElementById('ej-ship-phone').value   = get(editJobRow,'Telefoonnummer')  || '';
+    document.getElementById('ej-ship-email').value   = get(editJobRow,'E-mailadres')     || '';
+    document.getElementById('ej-ship-street').value  = get(editJobRow,'Straat')          || '';
+    document.getElementById('ej-ship-number').value  = get(editJobRow,'Huisnummer')      || '';
+    document.getElementById('ej-ship-zipcode').value = get(editJobRow,'Postcode')        || '';
+    document.getElementById('ej-ship-city').value    = get(editJobRow,'Plaats')          || '';
+    document.getElementById('ej-ship-country').value = get(editJobRow,'Land')            || '';
+  }
 
   // Convert DD/MM/YYYY deadline to YYYY-MM-DD for date input
   const dl = get(editJobRow, 'Deadline') || '';
@@ -2114,6 +2133,7 @@ async function submitEditJob() {
         action:      editJobType === 'sleeve' ? 'edit_sleeve_job' : editJobType === 'active' ? 'edit_active_job' : 'edit_mockup_job',
         sheetRow:    editJobRow['_sheetRow'],
         company,
+        printName:   document.getElementById('ej-print-name').value.trim(),
         soort:       document.getElementById('ej-soort').value,
         bottleColor: document.getElementById('ej-bottle-color').value,
         lidColor:    document.getElementById('ej-lid-color').value,
@@ -2127,6 +2147,17 @@ async function submitEditJob() {
           if (!newNote) return existingVal;
           return existingVal ? `${existingVal}\n${withDate(newNote)}` : withDate(newNote);
         })(),
+        ...(editJobType === 'active' ? {
+          tosleeve:    document.getElementById('ej-tosleeve').dataset.value || 'No',
+          shipContact: document.getElementById('ej-ship-contact').value.trim(),
+          shipPhone:   document.getElementById('ej-ship-phone').value.trim(),
+          shipEmail:   document.getElementById('ej-ship-email').value.trim(),
+          shipStreet:  document.getElementById('ej-ship-street').value.trim(),
+          shipNumber:  document.getElementById('ej-ship-number').value.trim(),
+          shipZipcode: document.getElementById('ej-ship-zipcode').value.trim(),
+          shipCity:    document.getElementById('ej-ship-city').value.trim(),
+          shipCountry: document.getElementById('ej-ship-country').value.trim().toUpperCase(),
+        } : {}),
         designFiles,
         changedBy:   currentUser?.email,
       }),
@@ -2135,7 +2166,8 @@ async function submitEditJob() {
     setTimeout(() => {
       closeEditJobModal();
       if (editJobType === 'sleeve') { sleeveLoaded = false; loadSleeves(); }
-      else { mockupLoaded = false; loadMockups(); }
+      else if (editJobType === 'mockup') { mockupLoaded = false; loadMockups(); }
+      else { refreshData(); }
     }, 1200);
   } catch (err) {
     document.getElementById('ej-status').textContent = '❌ Error: ' + err.message;
@@ -3772,6 +3804,12 @@ document.getElementById('nj-needmockup').addEventListener('click', function(e) {
 document.getElementById('nj-tosleeve').addEventListener('click', function(e) {
   const opt = e.target.closest('.sleeve-opt');
   if (opt) this.dataset.value = opt.dataset.opt;
+});
+document.getElementById('ej-tosleeve').addEventListener('click', function(e) {
+  const opt = e.target.closest('.sleeve-opt');
+  if (!opt) return;
+  this.dataset.value = opt.dataset.opt;
+  this.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b === opt));
 });
 
 document.getElementById('nj-submit').addEventListener('click', async function() {

@@ -1053,10 +1053,14 @@
       <button class="modal-close" onclick="closeEditJobModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid form-grid-1">
+      <div class="form-grid form-grid-2">
         <div class="form-group">
           <label>Company <span class="req">*</span></label>
           <input type="text" id="ej-company" placeholder="Company name" />
+        </div>
+        <div class="form-group">
+          <label>Print Name</label>
+          <input type="text" id="ej-print-name" placeholder="Print job name" />
         </div>
       </div>
       <div class="form-grid form-grid-3">
@@ -1104,6 +1108,59 @@
           <select id="ej-owner"><option value="">Select owner…</option></select>
         </div>
       </div>
+
+      <!-- Active queue only fields -->
+      <div id="ej-active-fields" style="display:none;">
+        <div class="form-grid form-grid-2" style="margin-top:8px;">
+          <div class="form-group">
+            <label>To Sleeve?</label>
+            <div class="sleeve-toggle" id="ej-tosleeve" data-value="No">
+              <button type="button" class="sleeve-opt" data-opt="No">No</button>
+              <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-section-label" style="margin-top:12px;margin-bottom:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Shipping</div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Contact person</label>
+            <input type="text" id="ej-ship-contact" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="ej-ship-phone" placeholder="+31612345678" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="text" id="ej-ship-email" placeholder="contact@company.com" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Street</label>
+            <input type="text" id="ej-ship-street" placeholder="Street name" />
+          </div>
+          <div class="form-group">
+            <label>Number</label>
+            <input type="text" id="ej-ship-number" placeholder="12a" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Postcode</label>
+            <input type="text" id="ej-ship-zipcode" placeholder="1234 AB" />
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="ej-ship-city" placeholder="Amsterdam" />
+          </div>
+          <div class="form-group">
+            <label>Country</label>
+            <input type="text" id="ej-ship-country" placeholder="NL" maxlength="2" />
+          </div>
+        </div>
+      </div>
+
       <div class="form-group" style="margin-top:8px;">
         <label>Add files <span style="font-weight:400;color:#94a3b8;">(optional — appended to existing)</span></label>
         <div id="ej-files-list"></div>

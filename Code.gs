@@ -1277,6 +1277,18 @@ function doPost(e) {
       setWf('deadline',      data.deadline    || '');
       setWf('owner',         data.owner       || '');
       setWf('notes',         data.notes       || '');
+      if (data.tosleeve   !== undefined) setWf('sleeve',         data.tosleeve    || '');
+      if (data.shipContact !== undefined) {
+        setWf('ontvanger',      data.shipContact || '');
+        setWf('contactpersoon', data.shipContact || '');
+      }
+      if (data.shipPhone   !== undefined) setWf('telefoonnummer', data.shipPhone   || '');
+      if (data.shipEmail   !== undefined) setWf('e-mailadres',    data.shipEmail   || '');
+      if (data.shipStreet  !== undefined) setWf('straat',         data.shipStreet  || '');
+      if (data.shipNumber  !== undefined) setWf('huisnummer',     data.shipNumber  || '');
+      if (data.shipZipcode !== undefined) setWf('postcode',       data.shipZipcode || '');
+      if (data.shipCity    !== undefined) setWf('plaats',         data.shipCity    || '');
+      if (data.shipCountry !== undefined) setWf('land',           data.shipCountry || '');
       if (data.designFiles && data.designFiles.length > 0) {
         try {
           const folder  = DriveApp.getFolderById(DRIVE_FOLDER_ID);
