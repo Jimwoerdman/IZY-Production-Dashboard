@@ -627,8 +627,13 @@ function renderActiveQueue() {
     return get(r,'Status');
   };
 
-  const readyRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'ready to ship');
-  const activeRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() !== 'ready to ship');
+  const readyRows   = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'ready to ship');
+  const waitingRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'waiting');
+  console.log('[AQ] filtered:', filtered.length, 'waiting:', waitingRows.length, 'waiting statuses:', waitingRows.map(r => get(r,'Status')), 'allRows waiting:', allRows.filter(r => get(r,'Status').toLowerCase() === 'waiting').length);
+  const activeRows  = filtered.filter(r => {
+    const s = getDisplayStatus(r).toLowerCase();
+    return s !== 'ready to ship' && s !== 'waiting';
+  });
 
   // Type filter pills (exclude Ready to Ship from counts)
   const tabsEl = document.getElementById('aq-type-tabs');
@@ -727,6 +732,77 @@ function renderActiveQueue() {
       </div>`;
   }).join('');
 
+  // Waiting for Sleeve section
+  const waitingFiltered = aqTypeFilter
+    ? waitingRows.filter(r => AQ_SECTIONS.find(s => s.label === aqTypeFilter)?.match(get(r,'Soort').toLowerCase()))
+    : waitingRows;
+
+  const waitingHtml = waitingFiltered.length ? (() => {
+    const rowsHtml = waitingFiltered.map(r => {
+      const d     = parseDate(get(r,'Deadline'));
+      const days  = daysFrom(d);
+      const idx   = allRows.indexOf(r);
+      const sleeveBtn = `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
+      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const aqFileLink = aqFileUrls.length
+        ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
+        : '';
+      const card = `<div class="aq-card${aqSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#92400e;--tb:#fef3c7">
+        <div class="aq-card-top">
+          <div class="aq-card-left">
+            <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
+            <span class="aq-company">${get(r,'Name_Company')}</span>
+          </div>
+          ${badge('Waiting')}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
+        <div class="aq-meta">
+          <div class="aq-meta-item"><span class="aq-meta-label">Type</span>${typeBadge(get(r,'Soort'))}</div>
+          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
+          <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+      const inv   = matchInvoice(get(r,'Name_Company'));
+      const row = `<tr class="${aqSelected.has(idx) ? 'row-selected' : ''}">
+        <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
+        <td>${badge('Waiting')}</td>
+        <td>${invoiceBadge(inv)}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
+        <td>${num(r,'Quantity') || '—'}</td>
+        <td>${daysCell(days)}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+      return { card, row };
+    });
+    return `<div class="aq-section">
+      <div class="aq-section-title" style="background:#fef3c7;color:#92400e;">
+        <span style="font-size:13px;font-weight:700;">⏳ Waiting for Sleeve</span>
+        <span class="aq-section-count" style="color:#92400e;opacity:0.7;">${waitingFiltered.length} job${waitingFiltered.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
+      <div class="aq-table-wrap table-wrap">
+        <table>
+          <thead style="background:#92400e;background-image:none;"><tr>
+            <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
+            <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
+            <th>Qty</th><th>Days Left</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  })() : '';
+
   // Ready to Ship section
   const rtsFiltered = aqTypeFilter
     ? readyRows.filter(r => AQ_SECTIONS.find(s => s.label === aqTypeFilter)?.match(get(r,'Soort').toLowerCase()))
@@ -801,7 +877,7 @@ function renderActiveQueue() {
     </div>`;
   })() : '';
 
-  document.getElementById('aq-sections').innerHTML = (html + rtsHtml) ||
+  document.getElementById('aq-sections').innerHTML = (html + waitingHtml + rtsHtml) ||
     '<p style="color:#94a3b8;padding:20px;">No active jobs match the current filters.</p>';
 }
 
@@ -1487,6 +1563,9 @@ let svTypeFilter = '';
 let svCompletedOpen = false;
 const SV_COMPLETED_STATUSES = ['ordered', 'done', 'finished'];
 
+let mkCompletedOpen = false;
+const MK_COMPLETED_STATUSES = ['approved'];
+
 function sleeveSortOrder(r) {
   const s = get(r,'Status').toLowerCase();
   if (s.includes('progress')) return 0;
@@ -2007,6 +2086,23 @@ async function postWithProgress(url, body, onProgress) {
   }
 }
 
+/** Like postWithProgress but reads the response so server errors are visible. */
+async function postAndRead(url, body, onProgress) {
+  let p = 0;
+  const timer = onProgress ? setInterval(() => {
+    p = Math.min(0.93, p + (0.93 - p) * 0.12);
+    onProgress(p);
+  }, 250) : null;
+  try {
+    const res  = await fetch(url, { method: 'POST', body });
+    const data = await res.json().catch(() => ({}));
+    if (data.error) throw new Error(data.error);
+    return data;
+  } finally {
+    if (timer) clearInterval(timer);
+  }
+}
+
 document.getElementById('sv-submit').addEventListener('click', async function() {
   const soort     = document.getElementById('sv-soort').value;
   const company   = document.getElementById('sv-company').value.trim();
@@ -2057,7 +2153,7 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
   svSetProgress(svFilesToRead.length ? 0.4 : 0, 'Uploading…');
 
   try {
-    await postWithProgress(
+    await postAndRead(
       SCRIPT_URL,
       JSON.stringify({
         action:    'add_sleeve_job',
@@ -2393,18 +2489,22 @@ function renderMockups() {
   const status   = document.getElementById('mk-status').value;
   const hideDone = document.getElementById('mk-hide-done').checked;
 
-  const oneDayMs = 24 * 60 * 60 * 1000;
+  const isMkCompleted = r => MK_COMPLETED_STATUSES.includes(get(r,'Status').toLowerCase());
+
   const filtered = mockupRows.filter(r => {
     const st = get(r,'Status').toLowerCase();
-    // Auto-hide approved mockups after 1 day
-    if (st === 'approved') {
-      const approvedStr = getCI(r, 'approved');
-      if (approvedStr) {
-        const approvedDate = new Date(approvedStr.split(' ')[0].split('/').reverse().join('-'));
-        if (!isNaN(approvedDate) && (Date.now() - approvedDate.getTime()) >= oneDayMs) return false;
-      }
-    }
-    if (hideDone && ['approved','finished'].includes(st)) return false;
+    if (isMkCompleted(r)) return false; // handled in collapsible section
+    if (hideDone && ['finished'].includes(st)) return false;
+    if (status && get(r,'Status') !== status) return false;
+    if (search && !(
+      get(r,'Name_Company').toLowerCase().includes(search) ||
+      (get(r,'Name_Print') || '').toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  const completedFiltered = mockupRows.filter(r => {
+    if (!isMkCompleted(r)) return false;
     if (status && get(r,'Status') !== status) return false;
     if (search && !(
       get(r,'Name_Company').toLowerCase().includes(search) ||
@@ -2501,8 +2601,71 @@ function renderMockups() {
       </div>`;
   }).join('');
 
-  document.getElementById('mk-sections').innerHTML = html ||
-    '<p style="color:#94a3b8;padding:20px;">No mockup jobs match the current filters.</p>';
+  // Build approved collapsible section
+  let mkCompletedHtml = '';
+  if (completedFiltered.length > 0) {
+    const rowsHtml = completedFiltered.map(r => {
+      const idx = mockupRows.indexOf(r);
+      const actionBtns = `<button class="btn-log mk-btn-log" data-mkidx="${idx}">✏️ Update</button><button class="btn-log mk-btn-edit" data-mkidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
+      const mkChk = `<label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></label>`;
+      const rawFileUrls = (getCI(r,'file') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
+      const fileLinks = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎 File${rawFileUrls.length > 1 ? ' '+(i+1) : ''}</a>`).join(' ')
+        : '';
+      const fileCell = rawFileUrls.length
+        ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
+        : '—';
+      const card = `<div class="aq-card sv-card-done${mkSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#64748b;--tb:#f1f5f9">
+        <div class="aq-card-top">
+          <div class="aq-card-left">${mkChk}<span class="aq-company">${get(r,'Name_Company')}</span></div>
+          ${badge(get(r,'Status'))}
+        </div>
+        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
+        ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
+        <div class="aq-meta">
+          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
+          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
+          ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
+          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
+        </div>
+        <div class="aq-card-actions">${actionBtns}</div>
+      </div>`;
+      const row = `<tr class="row-shipped${mkSelected.has(idx) ? ' row-selected' : ''}">
+        <td><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></td>
+        <td><strong>${get(r,'Name_Company')}</strong></td>
+        <td>${badge(get(r,'Status'))}</td>
+        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${get(r,'Bottle color') || '—'}</td>
+        <td>${get(r,'Lid') || '—'}</td>
+        <td>${get(r,'Owner') || '—'}</td>
+        <td>${get(r,'Deadline') || '—'}</td>
+        <td>${fileCell}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+      return { card, row };
+    });
+
+    mkCompletedHtml = `<div class="sv-completed-section" style="margin-top:16px;">
+      <button class="sv-completed-toggle" onclick="mkCompletedOpen=!mkCompletedOpen;renderMockups();" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--hover);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);">
+        <span>✅ Approved <span style="font-weight:400;opacity:0.7;">(${completedFiltered.length} job${completedFiltered.length !== 1 ? 's' : ''})</span></span>
+        <span>${mkCompletedOpen ? '▲ Collapse' : '▼ Expand'}</span>
+      </button>
+      ${mkCompletedOpen ? `
+        <div class="aq-cards" style="margin-top:10px;">${rowsHtml.map(x => x.card).join('')}</div>
+        <div class="aq-table-wrap table-wrap" style="margin-top:8px;">
+          <table>
+            <thead><tr>
+              <th></th><th>Company</th><th>Status</th>
+              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
+            </tr></thead>
+            <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
+          </table>
+        </div>` : ''}
+    </div>`;
+  }
+
+  document.getElementById('mk-sections').innerHTML = (html || '<p style="color:#94a3b8;padding:20px;">No mockup jobs match the current filters.</p>') + mkCompletedHtml;
 }
 
 ['mk-search','mk-status','mk-hide-done'].forEach(id => {
@@ -2926,12 +3089,16 @@ function renderCalendar() {
         });
         const total = Object.values(byOwner).reduce((s, n) => s + n, 0);
         const ownerLines = Object.entries(byOwner)
-          .map(([o, q]) => `<span style="color:${workerColor(o)};font-weight:600;">${o}</span> ${q}`)
-          .join(', ');
+          .sort((a, b) => b[1] - a[1])
+          .map(([o, q]) => `<div class="cal-actual-person">
+            <span class="cal-who-dot" style="background:${workerColor(o)}"></span>
+            <span class="cal-actual-name">${o}</span>
+            <span class="cal-actual-qty">${q}</span>
+          </div>`)
+          .join('');
         actualHtml = `<div class="cal-actual-output">
-          <div class="cal-actual-label">✅ Actual output</div>
-          <div class="cal-actual-total">${total} printed</div>
-          <div class="cal-actual-detail">${ownerLines}</div>
+          <div class="cal-actual-label">✅ Actual output — ${total} total</div>
+          ${ownerLines}
         </div>`;
       }
     }
