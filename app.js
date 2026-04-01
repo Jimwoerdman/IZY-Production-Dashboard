@@ -772,7 +772,7 @@ function renderActiveQueue() {
       </div>`;
       const inv   = matchInvoice(get(r,'Name_Company'));
       const row = `<tr class="${aqSelected.has(idx) ? 'row-selected' : ''}">
-        <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
+        <td><label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label></td>
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge('Waiting')}</td>
@@ -782,7 +782,9 @@ function renderActiveQueue() {
         <td>${get(r,'Bottle color') || '—'}</td>
         <td>${get(r,'Lid') || '—'}</td>
         <td>${num(r,'Quantity') || '—'}</td>
+        <td>—</td>
         <td>${daysCell(days)}</td>
+        <td>—</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
       return { card, row };
@@ -798,7 +800,7 @@ function renderActiveQueue() {
           <thead style="background:#92400e;background-image:none;"><tr>
             <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
             <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-            <th>Qty</th><th>Days Left</th><th>Actions</th>
+            <th>Qty</th><th>Still</th><th>Days Left</th><th>Files</th><th>Actions</th>
           </tr></thead>
           <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
         </table>
