@@ -28,6 +28,7 @@ const ALLOWED_EMAILS = [
   'ivan@izybottles.com',
   'geertjan@izybottles.com',
   'mees@izybottles.com',
+  'guillaume@izybottles.com',
 ];
 
 // Emails that only see the Active Queue tab
