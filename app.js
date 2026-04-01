@@ -619,11 +619,11 @@ function renderActiveQueue() {
   // Compute effective display status per row
   // Auto-correct stale status when still=0 but sheet wasn't updated (e.g. quantity entered manually)
   const getDisplayStatus = r => {
-    const still = num(r,'Quantity still to print');
-    const qty   = num(r,'Quantity');
-    const status = get(r,'Status').toLowerCase();
-    // Only auto-correct when total quantity > 0 (avoids treating brand-new empty rows as done)
-    if (qty > 0 && still <= 0 && (status === 'to print' || status === 'printing progress' || status === '')) {
+    const stillRaw = get(r,'Quantity still to print');
+    const still    = num(r,'Quantity still to print');
+    const status   = get(r,'Status').toLowerCase();
+    // Only auto-correct when the cell is explicitly set to 0 (not just empty/new row)
+    if (stillRaw !== '' && still <= 0 && (status === 'to print' || status === 'printing progress' || status === '')) {
       const needsSleeve = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase() === 'yes';
       return needsSleeve ? 'Waiting' : 'Ready to Ship';
     }
