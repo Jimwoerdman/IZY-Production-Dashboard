@@ -297,6 +297,11 @@ function doGet(e) {
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
     return respondGet({ headers: headers });
   }
+  if (e.parameter.action === 'get_aq_order') {
+    const raw = PropertiesService.getScriptProperties().getProperty('aq_orders');
+    return respondGet({ orders: raw ? JSON.parse(raw) : {} });
+  }
+
   if (e.parameter.action === 'get_wf_headers') {
     const sheet = ss.getSheetByName('Workfile');
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
@@ -619,6 +624,16 @@ function doPost(e) {
 
     if (priorityCol === -1) return respond({ error: 'Priority column not found' });
 
+    // Save Active Queue manual row order
+    if (data.action === 'set_aq_order') {
+      const props  = PropertiesService.getScriptProperties();
+      const raw    = props.getProperty('aq_orders');
+      const orders = raw ? JSON.parse(raw) : {};
+      orders[data.section] = data.ids;
+      props.setProperty('aq_orders', JSON.stringify(orders));
+      return respond({ success: true });
+    }
+
     // Phone photo upload — save to Drive, store URL in ScriptProperties for polling
     if (data.action === 'upload_photo') {
       try {
@@ -912,6 +927,7 @@ function doPost(e) {
     // Add sleeve job (Sleeves sheet)
     if (data.action === 'add_sleeve_job') {
       const svSheet   = ss.getSheetByName('Sleeves');
+      if (!svSheet) return respond({ error: 'Sheet "Sleeves" not found — check the sheet name in your spreadsheet.' });
       const lastRow   = svSheet.getLastRow();
       const svHeaders = svSheet.getRange(1, 1, 1, Math.max(svSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
       const newRow    = lastRow + 1;
@@ -1756,6 +1772,9 @@ function respond(data) {
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+// Note: Apps Script web apps automatically include Access-Control-Allow-Origin: *
+// when deployed with "Anyone" access, so postAndRead (cors fetch) works without changes.
 
 /***** JOB CHANGE NOTIFICATIONS *****/
 const GEERTJAN = 'geertjan@izybottles.com';

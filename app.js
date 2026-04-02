@@ -601,13 +601,27 @@ function statusSortOrder(r) {
 
 let aqTypeFilter = '';
 
-// ── Manual row ordering (per section, stored in localStorage) ─
-function getAqOrder(label) {
-  try { return JSON.parse(localStorage.getItem('aq_order_' + label)) || []; } catch { return []; }
+// ── Manual row ordering (shared via Apps Script PropertiesService) ─
+let aqOrders = {}; // in-memory cache, loaded on refresh
+
+async function loadAqOrders() {
+  try {
+    const data = await fetch(SCRIPT_URL + '?action=get_aq_order&t=' + Date.now()).then(r => r.json());
+    aqOrders = data.orders || {};
+  } catch (_) {}
 }
+
+function getAqOrder(label) { return aqOrders[label] || []; }
+
 function setAqOrder(label, ids) {
-  localStorage.setItem('aq_order_' + label, JSON.stringify(ids));
+  aqOrders[label] = ids;
+  // Fire-and-forget save to server
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'set_aq_order', section: label, ids }),
+  }).catch(() => {});
 }
+
 function applyAqOrder(rows, label) {
   const order = getAqOrder(label);
   if (!order.length) return rows;
@@ -3452,6 +3466,7 @@ async function refreshData() {
     const [fetchData] = await Promise.all([
       Promise.race([fetchPromise, timeoutPromise]),
       loadInvoices(),
+      loadAqOrders(),
     ]);
     const parsed  = (fetchData.rows || []).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0')
       .map(r => { if (r['Owner']) r['Owner'] = normOwner(r['Owner']); return r; });
