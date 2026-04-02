@@ -103,6 +103,7 @@ let shippedRows  = []; // confirmed matched shipping rows
 let reviewRows   = []; // unmatched / low-confidence rows for review
 let charts       = {};
 let invoiceData  = []; // Moneybird invoices
+let aqActiveRows = []; // last computed activeRows, used by move-up/down handler
 
 // ── Moneybird helpers ─────────────────────────────────────────
 async function loadInvoices() {
@@ -663,10 +664,11 @@ function renderActiveQueue() {
   const readyRows   = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'ready to ship');
   const waitingRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'waiting');
   console.log('[AQ] filtered:', filtered.length, 'waiting:', waitingRows.length, 'waiting statuses:', waitingRows.map(r => get(r,'Status')), 'allRows waiting:', allRows.filter(r => get(r,'Status').toLowerCase() === 'waiting').length);
-  const activeRows  = filtered.filter(r => {
+  aqActiveRows = filtered.filter(r => {
     const s = getDisplayStatus(r).toLowerCase();
     return s !== 'ready to ship' && s !== 'waiting';
   });
+  const activeRows = aqActiveRows;
 
   // Type filter pills (exclude Ready to Ship from counts)
   const tabsEl = document.getElementById('aq-type-tabs');
@@ -950,7 +952,7 @@ document.getElementById('tab-active-queue').addEventListener('click', function(e
     const label   = btn.dataset.section;
     const sr      = parseInt(btn.dataset.sr);
     const section = AQ_SECTIONS.find(s => s.label === label);
-    const rows    = applyAqOrder(activeRows.filter(r => section?.match(get(r,'Soort').toLowerCase())), label);
+    const rows    = applyAqOrder(aqActiveRows.filter(r => section?.match(get(r,'Soort').toLowerCase())), label);
     const ids     = rows.map(r => r['_sheetRow']);
     const i       = ids.indexOf(sr);
     if (moveUpBtn   && i > 0)              { [ids[i-1], ids[i]] = [ids[i], ids[i-1]]; }
