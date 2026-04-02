@@ -719,7 +719,7 @@ function renderActiveQueue() {
       <div class="aq-section">
         <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
           <span style="font-size:13px;font-weight:700;">${section.label}</span>
-          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${rows.reduce((s,r) => s + num(r,'Quantity'), 0)} pcs</span>
         </div>
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
