@@ -975,6 +975,21 @@ td.cell-ok      { color: var(--green);  font-weight: 600; }
   color: var(--text-2);
   margin-top: 2px;
 }
+.cal-actual-person {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  margin-top: 3px;
+}
+.cal-actual-name {
+  color: var(--text-2);
+  flex: 1;
+}
+.cal-actual-qty {
+  font-weight: 700;
+  color: var(--text-1);
+}
 
 /* ── Footer ── */
 footer {
@@ -1533,6 +1548,16 @@ td.notes-cell {
 #tab-active-queue .aq-table-wrap td .btn-sleeve,
 #tab-active-queue .aq-table-wrap td .btn-reset { margin-right: 4px; padding: 4px 8px; font-size: 11px; }
 #tab-active-queue .aq-table-wrap td .btn-reset { margin-right: 0; }
+
+/* Move up/down buttons */
+.btn-move-up, .btn-move-down {
+  padding: 2px 6px; font-size: 10px; line-height: 1;
+  background: var(--surface-2); color: var(--text-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; margin-right: 2px;
+}
+.btn-move-up:disabled, .btn-move-down:disabled { opacity: 0.25; cursor: default; }
+.btn-move-up:not(:disabled):hover, .btn-move-down:not(:disabled):hover { background: var(--surface-3); }
 
 .btn-log, .btn-sleeve, .btn-reset {
   flex: 1; padding: 9px 6px;

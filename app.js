@@ -601,6 +601,22 @@ function statusSortOrder(r) {
 
 let aqTypeFilter = '';
 
+// ── Manual row ordering (per section, stored in localStorage) ─
+function getAqOrder(label) {
+  try { return JSON.parse(localStorage.getItem('aq_order_' + label)) || []; } catch { return []; }
+}
+function setAqOrder(label, ids) {
+  localStorage.setItem('aq_order_' + label, JSON.stringify(ids));
+}
+function applyAqOrder(rows, label) {
+  const order = getAqOrder(label);
+  if (!order.length) return rows;
+  const byId = new Map(rows.map(r => [r['_sheetRow'], r]));
+  const sorted = order.map(id => byId.get(id)).filter(Boolean);
+  const rest   = rows.filter(r => !order.includes(r['_sheetRow']));
+  return [...sorted, ...rest];
+}
+
 function renderActiveQueue() {
   const search   = document.getElementById('aq-search').value.toLowerCase();
   const status   = document.getElementById('aq-status').value;
@@ -648,14 +664,15 @@ function renderActiveQueue() {
     }).join('');
 
   const html = AQ_SECTIONS.filter(s => !aqTypeFilter || s.label === aqTypeFilter).map(section => {
-    const rows = activeRows
-      .filter(r => section.match(get(r,'Soort').toLowerCase()))
-      .sort((a,b) => statusSortOrder(a) - statusSortOrder(b));
+    const rows = applyAqOrder(
+      activeRows.filter(r => section.match(get(r,'Soort').toLowerCase())),
+      section.label
+    );
 
     if (rows.length === 0) return '';
 
     const c = section.colors;
-    const rowsHtml = rows.map(r => {
+    const rowsHtml = rows.map((r, rowIndex) => {
       const d     = parseDate(get(r,'Deadline'));
       const days  = daysFrom(d);
       const still = num(r,'Quantity still to print');
@@ -666,7 +683,10 @@ function renderActiveQueue() {
         displayStatus.toLowerCase() === 'ready to ship'
           ? `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`
           : `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
-      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const sr = r['_sheetRow'];
+      const upBtn   = `<button class="btn-move-up"   data-section="${section.label}" data-sr="${sr}" ${rowIndex === 0 ? 'disabled' : ''} title="Move up">▲</button>`;
+      const downBtn = `<button class="btn-move-down" data-section="${section.label}" data-sr="${sr}" ${rowIndex === rows.length - 1 ? 'disabled' : ''} title="Move down">▼</button>`;
+      const actionBtns = `${upBtn}${downBtn}<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
 
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
@@ -907,6 +927,22 @@ document.getElementById('tab-active-queue').addEventListener('click', function(e
     const idx = parseInt(selectCb.dataset.rowidx);
     if (selectCb.checked) aqSelected.add(idx); else aqSelected.delete(idx);
     updateSelectionBar();
+    return;
+  }
+  const moveUpBtn   = e.target.closest('.btn-move-up');
+  const moveDownBtn = e.target.closest('.btn-move-down');
+  if (moveUpBtn || moveDownBtn) {
+    const btn     = moveUpBtn || moveDownBtn;
+    const label   = btn.dataset.section;
+    const sr      = parseInt(btn.dataset.sr);
+    const section = AQ_SECTIONS.find(s => s.label === label);
+    const rows    = applyAqOrder(activeRows.filter(r => section?.match(get(r,'Soort').toLowerCase())), label);
+    const ids     = rows.map(r => r['_sheetRow']);
+    const i       = ids.indexOf(sr);
+    if (moveUpBtn   && i > 0)              { [ids[i-1], ids[i]] = [ids[i], ids[i-1]]; }
+    if (moveDownBtn && i < ids.length - 1) { [ids[i], ids[i+1]] = [ids[i+1], ids[i]]; }
+    setAqOrder(label, ids);
+    renderActiveQueue();
     return;
   }
   const aqEditBtn = e.target.closest('.aq-btn-edit');
