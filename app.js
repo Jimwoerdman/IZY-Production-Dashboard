@@ -663,7 +663,6 @@ function renderActiveQueue() {
 
   const readyRows   = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'ready to ship');
   const waitingRows = filtered.filter(r => getDisplayStatus(r).toLowerCase() === 'waiting');
-  console.log('[AQ] filtered:', filtered.length, 'waiting:', waitingRows.length, 'waiting statuses:', waitingRows.map(r => get(r,'Status')), 'allRows waiting:', allRows.filter(r => get(r,'Status').toLowerCase() === 'waiting').length);
   aqActiveRows = filtered.filter(r => {
     const s = getDisplayStatus(r).toLowerCase();
     return s !== 'ready to ship' && s !== 'waiting';
