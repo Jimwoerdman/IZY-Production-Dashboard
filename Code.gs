@@ -616,7 +616,7 @@ function doPost(e) {
 
     // Fixed column positions per user specification
     const photoCol   = 8;  // Column H
-    const printerCol = 35; // Column AI
+    const printerCol = 37; // Column AK
 
     // Find 'Status' column by header (exact match, 1-based) — avoids 'Status (under construction)'
     const statusColIdx = headers.findIndex(h => h === 'Status');
