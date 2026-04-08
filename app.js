@@ -637,18 +637,20 @@ async function loadCalendarCapacity() {
     // Parses a Sheets date value robustly: prefers UTC fields from ISO strings to
     // avoid local-timezone shifting (Brussels midnight stored as '...T22:00:00Z'
     // would otherwise become "yesterday" for users in western timezones).
+    // Sheets date values arrive as ISO strings in UTC. Brussels midnight serialises
+    // as e.g. "2026-04-07T22:00:00.000Z", so naively reading the date portion gives
+    // the wrong calendar day. Shifting by +12h before reading UTC components rounds
+    // any plausible timezone offset (+/-12h) onto the correct local date.
     const toLocalMidnight = (val) => {
       if (val == null || val === '') return null;
       const s = String(val);
-      // ISO date string from JSON serialization of a Date object
-      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
-      if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
-      // dd/mm/yyyy
+      // dd/mm/yyyy plain string
       const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (dmy) return new Date(+dmy[3], +dmy[2] - 1, +dmy[1]);
       const d = new Date(s);
       if (isNaN(d)) return null;
-      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      const shifted = new Date(d.getTime() + 12 * 3600 * 1000);
+      return new Date(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
     };
     for (let i = hdrIdx + 1; i < rows.length; i++) {
       const r = rows[i];
