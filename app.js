@@ -673,33 +673,62 @@ async function loadCalendarCapacity() {
   }
 }
 
-// Given the ordered active queue rows, compute estimated print-finish date per row.
-// Returns Map<_sheetRow, Date>. A job consumes its remaining quantity from the
-// running calendar capacity; the day on which it's fully consumed is its est. date.
-function computeAqSchedule(orderedRows) {
+// Compute estimated print-finish date per row, splitting daily capacity into
+// type-specific buckets:
+//   • 50% → bottles
+//   • 30% → travel bottles
+//   • 20% → mugs OR tumblers (one machine handles both). Whichever type has the
+//     earliest first deadline gets the slot first; the other type takes over once
+//     the first one is fully scheduled.
+// Samples & Other sections are not scheduled.
+function computeAqSchedule(sectionRows) {
   const map = new Map();
-  if (!calendarCapacity.length || !orderedRows.length) return map;
+  if (!calendarCapacity.length) return map;
 
-  // Clone capacity so we can mutate
-  const cap = calendarCapacity.map(c => ({ date: c.date, remaining: c.expected }));
-  let dayIdx = 0;
-
-  for (const r of orderedRows) {
-    const still = num(r, 'Quantity still to print');
-    const qty   = num(r, 'Quantity');
-    let need = still > 0 ? still : qty;
-    if (need <= 0) { map.set(r['_sheetRow'], null); continue; }
-
-    let finishDate = null;
-    while (need > 0 && dayIdx < cap.length) {
-      if (cap[dayIdx].remaining <= 0) { dayIdx++; continue; }
-      const take = Math.min(need, cap[dayIdx].remaining);
-      cap[dayIdx].remaining -= take;
-      need -= take;
-      if (need <= 0) finishDate = cap[dayIdx].date;
+  // Process a single bucket (ordered list of rows) against a per-day capacity slice.
+  const processBucket = (rows, ratio) => {
+    if (!rows || !rows.length) return;
+    const cap = calendarCapacity.map(c => ({ date: c.date, remaining: c.expected * ratio }));
+    let dayIdx = 0;
+    for (const r of rows) {
+      const still = num(r, 'Quantity still to print');
+      const qty   = num(r, 'Quantity');
+      let need = still > 0 ? still : qty;
+      if (need <= 0) { map.set(r['_sheetRow'], null); continue; }
+      let finishDate = null;
+      while (need > 0 && dayIdx < cap.length) {
+        if (cap[dayIdx].remaining <= 0) { dayIdx++; continue; }
+        const take = Math.min(need, cap[dayIdx].remaining);
+        cap[dayIdx].remaining -= take;
+        need -= take;
+        if (need <= 0) finishDate = cap[dayIdx].date;
+      }
+      map.set(r['_sheetRow'], finishDate);
     }
-    map.set(r['_sheetRow'], finishDate);
-  }
+  };
+
+  processBucket(sectionRows.bottles, 0.5);
+  processBucket(sectionRows.travel,  0.3);
+
+  // Mugs / Tumblers share the 20% slot. Earliest first-deadline wins the front;
+  // when finished, the other type continues consuming what's left.
+  const mugs = sectionRows.mugs     || [];
+  const tumb = sectionRows.tumblers || [];
+  const firstDeadline = (rows) => {
+    for (const r of rows) {
+      const d = parseDate(get(r, 'Deadline'));
+      if (d) return d;
+    }
+    return null;
+  };
+  const mD = firstDeadline(mugs);
+  const tD = firstDeadline(tumb);
+  let combined;
+  if (mD && tD)      combined = mD <= tD ? [...mugs, ...tumb] : [...tumb, ...mugs];
+  else if (mD)       combined = [...mugs, ...tumb];
+  else               combined = [...tumb, ...mugs];
+  processBucket(combined, 0.2);
+
   return map;
 }
 
@@ -774,12 +803,19 @@ function renderActiveQueue() {
       return `<button class="aq-type-tab${aqTypeFilter === s.label ? ' active' : ''}" data-type="${s.label}" style="--tc:${s.colors.text};--tb:${s.colors.bg}">${s.label} <span class="aq-tab-count">${n}</span></button>`;
     }).join('');
 
-  // Build a global ordered queue across ALL sections (in AQ_SECTIONS order, with manual ▲▼ order applied per section)
-  // and forecast est. print date for each row from calendar capacity.
-  const globalOrdered = AQ_SECTIONS.flatMap(section =>
-    applyAqOrder(activeRows.filter(r => section.match(get(r,'Soort').toLowerCase())), section.label)
-  );
-  const aqEstDates = computeAqSchedule(globalOrdered);
+  // Build per-bucket ordered queues (manual ▲▼ ordering applied) and forecast
+  // est. print date from calendar capacity, split into type-specific buckets.
+  const orderedFor = (label) => {
+    const section = AQ_SECTIONS.find(s => s.label === label);
+    if (!section) return [];
+    return applyAqOrder(activeRows.filter(r => section.match(get(r,'Soort').toLowerCase())), label);
+  };
+  const aqEstDates = computeAqSchedule({
+    bottles:  orderedFor('Bottles'),
+    travel:   orderedFor('Travel Bottles'),
+    mugs:     orderedFor('Mugs'),
+    tumblers: orderedFor('Tumblers'),
+  });
 
   const html = AQ_SECTIONS.filter(s => !aqTypeFilter || s.label === aqTypeFilter).map(section => {
     const rows = applyAqOrder(
