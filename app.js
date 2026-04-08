@@ -626,14 +626,29 @@ async function loadCalendarCapacity() {
     let hdrIdx = rows.findIndex(r => String(r[0]).toLowerCase().trim() === 'date' && String(r[2]).toLowerCase().trim() === 'who');
     if (hdrIdx < 0) return;
     const hdr = rows[hdrIdx].map(h => String(h).trim().toLowerCase());
-    const dateCol     = hdr.findIndex(h => h.includes('date'));
-    const expectedCol = hdr.findIndex(h => h.includes('expected'));
+    const dateCol      = hdr.findIndex(h => h.includes('date'));
+    const expectedCol  = hdr.findIndex(h => h.includes('expected'));
+    const startCol     = hdr.findIndex(h => h.includes('start'));
+    const endCol       = hdr.findIndex(h => h.includes('end'));
+    const hoursPrntCol = hdr.findIndex(h => h.includes('hours to print'));
     if (dateCol < 0 || expectedCol < 0) return;
+
+    // Sheets stores time-of-day as a Date anchored to 1899-12-30 in UTC. Extract HH:MM.
+    const parseSheetTime = (val) => {
+      if (val == null || val === '') return null;
+      const s = String(val);
+      if (s.includes('1899-12-3')) {
+        const d = new Date(s);
+        return d.getUTCHours() + d.getUTCMinutes() / 60;
+      }
+      const m = s.match(/^(\d{1,2}):(\d{2})/);
+      if (m) return +m[1] + (+m[2]) / 60;
+      return null;
+    };
 
     // Sum expected pieces per day (multiple workers may share a day)
     const today = new Date(); today.setHours(0,0,0,0);
     const todayMs = today.getTime();
-    const byDay = new Map(); // ms timestamp of local midnight → total expected
     // Parses a Sheets date value robustly: prefers UTC fields from ISO strings to
     // avoid local-timezone shifting (Brussels midnight stored as '...T22:00:00Z'
     // would otherwise become "yesterday" for users in western timezones).
@@ -652,6 +667,8 @@ async function loadCalendarCapacity() {
       const shifted = new Date(d.getTime() + 12 * 3600 * 1000);
       return new Date(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
     };
+    // Per day, accumulate: total expected pieces, earliest start, latest end, total hours-to-print
+    const dayInfo = new Map();
     for (let i = hdrIdx + 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r[dateCol]) continue;
@@ -662,12 +679,20 @@ async function loadCalendarCapacity() {
       if (isNaN(dMs) || dMs < todayMs) continue;
       const exp = parseInt(r[expectedCol]) || 0;
       if (exp <= 0) continue;
-      byDay.set(dMs, (byDay.get(dMs) || 0) + exp);
+      const startH = startCol     >= 0 ? parseSheetTime(r[startCol])     : null;
+      const endH   = endCol       >= 0 ? parseSheetTime(r[endCol])       : null;
+      const hp     = hoursPrntCol >= 0 ? (parseFloat(String(r[hoursPrntCol]).replace(',','.')) || 0) : 0;
+      const cur = dayInfo.get(dMs) || { expected: 0, startH: null, endH: null, hoursPrint: 0 };
+      cur.expected += exp;
+      if (startH != null) cur.startH = cur.startH == null ? startH : Math.min(cur.startH, startH);
+      if (endH   != null) cur.endH   = cur.endH   == null ? endH   : Math.max(cur.endH,   endH);
+      cur.hoursPrint += hp;
+      dayInfo.set(dMs, cur);
     }
-    calendarCapacity = [...byDay.entries()]
-      .map(([ms, v]) => ({ date: new Date(ms), expected: v }))
+    calendarCapacity = [...dayInfo.entries()]
+      .map(([ms, v]) => ({ date: new Date(ms), expected: v.expected, startH: v.startH, endH: v.endH, hoursPrint: v.hoursPrint }))
       .sort((a, b) => a.date - b.date);
-    console.log('[AQ schedule] capacity days:', calendarCapacity.length, calendarCapacity.slice(0,5).map(c => c.date.toDateString() + '=' + c.expected));
+    console.log('[AQ schedule] capacity days:', calendarCapacity.length, calendarCapacity.slice(0,5).map(c => c.date.toDateString() + '=' + c.expected + ' (' + c.hoursPrint + 'h)'));
   } catch (err) {
     console.warn('[AQ schedule] capacity load failed:', err);
   }
@@ -685,10 +710,25 @@ function computeAqSchedule(sectionRows) {
   const map = new Map();
   if (!calendarCapacity.length) return map;
 
+  // Pro-rate today's first day capacity by hours remaining in the print window.
+  // E.g. expected=280 with start 09:00 / end 17:00 (8h working), at 12:00 only
+  // 5/8 of 280 = 175 pcs are still possible today.
+  const now      = new Date();
+  const nowH     = now.getHours() + now.getMinutes() / 60;
+  const todayMs2 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayFactor = (c) => {
+    if (c.date.getTime() !== todayMs2) return 1;
+    if (c.startH == null || c.endH == null || c.endH <= c.startH) return 1;
+    const total = c.endH - c.startH;
+    if (nowH <= c.startH) return 1;
+    if (nowH >= c.endH)   return 0;
+    return (c.endH - nowH) / total;
+  };
+
   // Process a single bucket (ordered list of rows) against a per-day capacity slice.
   const processBucket = (rows, ratio) => {
     if (!rows || !rows.length) return;
-    const cap = calendarCapacity.map(c => ({ date: c.date, remaining: c.expected * ratio }));
+    const cap = calendarCapacity.map(c => ({ date: c.date, remaining: c.expected * ratio * todayFactor(c) }));
     let dayIdx = 0;
     for (const r of rows) {
       const still = num(r, 'Quantity still to print');
