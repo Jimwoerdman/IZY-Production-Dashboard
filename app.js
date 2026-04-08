@@ -614,6 +614,78 @@ async function loadAqOrders() {
   } catch (_) {}
 }
 
+// ── Calendar capacity (for AQ print-date forecasting) ─────────────
+// Array of { date: Date, expected: number } sorted ascending, future-only.
+let calendarCapacity = [];
+
+async function loadCalendarCapacity() {
+  try {
+    const raw = await fetch(SCRIPT_URL + '?sheet=calendar&raw=1&t=' + Date.now()).then(r => r.json());
+    const rows = raw.raw || [];
+    let hdrIdx = rows.findIndex(r => String(r[0]).toLowerCase().trim() === 'date' && String(r[2]).toLowerCase().trim() === 'who');
+    if (hdrIdx < 0) return;
+    const hdr = rows[hdrIdx].map(h => String(h).trim().toLowerCase());
+    const dateCol     = hdr.findIndex(h => h.includes('date'));
+    const expectedCol = hdr.findIndex(h => h.includes('expected'));
+    if (dateCol < 0 || expectedCol < 0) return;
+
+    // Sum expected pieces per day (multiple workers may share a day)
+    const today = new Date(); today.setHours(0,0,0,0);
+    const byDay = new Map(); // ISO date string → total expected
+    for (let i = hdrIdx + 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[dateCol]) continue;
+      if (String(r[dateCol]).toLowerCase().trim() === 'date') continue;
+      const dObj = new Date(r[dateCol]);
+      if (isNaN(dObj)) continue;
+      const d = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
+      if (d < today) continue;
+      const exp = parseInt(r[expectedCol]) || 0;
+      if (exp <= 0) continue;
+      const key = d.toISOString().slice(0,10);
+      byDay.set(key, (byDay.get(key) || 0) + exp);
+    }
+    calendarCapacity = [...byDay.entries()]
+      .map(([k, v]) => ({ date: new Date(k + 'T00:00:00'), expected: v }))
+      .sort((a, b) => a.date - b.date);
+  } catch (_) {}
+}
+
+// Given the ordered active queue rows, compute estimated print-finish date per row.
+// Returns Map<_sheetRow, Date>. A job consumes its remaining quantity from the
+// running calendar capacity; the day on which it's fully consumed is its est. date.
+function computeAqSchedule(orderedRows) {
+  const map = new Map();
+  if (!calendarCapacity.length || !orderedRows.length) return map;
+
+  // Clone capacity so we can mutate
+  const cap = calendarCapacity.map(c => ({ date: c.date, remaining: c.expected }));
+  let dayIdx = 0;
+
+  for (const r of orderedRows) {
+    const still = num(r, 'Quantity still to print');
+    const qty   = num(r, 'Quantity');
+    let need = still > 0 ? still : qty;
+    if (need <= 0) { map.set(r['_sheetRow'], null); continue; }
+
+    let finishDate = null;
+    while (need > 0 && dayIdx < cap.length) {
+      if (cap[dayIdx].remaining <= 0) { dayIdx++; continue; }
+      const take = Math.min(need, cap[dayIdx].remaining);
+      cap[dayIdx].remaining -= take;
+      need -= take;
+      if (need <= 0) finishDate = cap[dayIdx].date;
+    }
+    map.set(r['_sheetRow'], finishDate);
+  }
+  return map;
+}
+
+function fmtEstDate(d) {
+  if (!d) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
 function getAqOrder(label) { return aqOrders[label] || []; }
 
 function setAqOrder(label, ids) {
@@ -680,6 +752,13 @@ function renderActiveQueue() {
       return `<button class="aq-type-tab${aqTypeFilter === s.label ? ' active' : ''}" data-type="${s.label}" style="--tc:${s.colors.text};--tb:${s.colors.bg}">${s.label} <span class="aq-tab-count">${n}</span></button>`;
     }).join('');
 
+  // Build a global ordered queue across ALL sections (in AQ_SECTIONS order, with manual ▲▼ order applied per section)
+  // and forecast est. print date for each row from calendar capacity.
+  const globalOrdered = AQ_SECTIONS.flatMap(section =>
+    applyAqOrder(activeRows.filter(r => section.match(get(r,'Soort').toLowerCase())), section.label)
+  );
+  const aqEstDates = computeAqSchedule(globalOrdered);
+
   const html = AQ_SECTIONS.filter(s => !aqTypeFilter || s.label === aqTypeFilter).map(section => {
     const rows = applyAqOrder(
       activeRows.filter(r => section.match(get(r,'Soort').toLowerCase())),
@@ -693,6 +772,11 @@ function renderActiveQueue() {
       const d     = parseDate(get(r,'Deadline'));
       const days  = daysFrom(d);
       const still = num(r,'Quantity still to print');
+      const estDate    = aqEstDates.get(r['_sheetRow']);
+      const estLate    = !!(d && estDate && estDate > d);
+      const estTxt     = fmtEstDate(estDate);
+      const estStyle   = estLate ? 'color:var(--red);font-weight:600;' : '';
+      const estTitle   = estLate ? 'title="Estimated print date is after the deadline"' : '';
       const displayStatus = getDisplayStatus(r);
       const idx   = allRows.indexOf(r);
       const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
@@ -723,6 +807,7 @@ function renderActiveQueue() {
         ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
         <div class="aq-meta">
           <div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline') || '—'}</span></div>
+          <div class="aq-meta-item" ${estTitle}><span class="aq-meta-label">Est. print</span><span style="${estStyle}">${estTxt}</span></div>
           <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
           <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
           ${still > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to print</span><span class="cell-danger">${still}</span></div>` : ''}
@@ -740,6 +825,7 @@ function renderActiveQueue() {
         <td>${invoiceBadge(inv)}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
         <td>${get(r,'Deadline') || '—'}</td>
+        <td ${estTitle} style="${estStyle}">${estTxt}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
         <td>${get(r,'Lid') || '—'}</td>
         <td>${num(r,'Quantity') || '—'}</td>
@@ -763,7 +849,7 @@ function renderActiveQueue() {
           <table>
             <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
               <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
-              <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
+              <th>Type</th><th>Deadline</th><th>Est. Print</th><th>Color</th><th>Lid</th>
               <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
@@ -3470,6 +3556,7 @@ async function refreshData() {
       Promise.race([fetchPromise, timeoutPromise]),
       loadInvoices(),
       loadAqOrders(),
+      loadCalendarCapacity(),
     ]);
     const parsed  = (fetchData.rows || []).filter(r => get(r,'Name_Company') && get(r,'Priority') && get(r,'Priority') !== '0')
       .map(r => { if (r['Owner']) r['Owner'] = normOwner(r['Owner']); return r; });
