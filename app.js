@@ -619,6 +619,7 @@ async function loadAqOrders() {
 let calendarCapacity = [];
 
 async function loadCalendarCapacity() {
+  calendarCapacity = [];
   try {
     const raw = await fetch(SCRIPT_URL + '?sheet=calendar&raw=1&t=' + Date.now()).then(r => r.json());
     const rows = raw.raw || [];
@@ -631,24 +632,43 @@ async function loadCalendarCapacity() {
 
     // Sum expected pieces per day (multiple workers may share a day)
     const today = new Date(); today.setHours(0,0,0,0);
-    const byDay = new Map(); // ISO date string → total expected
+    const todayMs = today.getTime();
+    const byDay = new Map(); // ms timestamp of local midnight → total expected
+    // Parses a Sheets date value robustly: prefers UTC fields from ISO strings to
+    // avoid local-timezone shifting (Brussels midnight stored as '...T22:00:00Z'
+    // would otherwise become "yesterday" for users in western timezones).
+    const toLocalMidnight = (val) => {
+      if (val == null || val === '') return null;
+      const s = String(val);
+      // ISO date string from JSON serialization of a Date object
+      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+      if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+      // dd/mm/yyyy
+      const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (dmy) return new Date(+dmy[3], +dmy[2] - 1, +dmy[1]);
+      const d = new Date(s);
+      if (isNaN(d)) return null;
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    };
     for (let i = hdrIdx + 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r[dateCol]) continue;
       if (String(r[dateCol]).toLowerCase().trim() === 'date') continue;
-      const dObj = new Date(r[dateCol]);
-      if (isNaN(dObj)) continue;
-      const d = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
-      if (d < today) continue;
+      const d = toLocalMidnight(r[dateCol]);
+      if (!d) continue;
+      const dMs = d.getTime();
+      if (isNaN(dMs) || dMs < todayMs) continue;
       const exp = parseInt(r[expectedCol]) || 0;
       if (exp <= 0) continue;
-      const key = d.toISOString().slice(0,10);
-      byDay.set(key, (byDay.get(key) || 0) + exp);
+      byDay.set(dMs, (byDay.get(dMs) || 0) + exp);
     }
     calendarCapacity = [...byDay.entries()]
-      .map(([k, v]) => ({ date: new Date(k + 'T00:00:00'), expected: v }))
+      .map(([ms, v]) => ({ date: new Date(ms), expected: v }))
       .sort((a, b) => a.date - b.date);
-  } catch (_) {}
+    console.log('[AQ schedule] capacity days:', calendarCapacity.length, calendarCapacity.slice(0,5).map(c => c.date.toDateString() + '=' + c.expected));
+  } catch (err) {
+    console.warn('[AQ schedule] capacity load failed:', err);
+  }
 }
 
 // Given the ordered active queue rows, compute estimated print-finish date per row.
