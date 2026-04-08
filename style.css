@@ -1524,24 +1524,34 @@ td.notes-cell {
 #tab-active-queue .aq-table-wrap tbody td:nth-child(2),
 #tab-active-queue .aq-table-wrap tbody td:nth-child(3) { text-overflow: ellipsis; }
 
-/* Column widths: checkbox, Company, Print Name, Status, Invoice, Type, Deadline, Color, Lid, Qty, Still, Days, Files, Actions */
+/* Column widths: checkbox, Company, Print Name, Status, Invoice, Type, Deadline, Est. Print, Color, Lid, Qty, Still, Days, Files, Actions */
 #tab-active-queue .aq-table-wrap th:nth-child(1)  { width: 32px; }
-#tab-active-queue .aq-table-wrap th:nth-child(2)  { width: 14%; }  /* Company */
-#tab-active-queue .aq-table-wrap th:nth-child(3)  { width: 11%; }  /* Print Name */
+#tab-active-queue .aq-table-wrap th:nth-child(2)  { width: 13%; }  /* Company */
+#tab-active-queue .aq-table-wrap th:nth-child(3)  { width: 10%; }  /* Print Name */
 #tab-active-queue .aq-table-wrap th:nth-child(4)  { width: 8%;  }  /* Status */
 #tab-active-queue .aq-table-wrap th:nth-child(5)  { width: 6%;  }  /* Invoice */
 #tab-active-queue .aq-table-wrap th:nth-child(6)  { width: 5%;  }  /* Type */
 #tab-active-queue .aq-table-wrap th:nth-child(7)  { width: 6%;  }  /* Deadline */
-#tab-active-queue .aq-table-wrap th:nth-child(8)  { width: 5%;  }  /* Color */
-#tab-active-queue .aq-table-wrap th:nth-child(9)  { width: 4%;  }  /* Lid */
-#tab-active-queue .aq-table-wrap th:nth-child(10) { width: 3%;  }  /* Qty */
-#tab-active-queue .aq-table-wrap th:nth-child(11) { width: 4%;  }  /* Still */
-#tab-active-queue .aq-table-wrap th:nth-child(12) { width: 4%;  }  /* Days */
-#tab-active-queue .aq-table-wrap th:nth-child(13) { width: 3%;  }  /* Files */
-#tab-active-queue .aq-table-wrap th:nth-child(14) { width: 21%; }  /* Actions */
+#tab-active-queue .aq-table-wrap th:nth-child(8)  { width: 5%;  }  /* Est. Print */
+#tab-active-queue .aq-table-wrap th:nth-child(9)  { width: 5%;  }  /* Color */
+#tab-active-queue .aq-table-wrap th:nth-child(10) { width: 4%;  }  /* Lid */
+#tab-active-queue .aq-table-wrap th:nth-child(11) { width: 3%;  }  /* Qty */
+#tab-active-queue .aq-table-wrap th:nth-child(12) { width: 4%;  }  /* Still */
+#tab-active-queue .aq-table-wrap th:nth-child(13) { width: 4%;  }  /* Days */
+#tab-active-queue .aq-table-wrap th:nth-child(14) { width: 3%;  }  /* Files */
+#tab-active-queue .aq-table-wrap th:nth-child(15) { width: 21%; }  /* Actions */
 
-/* Ready to Ship table: 13 columns (no Files) */
-#tab-active-queue .aq-rts-table th:nth-child(13) { width: 21%; }  /* Actions — override the 3% Files rule */
+/* Ready to Ship table: 13 columns (no Files, no Est. Print) */
+#tab-active-queue .aq-rts-table th:nth-child(13) { width: 21%; }  /* Actions — override the Days rule */
+
+/* Waiting for Sleeve table: 14 columns (no Est. Print) */
+#tab-active-queue .aq-waiting-table th:nth-child(8)  { width: 5%;  }  /* Color */
+#tab-active-queue .aq-waiting-table th:nth-child(9)  { width: 4%;  }  /* Lid */
+#tab-active-queue .aq-waiting-table th:nth-child(10) { width: 3%;  }  /* Qty */
+#tab-active-queue .aq-waiting-table th:nth-child(11) { width: 4%;  }  /* Still */
+#tab-active-queue .aq-waiting-table th:nth-child(12) { width: 4%;  }  /* Days */
+#tab-active-queue .aq-waiting-table th:nth-child(13) { width: 3%;  }  /* Files */
+#tab-active-queue .aq-waiting-table th:nth-child(14) { width: 21%; }  /* Actions */
 
 /* Compact action buttons in table rows (active queue only) */
 #tab-active-queue .aq-table-wrap td .btn-log,
