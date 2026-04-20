@@ -194,6 +194,14 @@ function getCI(row, keyword) {
 }
 function num(row, key) { return parseInt(row[key]) || 0; }
 
+// Notes cells often contain multi-line history (oldest at top). Compact displays
+// should show only the MOST RECENT entry; the full text stays in the tooltip.
+function lastNote(notes) {
+  if (!notes) return '';
+  const lines = String(notes).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return lines.length ? lines[lines.length - 1] : '';
+}
+
 function parseDate(str) {
   if (!str || str === '—' || str === 'Geen deadline') return null;
   const [d, m, y] = str.split('/');
@@ -1924,7 +1932,7 @@ function renderSleeves() {
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
           ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          ${get(r,'Notes') ? `<div class="aq-meta-item aq-meta-notes"><span class="aq-meta-label">Notes</span><span class="notes-cell" title="${(get(r,'Notes')).replace(/"/g,"'")}">${get(r,'Notes')}</span></div>` : ''}
+          ${get(r,'Notes') ? `<div class="aq-meta-item aq-meta-notes"><span class="aq-meta-label">Notes</span><span class="notes-cell" title="${(get(r,'Notes')).replace(/"/g,"'")}">${lastNote(get(r,'Notes'))}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
@@ -1943,7 +1951,7 @@ function renderSleeves() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -2008,7 +2016,7 @@ function renderSleeves() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
       return { card, row };
@@ -2813,7 +2821,7 @@ function renderMockups() {
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
           ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          ${get(r,'Notes') ? `<div class="aq-meta-item aq-meta-notes"><span class="aq-meta-label">Notes</span><span class="notes-cell" title="${(get(r,'Notes')).replace(/"/g,"'")}">${get(r,'Notes')}</span></div>` : ''}
+          ${get(r,'Notes') ? `<div class="aq-meta-item aq-meta-notes"><span class="aq-meta-label">Notes</span><span class="notes-cell" title="${(get(r,'Notes')).replace(/"/g,"'")}">${lastNote(get(r,'Notes'))}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
@@ -2832,7 +2840,7 @@ function renderMockups() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
 
@@ -2897,7 +2905,7 @@ function renderMockups() {
         <td>${get(r,'Owner') || '—'}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${get(r,'Notes') || '—'}</td>
+        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
         <td style="white-space:nowrap">${actionBtns}</td>
       </tr>`;
       return { card, row };
