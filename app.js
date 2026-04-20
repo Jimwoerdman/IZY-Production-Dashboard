@@ -235,6 +235,7 @@ function badge(status) {
   if (s.includes('progress'))      return `<span class="badge b-progress">In Progress</span>`;
   if (s === 'ready to ship')       return `<span class="badge b-ready-ship">Ready to Ship</span>`;
   if (s === 'done')                return `<span class="badge b-shipped">Done</span>`;
+  if (s === 'rejected')            return `<span class="badge b-rejected">Rejected</span>`;
   if (!status)                  return '';
   return `<span class="badge b-default">${status}</span>`;
 }
@@ -1806,7 +1807,9 @@ let svCompletedOpen = false;
 const SV_COMPLETED_STATUSES = ['ordered', 'done', 'finished'];
 
 let mkCompletedOpen = false;
+let mkRejectedOpen  = false;
 const MK_COMPLETED_STATUSES = ['approved'];
+const MK_REJECTED_STATUSES  = ['rejected'];
 
 function sleeveSortOrder(r) {
   const s = get(r,'Status').toLowerCase();
@@ -2732,10 +2735,12 @@ function renderMockups() {
   const hideDone = document.getElementById('mk-hide-done').checked;
 
   const isMkCompleted = r => MK_COMPLETED_STATUSES.includes(get(r,'Status').toLowerCase());
+  const isMkRejected  = r => MK_REJECTED_STATUSES.includes(get(r,'Status').toLowerCase());
 
   const filtered = mockupRows.filter(r => {
     const st = get(r,'Status').toLowerCase();
-    if (isMkCompleted(r)) return false; // handled in collapsible section
+    if (isMkCompleted(r)) return false; // handled in approved collapsible
+    if (isMkRejected(r))  return false; // handled in rejected collapsible
     if (hideDone && ['finished'].includes(st)) return false;
     if (status && get(r,'Status') !== status) return false;
     if (search && !(
@@ -2747,6 +2752,16 @@ function renderMockups() {
 
   const completedFiltered = mockupRows.filter(r => {
     if (!isMkCompleted(r)) return false;
+    if (status && get(r,'Status') !== status) return false;
+    if (search && !(
+      get(r,'Name_Company').toLowerCase().includes(search) ||
+      (get(r,'Name_Print') || '').toLowerCase().includes(search)
+    )) return false;
+    return true;
+  });
+
+  const rejectedFiltered = mockupRows.filter(r => {
+    if (!isMkRejected(r)) return false;
     if (status && get(r,'Status') !== status) return false;
     if (search && !(
       get(r,'Name_Company').toLowerCase().includes(search) ||
@@ -2843,10 +2858,10 @@ function renderMockups() {
       </div>`;
   }).join('');
 
-  // Build approved collapsible section
-  let mkCompletedHtml = '';
-  if (completedFiltered.length > 0) {
-    const rowsHtml = completedFiltered.map(r => {
+  // Builder for the approved/rejected collapsible sections (same markup, different label/colors)
+  const buildMkCollapsible = (rows, opts) => {
+    if (rows.length === 0) return '';
+    const rowsHtml = rows.map(r => {
       const idx = mockupRows.indexOf(r);
       const actionBtns = `<button class="btn-log mk-btn-log" data-mkidx="${idx}">✏️ Update</button><button class="btn-log mk-btn-edit" data-mkidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>`;
       const mkChk = `<label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></label>`;
@@ -2857,7 +2872,7 @@ function renderMockups() {
       const fileCell = rawFileUrls.length
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
         : '—';
-      const card = `<div class="aq-card sv-card-done${mkSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#64748b;--tb:#f1f5f9">
+      const card = `<div class="aq-card sv-card-done${mkSelected.has(idx) ? ' row-selected' : ''}" style="--tc:${opts.cardTc};--tb:${opts.cardTb}">
         <div class="aq-card-top">
           <div class="aq-card-left">${mkChk}<span class="aq-company">${get(r,'Name_Company')}</span></div>
           ${badge(get(r,'Status'))}
@@ -2888,12 +2903,12 @@ function renderMockups() {
       return { card, row };
     });
 
-    mkCompletedHtml = `<div class="sv-completed-section" style="margin-top:16px;">
-      <button class="sv-completed-toggle" onclick="mkCompletedOpen=!mkCompletedOpen;renderMockups();" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--hover);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);">
-        <span>✅ Approved <span style="font-weight:400;opacity:0.7;">(${completedFiltered.length} job${completedFiltered.length !== 1 ? 's' : ''})</span></span>
-        <span>${mkCompletedOpen ? '▲ Collapse' : '▼ Expand'}</span>
+    return `<div class="sv-completed-section" style="margin-top:16px;">
+      <button class="sv-completed-toggle" onclick="${opts.toggleExpr};renderMockups();" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--hover);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);">
+        <span>${opts.label} <span style="font-weight:400;opacity:0.7;">(${rows.length} job${rows.length !== 1 ? 's' : ''})</span></span>
+        <span>${opts.isOpen ? '▲ Collapse' : '▼ Expand'}</span>
       </button>
-      ${mkCompletedOpen ? `
+      ${opts.isOpen ? `
         <div class="aq-cards" style="margin-top:10px;">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap" style="margin-top:8px;">
           <table>
@@ -2905,9 +2920,20 @@ function renderMockups() {
           </table>
         </div>` : ''}
     </div>`;
-  }
+  };
 
-  document.getElementById('mk-sections').innerHTML = (html || '<p style="color:#94a3b8;padding:20px;">No mockup jobs match the current filters.</p>') + mkCompletedHtml;
+  const mkCompletedHtml = buildMkCollapsible(completedFiltered, {
+    label: '✅ Approved', isOpen: mkCompletedOpen,
+    toggleExpr: 'mkCompletedOpen=!mkCompletedOpen',
+    cardTc: '#64748b', cardTb: '#f1f5f9',
+  });
+  const mkRejectedHtml = buildMkCollapsible(rejectedFiltered, {
+    label: '❌ Rejected', isOpen: mkRejectedOpen,
+    toggleExpr: 'mkRejectedOpen=!mkRejectedOpen',
+    cardTc: '#b91c1c', cardTb: '#fee2e2',
+  });
+
+  document.getElementById('mk-sections').innerHTML = (html || '<p style="color:#94a3b8;padding:20px;">No mockup jobs match the current filters.</p>') + mkCompletedHtml + mkRejectedHtml;
 }
 
 ['mk-search','mk-status','mk-hide-done'].forEach(id => {
