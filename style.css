@@ -2007,3 +2007,16 @@ tr.row-selected td { background: #eff6ff !important; }
   cursor: pointer;
 }
 .selection-bar-clear:hover { background: rgba(255,255,255,0.25); }
+
+.selection-bar-btn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.selection-bar-btn:hover { background: rgba(255,255,255,0.22); }
+.selection-bar-btn:disabled { opacity: 0.5; cursor: default; }

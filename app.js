@@ -54,6 +54,44 @@ function updateSelectionBar() {
   if (total === 0) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   document.getElementById('selection-bar-text').textContent = `${total} row${total !== 1 ? 's' : ''} selected`;
+
+  // AQ-only actions: show Mark Shipped (bulk OK) and Book Shipment (single only)
+  const markBtn = document.getElementById('selection-bar-mark-shipped');
+  const bookBtn = document.getElementById('selection-bar-book-ship');
+  if (markBtn) markBtn.style.display = aqSelected.size > 0 ? '' : 'none';
+  if (bookBtn) bookBtn.style.display = aqSelected.size === 1 ? '' : 'none';
+}
+
+async function bulkMarkShipped() {
+  const idxs = [...aqSelected];
+  if (!idxs.length) return;
+  if (!confirm(`Mark ${idxs.length} order${idxs.length !== 1 ? 's' : ''} as shipped?`)) return;
+  const btn = document.getElementById('selection-bar-mark-shipped');
+  btn.disabled = true;
+  btn.textContent = 'Marking…';
+  try {
+    for (const i of idxs) {
+      const job = allRows[i];
+      if (!job) continue;
+      const params = new URLSearchParams({ action: 'mark_shipped', sheetRow: job['_sheetRow'], t: Date.now() });
+      await fetch(SCRIPT_URL + '?' + params.toString()).then(r => r.json());
+    }
+    clearSelection();
+    await refreshData();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '✓ Mark all as Shipped';
+}
+
+function bulkBookShipment() {
+  if (aqSelected.size !== 1) {
+    alert('Select exactly one order to book a shipment. (Use "Mark all as Shipped" for multiple.)');
+    return;
+  }
+  const [rowIdx] = [...aqSelected];
+  shipJob(rowIdx);
 }
 
 function clearSelection() {
