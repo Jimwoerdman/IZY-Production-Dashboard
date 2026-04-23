@@ -652,6 +652,19 @@ function doPost(e) {
 
     // Add new job (must be before rowIndex check — no sheetRow for new jobs)
     if (data.action === 'add_job') {
+      Logger.log('add_job by=' + (data.changedBy || '?') +
+                 ' company=' + JSON.stringify(data.company) +
+                 ' printName=' + JSON.stringify(data.printName) +
+                 ' soort=' + JSON.stringify(data.soort) +
+                 ' quantity=' + JSON.stringify(data.quantity));
+      // Reject empty/partial payloads — prevents ghost rows with only a Priority
+      // cell filled (observed when caches/extensions/autofill cause empty submits).
+      if (!data.company || !String(data.company).trim() ||
+          !data.printName || !String(data.printName).trim() ||
+          !data.soort || !String(data.soort).trim()) {
+        Logger.log('add_job rejected — missing required fields. raw=' + (raw || '').substring(0, 500));
+        return respond({ error: 'Missing required fields: Company, Print Name and Type are all required.' });
+      }
       // Find last row where both Name_Company (D) and Name_Print (F) are filled
       const colDF = sheet.getRange(1, 4, sheet.getMaxRows(), 3).getValues();
       let lastDataRow = 1;
@@ -688,11 +701,11 @@ function doPost(e) {
       // vals[19] = col T  — set via setFormula below
       vals[21] = data.tosleeve  || '';
       vals[25] = data.notes     || '';
-      vals[35] = data.changedBy || '';
+      vals[35] = data.shipEmail  || '';  // AJ — recipient email
+      vals[37] = data.changedBy  || '';  // AL — printer email
       setW('ontvanger',      data.shipContact || '');
       setW('contactpersoon', data.shipContact || '');
       setW('telefoonnummer', data.shipPhone   || '');
-      setW('e-mailadres',    data.shipEmail   || '');
       setW('straat',         data.shipStreet  || '');
       setW('huisnummer',     data.shipNumber  || '');
       setW('postcode',       data.shipZipcode || '');
@@ -926,6 +939,12 @@ function doPost(e) {
 
     // Add sleeve job (Sleeves sheet)
     if (data.action === 'add_sleeve_job') {
+      if (!data.company || !String(data.company).trim() ||
+          !data.printName || !String(data.printName).trim() ||
+          !data.soort || !String(data.soort).trim()) {
+        Logger.log('add_sleeve_job rejected — missing required fields. raw=' + (raw || '').substring(0, 500));
+        return respond({ error: 'Missing required fields: Company, Print Name and Type are all required.' });
+      }
       const svSheet   = ss.getSheetByName('Sleeves');
       if (!svSheet) return respond({ error: 'Sheet "Sleeves" not found — check the sheet name in your spreadsheet.' });
       const lastRow   = svSheet.getLastRow();
@@ -1031,7 +1050,17 @@ function doPost(e) {
       if (data.status) {
         const c = findCol('status');
         Logger.log('update_mockup: status col=' + c);
-        if (c > 0) mkSheet.getRange(rowIndex, c).setValue(data.status);
+        if (c > 0) {
+          const cell = mkSheet.getRange(rowIndex, c);
+          // If the Status column has a dropdown that doesn't include the new value
+          // (e.g. "Rejected"), setValue would be silently rejected. Clear validation,
+          // write the value, then restore the original validation so the dropdown
+          // remains in place for future edits.
+          const validation = cell.getDataValidation();
+          if (validation) cell.clearDataValidations();
+          cell.setValue(data.status);
+          if (validation) cell.setDataValidation(validation);
+        }
 
         // Stamp approved date when status becomes Approved
         if (data.status.toLowerCase() === 'approved') {
@@ -1100,6 +1129,12 @@ function doPost(e) {
 
     // Add mockup job (Mockups sheet)
     if (data.action === 'add_mockup_job') {
+      if (!data.company || !String(data.company).trim() ||
+          !data.printName || !String(data.printName).trim() ||
+          !data.soort || !String(data.soort).trim()) {
+        Logger.log('add_mockup_job rejected — missing required fields. raw=' + (raw || '').substring(0, 500));
+        return respond({ error: 'Missing required fields: Company, Print Name and Type are all required.' });
+      }
       const mkSheet   = ss.getSheetByName('Mockups');
       const lastRow   = mkSheet.getLastRow();
       const mkHeaders = mkSheet.getRange(1, 1, 1, Math.max(mkSheet.getLastColumn(), 20)).getValues()[0].map(h => String(h).trim());
@@ -2055,7 +2090,7 @@ function bookCheapCargoShipment(data) {
       '<authentication>' + auth + '</authentication>' +
       '<version>2.1</version>' +
       ccUserBlock_() +
-      '<shipment pay="true" waitForLabel="false" orderBy="price">' +
+      '<shipment pay="true" waitForLabel="false">' +
         '<sender>' +
           '<companyName>'   + CC_SENDER.companyName  + '</companyName>' +
           '<contactPerson>' + contact.name           + '</contactPerson>' +

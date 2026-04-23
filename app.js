@@ -4475,7 +4475,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   else setProgress(0.4, 'Uploading…');
 
   try {
-    await postWithProgress(
+    await postAndRead(
       SCRIPT_URL,
       JSON.stringify({
         action:    'add_job',
