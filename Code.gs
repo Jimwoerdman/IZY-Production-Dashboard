@@ -939,6 +939,10 @@ function doPost(e) {
 
     // Add sleeve job (Sleeves sheet)
     if (data.action === 'add_sleeve_job') {
+      Logger.log('add_sleeve_job by=' + (data.changedBy || '?') +
+                 ' company=' + JSON.stringify(data.company) +
+                 ' printName=' + JSON.stringify(data.printName) +
+                 ' soort=' + JSON.stringify(data.soort));
       if (!data.company || !String(data.company).trim() ||
           !data.printName || !String(data.printName).trim() ||
           !data.soort || !String(data.soort).trim()) {
@@ -1129,11 +1133,14 @@ function doPost(e) {
 
     // Add mockup job (Mockups sheet)
     if (data.action === 'add_mockup_job') {
+      Logger.log('add_mockup_job by=' + (data.changedBy || '?') +
+                 ' company=' + JSON.stringify(data.company) +
+                 ' soort=' + JSON.stringify(data.soort));
+      // Mockups only require Company and Type (no Print Name on that form).
       if (!data.company || !String(data.company).trim() ||
-          !data.printName || !String(data.printName).trim() ||
           !data.soort || !String(data.soort).trim()) {
         Logger.log('add_mockup_job rejected — missing required fields. raw=' + (raw || '').substring(0, 500));
-        return respond({ error: 'Missing required fields: Company, Print Name and Type are all required.' });
+        return respond({ error: 'Missing required fields: Company and Type are required.' });
       }
       const mkSheet   = ss.getSheetByName('Mockups');
       const lastRow   = mkSheet.getLastRow();

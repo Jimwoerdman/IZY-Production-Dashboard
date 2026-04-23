@@ -2720,7 +2720,7 @@ document.getElementById('mk-submit').addEventListener('click', async function() 
   mkSetProgress(mkFilesToRead.length ? 0.4 : 0, 'Uploading…');
 
   try {
-    await postWithProgress(
+    await postAndRead(
       SCRIPT_URL,
       JSON.stringify({
         action:    'add_mockup_job',
