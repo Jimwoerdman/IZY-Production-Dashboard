@@ -2502,6 +2502,7 @@ function openEditJobModal(rowIdx, type) {
     const sleeveToggle = document.getElementById('ej-tosleeve');
     sleeveToggle.dataset.value = sleeveVal;
     sleeveToggle.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b.dataset.opt === sleeveVal));
+    document.getElementById('ej-ship-company').value = getCI(editJobRow,'ontvanger bedrijfsnaam') || getCI(editJobRow,'bedrijfsnaam') || '';
     document.getElementById('ej-ship-contact').value = get(editJobRow,'Contactpersoon')  || '';
     document.getElementById('ej-ship-phone').value   = get(editJobRow,'Telefoonnummer')  || '';
     document.getElementById('ej-ship-email').value   = get(editJobRow,'E-mailadres')     || '';
@@ -2613,6 +2614,7 @@ async function submitEditJob() {
         })(),
         ...(editJobType === 'active' ? {
           tosleeve:    document.getElementById('ej-tosleeve').dataset.value || 'No',
+          shipCompany: document.getElementById('ej-ship-company').value.trim(),
           shipContact: document.getElementById('ej-ship-contact').value.trim(),
           shipPhone:   document.getElementById('ej-ship-phone').value.trim(),
           shipEmail:   document.getElementById('ej-ship-email').value.trim(),
@@ -4062,7 +4064,8 @@ function shipJob(rowIdx) {
   document.getElementById('ship-job-info').innerHTML =
     `<strong>#${get(job,'Priority')} — ${get(job,'Name_Company')}</strong> &nbsp;·&nbsp; ${get(job,'Soort') || ''} &nbsp;·&nbsp; Qty: ${get(job,'Quantity') || '—'}`;
 
-  document.getElementById('ship-company').value = get(job,'Name_Company');
+  // Use receiver-company if set on the job, otherwise fall back to job's customer company
+  document.getElementById('ship-company').value = getCI(job,'ontvanger bedrijfsnaam') || getCI(job,'bedrijfsnaam') || get(job,'Name_Company') || '';
   document.getElementById('ship-contact').value = get(job,'Contactpersoon')  || '';
   document.getElementById('ship-phone').value   = get(job,'Telefoonnummer')  || '';
   document.getElementById('ship-email').value   = get(job,'E-mailadres')     || '';
@@ -4416,6 +4419,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const needmockup = document.getElementById('nj-needmockup').dataset.value;
   const tosleeve   = document.getElementById('nj-tosleeve').dataset.value;
   const notes     = withDate(document.getElementById('nj-notes').value.trim());
+  const shipCompany = document.getElementById('nj-ship-company').value.trim();
   const shipContact = document.getElementById('nj-ship-contact').value.trim();
   const shipPhone   = document.getElementById('nj-ship-phone').value.trim();
   const shipEmail   = document.getElementById('nj-ship-email').value.trim();
@@ -4483,7 +4487,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         quantity:  parseInt(quantity),
         color, lid, deadline, owner, tosleeve, needmockup, notes,
         mockupBase64, designFiles,
-        shipContact, shipPhone, shipEmail,
+        shipCompany, shipContact, shipPhone, shipEmail,
         shipStreet, shipNumber, shipZipcode, shipCity, shipCountry,
         changedBy: currentUser?.email,
         status:    'To Print',

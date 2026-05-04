@@ -703,6 +703,8 @@ function doPost(e) {
       vals[25] = data.notes     || '';
       vals[35] = data.shipEmail  || '';  // AJ — recipient email
       vals[37] = data.changedBy  || '';  // AL — printer email
+      setW('ontvanger bedrijfsnaam', data.shipCompany || '');
+      setW('bedrijfsnaam',           data.shipCompany || '');
       setW('ontvanger',      data.shipContact || '');
       setW('contactpersoon', data.shipContact || '');
       setW('telefoonnummer', data.shipPhone   || '');
@@ -1336,6 +1338,10 @@ function doPost(e) {
       setWf('owner',         data.owner       || '');
       setWf('notes',         data.notes       || '');
       if (data.tosleeve   !== undefined) setWf('sleeve',         data.tosleeve    || '');
+      if (data.shipCompany !== undefined) {
+        setWf('ontvanger bedrijfsnaam', data.shipCompany || '');
+        setWf('bedrijfsnaam',           data.shipCompany || '');
+      }
       if (data.shipContact !== undefined) {
         setWf('ontvanger',      data.shipContact || '');
         setWf('contactpersoon', data.shipContact || '');

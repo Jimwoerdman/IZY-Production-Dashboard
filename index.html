@@ -1121,6 +1121,10 @@
           </div>
         </div>
         <div class="form-section-label" style="margin-top:12px;margin-bottom:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Shipping</div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>Company name</label>
+          <input type="text" id="ej-ship-company" placeholder="Receiver company" />
+        </div>
         <div class="form-grid form-grid-3">
           <div class="form-group">
             <label>Contact person</label>
@@ -1392,6 +1396,10 @@
 
       <div class="form-section">
         <div class="form-section-label">Shipping <span style="font-weight:400;color:#94a3b8;">(optional — pre-fills ship modal)</span></div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>Company name</label>
+          <input type="text" id="nj-ship-company" placeholder="Receiver company" />
+        </div>
         <div class="form-grid form-grid-3">
           <div class="form-group">
             <label>Contact person</label>
@@ -1458,7 +1466,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=84"></script>
+<script src="app.js?v=85"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
