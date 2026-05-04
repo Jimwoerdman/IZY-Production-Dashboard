@@ -1440,20 +1440,40 @@ function parseDateISO(str) {
 
 // Normalize a company name for fuzzy matching:
 // lowercase, strip legal suffixes & common words, remove non-alphanumeric
+const COMPANY_NOISE_RE = /\b(gmbh|b\.v\.|bv|nv|ltd|llc|inc|bvba|vzw|srl|sarl|ag|sa|plc|co\.|exhibition|exhibitions|hall|winkel|shop|store|museum|stichting|foundation|group|groep|international|intl|the|de|het|der|den|van|von|en|and)\b/g;
+
 function normalizeName(name) {
   return (name || '').toLowerCase()
-    .replace(/\b(gmbh|b\.v\.|bv|nv|ltd|llc|inc|bvba|vzw|srl|sarl|ag|sa|plc|co\.|exhibition|exhibitions|hall|winkel|shop|store|museum|stichting|foundation|group|groep|international|intl)\b/g, '')
+    .replace(COMPANY_NOISE_RE, '')
     .replace(/[^a-z0-9]/g, '')
     .trim();
 }
 
+// Split a company name into 3+ char tokens (lowercased, noise words stripped).
+// Used for fuzzy name matching when neither name is a substring of the other —
+// any shared meaningful token (like "promonova" or "alegria") still counts.
+function tokenizeName(name) {
+  if (!name) return [];
+  return name.toLowerCase()
+    .replace(COMPANY_NOISE_RE, ' ')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(t => t.length >= 3);
+}
+
 function calcConfidence(matchMethod, daysDiff) {
   if (matchMethod === 'reference') return 100;
+  if (matchMethod === 'token') {
+    if (daysDiff <= 7)  return 75;
+    if (daysDiff <= 30) return 60;
+    return 45;
+  }
   if (daysDiff <= 3)  return 95;
   if (daysDiff <= 7)  return 90;
   if (daysDiff <= 14) return 80;
   if (daysDiff <= 30) return 70;
-  if (daysDiff <= 60) return 45; // possible match — goes to review
+  if (daysDiff <= 60) return 55;
+  if (daysDiff <= 90) return 45; // possible match — goes to review
   return 0;
 }
 
@@ -1471,30 +1491,61 @@ function buildShippedRows(mainRows, shipRows) {
   shippedJobs.forEach(r => { if (get(r,'Priority')) jobByPriority[get(r,'Priority')] = r; });
 
   const jobsByNorm = {};
+  const jobTokens  = []; // [{ job, tokens: Set<string>, norm }]
   shippedJobs.forEach(r => {
-    const norm = normalizeName(get(r,'Name_Company'));
-    if (!norm || norm.length < 4) return;
-    if (!jobsByNorm[norm]) jobsByNorm[norm] = [];
-    jobsByNorm[norm].push(r);
+    const norm   = normalizeName(get(r,'Name_Company'));
+    const tokens = new Set(tokenizeName(get(r,'Name_Company')));
+    if (norm && norm.length >= 3) {
+      if (!jobsByNorm[norm]) jobsByNorm[norm] = [];
+      jobsByNorm[norm].push(r);
+    }
+    if (tokens.size > 0) jobTokens.push({ job: r, tokens, norm });
   });
 
-  // Find candidates by name, within a given max day window
+  // Find candidates by name, within a given max day window.
+  // Tier 1: substring match on normalized name (existing logic).
+  // Tier 2: token overlap — any 3+ char meaningful word in common.
   function findCandidates(recipientName, shipDate, maxDays) {
-    const normShip = normalizeName(recipientName);
-    if (!normShip || normShip.length < 4) return [];
-    const candidates = [];
-    for (const [normJob, jobs] of Object.entries(jobsByNorm)) {
-      if (normShip.includes(normJob) || normJob.includes(normShip)) {
-        jobs.forEach(job => {
-          const jobShipped = parseDate(getCI(job,'shipped'));
-          // If no shipped date on job, allow name match with a high daysDiff (sorted last)
-          const daysDiff = jobShipped ? Math.abs((shipDate - jobShipped) / 86400000) : 999;
-          if (daysDiff <= maxDays || !jobShipped) candidates.push({ job, normJob, daysDiff });
-        });
+    const normShip   = normalizeName(recipientName);
+    const shipTokens = new Set(tokenizeName(recipientName));
+    if ((!normShip || normShip.length < 3) && shipTokens.size === 0) return [];
+
+    const seen = new Set();
+    const out  = [];
+    const push = (job, normJob, daysDiff, method) => {
+      if (seen.has(job)) return;
+      seen.add(job);
+      out.push({ job, normJob, daysDiff, method });
+    };
+
+    // Tier 1: substring match on normalized name
+    if (normShip && normShip.length >= 3) {
+      for (const [normJob, jobs] of Object.entries(jobsByNorm)) {
+        if (normShip.includes(normJob) || normJob.includes(normShip)) {
+          jobs.forEach(job => {
+            const jobShipped = parseDate(getCI(job,'shipped'));
+            const daysDiff = jobShipped ? Math.abs((shipDate - jobShipped) / 86400000) : 999;
+            if (daysDiff <= maxDays || !jobShipped) push(job, normJob, daysDiff, 'name');
+          });
+        }
       }
     }
-    candidates.sort((a, b) => a.daysDiff - b.daysDiff || b.normJob.length - a.normJob.length);
-    return candidates;
+
+    // Tier 2: token overlap (only if no Tier 1 hit yet, and at least one shared meaningful word)
+    if (out.length === 0 && shipTokens.size > 0) {
+      for (const { job, tokens, norm } of jobTokens) {
+        let shared = 0;
+        for (const t of shipTokens) { if (tokens.has(t)) shared++; }
+        if (shared > 0) {
+          const jobShipped = parseDate(getCI(job,'shipped'));
+          const daysDiff = jobShipped ? Math.abs((shipDate - jobShipped) / 86400000) : 999;
+          if (daysDiff <= maxDays || !jobShipped) push(job, norm, daysDiff, 'token');
+        }
+      }
+    }
+
+    out.sort((a, b) => a.daysDiff - b.daysDiff || b.normJob.length - a.normJob.length);
+    return out;
   }
 
   function gs(s, key) { return getCI(s, key); } // shorthand for shipping row field access
@@ -1545,10 +1596,10 @@ function buildShippedRows(mainRows, shipRows) {
       return;
     }
 
-    // 2. Name match within 30 days → confirmed
-    const close = findCandidates(getCI(s,'bedrijfsnaam'), shipDate, 30);
+    // 2. Name / token match within 90 days
+    const close = findCandidates(getCI(s,'bedrijfsnaam'), shipDate, 90);
     if (close.length) {
-      matched.push(buildRow(s, close[0].job, 'name', close[0].daysDiff, shipDate));
+      matched.push(buildRow(s, close[0].job, close[0].method, close[0].daysDiff, shipDate));
       matchedJobKeys.add(get(close[0].job, 'Priority'));
       return;
     }
