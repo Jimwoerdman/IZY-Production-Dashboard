@@ -4152,7 +4152,7 @@ function shipJob(rowIdx) {
   document.getElementById('ship-customs-value').value    = '';
   document.getElementById('ship-customs-currency').value = 'EUR';
   document.getElementById('ship-customs-reason').value   = 'sale';
-  document.getElementById('ship-customs-hs').value       = '9617.00';
+  document.getElementById('ship-customs-hs').value       = '9617000000';
   updateShipCustomsVisibility();
 
   // Reset packages — one default row

@@ -2093,53 +2093,56 @@ function bookCheapCargoShipment(data) {
   let pkgs = data.packages || [data.package || {}];
   if (!pkgs.length) pkgs = [{}];
 
-  // Commercial invoice block — required for non-EU shipments
+  // Commercial invoice block — required for non-EU shipments.
+  // Per CheapCargo OpenAPI: HS codes go inside each <colli><hsCodes><hsCode>…</hsCode></hsCodes>.
+  // <commercialInvoice> only carries signatoryName, signatoryJobTitle, exportReason,
+  // customerInvoiceNumber, customerPurchaseOrderNumber.
   const ci = data.commercialInvoice;
   const xmlEsc = (v) => String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  // For non-EU, each colli needs its share of the total customs value (split evenly).
+  // Even-split of total customs value/quantity across all colli
   const totalCiValue = ci ? (parseFloat(ci.value) || 0) : 0;
   const perColli     = ci && pkgs.length > 0 ? (totalCiValue / pkgs.length) : 0;
-  const ciCurrency   = ci ? (ci.currency || 'EUR') : 'EUR';
+  const totalQty     = ci ? (parseInt(ci.quantity) || 1) : 1;
+  const perColliQty  = ci && pkgs.length > 0 ? Math.max(1, Math.round(totalQty / pkgs.length)) : 1;
   const ciDesc       = ci ? (ci.description || 'Printed bottles / merchandise') : 'Printed bottles / merchandise';
-  const ciHsCode     = ci ? (ci.hsCode || '') : '';
+  // HS code pattern requires digits only (no dots).
+  const ciHsCode     = ci ? String(ci.hsCode || '').replace(/[^\d]/g, '') : '';
   const ciOrigin     = ci ? (ci.origin || 'NL') : 'NL';
 
   const colliXml = pkgs.map(function(p) {
     const colliValue = perColli > 0 ? perColli.toFixed(2) : null;
+    const hsCodesBlock = ci && ciHsCode ? (
+      '<hsCodes><hsCode>' +
+        '<hsCode>'        + xmlEsc(ciHsCode) + '</hsCode>' +
+        '<originCountry>' + xmlEsc(ciOrigin) + '</originCountry>' +
+        '<description>'   + xmlEsc(ciDesc)   + '</description>' +
+        '<weight>'        + (p.weight || 12) + '</weight>' +
+        (colliValue ? '<value>' + colliValue + '</value>' : '') +
+        '<quantity>'      + perColliQty      + '</quantity>' +
+      '</hsCode></hsCodes>'
+    ) : '';
     return '<colli>' +
       '<description>' + xmlEsc(ciDesc) + '</description>' +
       '<weight>'   + (p.weight || 12) + '</weight>' +
       '<length>'   + (p.length || 40) + '</length>' +
       '<width>'    + (p.width  || 40) + '</width>' +
       '<height>'   + (p.height || 30) + '</height>' +
+      (colliValue ? '<value>' + colliValue + '</value>' : '') +
       '<package>'  + (p.type   || 'PACKAGE') + '</package>' +
       '<quantity>1</quantity>' +
-      (colliValue ? '<value>' + colliValue + '</value>' : '') +
-      (colliValue ? '<currency>' + xmlEsc(ciCurrency) + '</currency>' : '') +
-      (ciHsCode   ? '<hsCode>'  + xmlEsc(ciHsCode)   + '</hsCode>'   : '') +
-      (ci         ? '<countryOfOrigin>' + xmlEsc(ciOrigin) + '</countryOfOrigin>' : '') +
+      hsCodesBlock +
     '</colli>';
   }).join('');
 
   const rateIdXml = data.rateId ? '<rateId>' + data.rateId + '</rateId>' : '';
-  // Build commercial invoice with explicit invoice lines (CheapCargo requires
-  // at least one HS code "line" for non-EU shipments — error code -21301).
-  const ciLineXml = ci ? (
-    '<line>' +
-      '<description>'     + xmlEsc(ci.description) + '</description>' +
-      '<quantity>'        + xmlEsc(ci.quantity)    + '</quantity>' +
-      '<value>'           + xmlEsc(ci.value)       + '</value>' +
-      '<currency>'        + xmlEsc(ci.currency)    + '</currency>' +
-      '<hsCode>'          + xmlEsc(ci.hsCode || '9617.00') + '</hsCode>' +
-      '<countryOfOrigin>' + xmlEsc(ci.origin)      + '</countryOfOrigin>' +
-    '</line>'
-  ) : '';
+
+  // commercialInvoice metadata (signatory + export reason). All three fields required.
   const ciXml = ci ? (
     '<commercialInvoice>' +
-      '<exportReason>' + xmlEsc(ci.reason) + '</exportReason>' +
-      '<currency>'     + xmlEsc(ci.currency) + '</currency>' +
-      '<lines>' + ciLineXml + '</lines>' +
+      '<signatoryName>'     + xmlEsc(contact.name || 'IZY')         + '</signatoryName>' +
+      '<signatoryJobTitle>' + xmlEsc('Export')                       + '</signatoryJobTitle>' +
+      '<exportReason>'      + xmlEsc(ci.reason || 'sale')            + '</exportReason>' +
     '</commercialInvoice>'
   ) : '';
 
@@ -2174,6 +2177,7 @@ function bookCheapCargoShipment(data) {
           '<type>business</type>' +
         '</receiver>' +
         '<content>' + colliXml + '</content>' +
+        (ci ? '<incoterm>DAP</incoterm>' : '') +
         ciXml +
         rateIdXml +
         '<reference>' + (data.reference || '') + '</reference>' +
