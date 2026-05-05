@@ -2123,15 +2123,23 @@ function bookCheapCargoShipment(data) {
   }).join('');
 
   const rateIdXml = data.rateId ? '<rateId>' + data.rateId + '</rateId>' : '';
+  // Build commercial invoice with explicit invoice lines (CheapCargo requires
+  // at least one HS code "line" for non-EU shipments — error code -21301).
+  const ciLineXml = ci ? (
+    '<line>' +
+      '<description>'     + xmlEsc(ci.description) + '</description>' +
+      '<quantity>'        + xmlEsc(ci.quantity)    + '</quantity>' +
+      '<value>'           + xmlEsc(ci.value)       + '</value>' +
+      '<currency>'        + xmlEsc(ci.currency)    + '</currency>' +
+      '<hsCode>'          + xmlEsc(ci.hsCode || '9617.00') + '</hsCode>' +
+      '<countryOfOrigin>' + xmlEsc(ci.origin)      + '</countryOfOrigin>' +
+    '</line>'
+  ) : '';
   const ciXml = ci ? (
     '<commercialInvoice>' +
-      '<description>'     + xmlEsc(ci.description) + '</description>' +
-      '<countryOfOrigin>' + xmlEsc(ci.origin)      + '</countryOfOrigin>' +
-      '<currency>'        + xmlEsc(ci.currency)    + '</currency>' +
-      '<value>'           + xmlEsc(ci.value)       + '</value>' +
-      '<quantity>'        + xmlEsc(ci.quantity)    + '</quantity>' +
-      '<exportReason>'    + xmlEsc(ci.reason)      + '</exportReason>' +
-      (ci.hsCode ? '<hsCode>' + xmlEsc(ci.hsCode) + '</hsCode>' : '') +
+      '<exportReason>' + xmlEsc(ci.reason) + '</exportReason>' +
+      '<currency>'     + xmlEsc(ci.currency) + '</currency>' +
+      '<lines>' + ciLineXml + '</lines>' +
     '</commercialInvoice>'
   ) : '';
 
