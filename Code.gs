@@ -447,6 +447,7 @@ function doGet(e) {
           origin:      p.ciOrigin   || 'NL',
           value:       p.ciValue    || '0',
           currency:    p.ciCurrency || 'EUR',
+          reason:      p.ciReason   || 'sale',
           hsCode:      p.ciHsCode   || '',
           quantity:    p.ciQuantity || '1',
         } : null,
@@ -2116,6 +2117,7 @@ function bookCheapCargoShipment(data) {
       '<currency>'        + xmlEsc(ci.currency)    + '</currency>' +
       '<value>'           + xmlEsc(ci.value)       + '</value>' +
       '<quantity>'        + xmlEsc(ci.quantity)    + '</quantity>' +
+      '<exportReason>'    + xmlEsc(ci.reason)      + '</exportReason>' +
       (ci.hsCode ? '<hsCode>' + xmlEsc(ci.hsCode) + '</hsCode>' : '') +
     '</commercialInvoice>'
   ) : '';

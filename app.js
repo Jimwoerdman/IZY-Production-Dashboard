@@ -4151,6 +4151,7 @@ function shipJob(rowIdx) {
   document.getElementById('ship-customs-origin').value   = 'NL';
   document.getElementById('ship-customs-value').value    = '';
   document.getElementById('ship-customs-currency').value = 'EUR';
+  document.getElementById('ship-customs-reason').value   = 'sale';
   document.getElementById('ship-customs-hs').value       = '';
   updateShipCustomsVisibility();
 
@@ -4233,6 +4234,7 @@ async function submitShipment() {
     origin:   get_('ship-customs-origin').toUpperCase(),
     value:    get_('ship-customs-value'),
     currency: get_('ship-customs-currency').toUpperCase() || 'EUR',
+    reason:   document.getElementById('ship-customs-reason').value,
     hs:       get_('ship-customs-hs'),
   };
   if (needsCustoms) {
@@ -4277,6 +4279,7 @@ async function submitShipment() {
         ciOrigin:   customs.origin,
         ciValue:    customs.value,
         ciCurrency: customs.currency,
+        ciReason:   customs.reason,
         ciHsCode:   customs.hs,
         ciQuantity: get(job,'Quantity') || '1',
       } : {}),
