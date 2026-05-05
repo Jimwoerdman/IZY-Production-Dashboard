@@ -4152,7 +4152,7 @@ function shipJob(rowIdx) {
   document.getElementById('ship-customs-value').value    = '';
   document.getElementById('ship-customs-currency').value = 'EUR';
   document.getElementById('ship-customs-reason').value   = 'sale';
-  document.getElementById('ship-customs-hs').value       = '';
+  document.getElementById('ship-customs-hs').value       = '9617.00';
   updateShipCustomsVisibility();
 
   // Reset packages — one default row
@@ -4238,8 +4238,8 @@ async function submitShipment() {
     hs:       get_('ship-customs-hs'),
   };
   if (needsCustoms) {
-    if (!customs.desc || !customs.origin || !customs.value || parseFloat(customs.value) <= 0) {
-      statusEl.textContent = 'Customs data required: description, country of origin and total value.';
+    if (!customs.desc || !customs.origin || !customs.value || parseFloat(customs.value) <= 0 || !customs.hs) {
+      statusEl.textContent = 'Customs data required: description, country of origin, total value and HS code.';
       statusEl.className   = 'form-status error';
       return;
     }

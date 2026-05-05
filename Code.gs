@@ -2102,6 +2102,8 @@ function bookCheapCargoShipment(data) {
   const perColli     = ci && pkgs.length > 0 ? (totalCiValue / pkgs.length) : 0;
   const ciCurrency   = ci ? (ci.currency || 'EUR') : 'EUR';
   const ciDesc       = ci ? (ci.description || 'Printed bottles / merchandise') : 'Printed bottles / merchandise';
+  const ciHsCode     = ci ? (ci.hsCode || '') : '';
+  const ciOrigin     = ci ? (ci.origin || 'NL') : 'NL';
 
   const colliXml = pkgs.map(function(p) {
     const colliValue = perColli > 0 ? perColli.toFixed(2) : null;
@@ -2115,6 +2117,8 @@ function bookCheapCargoShipment(data) {
       '<quantity>1</quantity>' +
       (colliValue ? '<value>' + colliValue + '</value>' : '') +
       (colliValue ? '<currency>' + xmlEsc(ciCurrency) + '</currency>' : '') +
+      (ciHsCode   ? '<hsCode>'  + xmlEsc(ciHsCode)   + '</hsCode>'   : '') +
+      (ci         ? '<countryOfOrigin>' + xmlEsc(ciOrigin) + '</countryOfOrigin>' : '') +
     '</colli>';
   }).join('');
 
