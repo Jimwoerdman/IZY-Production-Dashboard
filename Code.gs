@@ -442,6 +442,14 @@ function doGet(e) {
           country:       p.rcCountry   || 'NL',
         },
         packages: pkgs,
+        commercialInvoice: p.ciValue ? {
+          description: p.ciDesc     || 'Printed bottles / merchandise',
+          origin:      p.ciOrigin   || 'NL',
+          value:       p.ciValue    || '0',
+          currency:    p.ciCurrency || 'EUR',
+          hsCode:      p.ciHsCode   || '',
+          quantity:    p.ciQuantity || '1',
+        } : null,
       });
 
       // Write to ShippingHistory
@@ -2098,6 +2106,20 @@ function bookCheapCargoShipment(data) {
 
   const rateIdXml = data.rateId ? '<rateId>' + data.rateId + '</rateId>' : '';
 
+  // Commercial invoice block — required for non-EU shipments
+  const ci = data.commercialInvoice;
+  const xmlEsc = (v) => String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const ciXml = ci ? (
+    '<commercialInvoice>' +
+      '<description>'     + xmlEsc(ci.description) + '</description>' +
+      '<countryOfOrigin>' + xmlEsc(ci.origin)      + '</countryOfOrigin>' +
+      '<currency>'        + xmlEsc(ci.currency)    + '</currency>' +
+      '<value>'           + xmlEsc(ci.value)       + '</value>' +
+      '<quantity>'        + xmlEsc(ci.quantity)    + '</quantity>' +
+      (ci.hsCode ? '<hsCode>' + xmlEsc(ci.hsCode) + '</hsCode>' : '') +
+    '</commercialInvoice>'
+  ) : '';
+
   const xml = '<?xml version="1.0" encoding="UTF-8"?>' +
     '<shipments>' +
       '<authentication>' + auth + '</authentication>' +
@@ -2129,6 +2151,7 @@ function bookCheapCargoShipment(data) {
           '<type>business</type>' +
         '</receiver>' +
         '<content>' + colliXml + '</content>' +
+        ciXml +
         rateIdXml +
         '<reference>' + (data.reference || '') + '</reference>' +
       '</shipment>' +

@@ -4046,6 +4046,25 @@ function getShipPackages() {
   }));
 }
 
+// EU member states — for these countries CheapCargo does not require commercial invoice data.
+const EU_COUNTRIES = new Set([
+  'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT',
+  'LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'
+]);
+
+function updateShipCustomsVisibility() {
+  const country = (document.getElementById('ship-country').value || '').trim().toUpperCase();
+  const section = document.getElementById('ship-customs-section');
+  if (!section) return;
+  const needs = country && !EU_COUNTRIES.has(country);
+  section.style.display = needs ? '' : 'none';
+}
+
+(function attachShipCountryHandler() {
+  const el = document.getElementById('ship-country');
+  if (el) el.addEventListener('input', updateShipCustomsVisibility);
+})();
+
 async function loadShipRates() {
   const zipcode = document.getElementById('ship-zipcode').value.trim();
   const city    = document.getElementById('ship-city').value.trim();
@@ -4126,6 +4145,15 @@ function shipJob(rowIdx) {
   document.getElementById('ship-city').value    = get(job,'Plaats')          || '';
   document.getElementById('ship-country').value = get(job,'Land')            || 'NL';
 
+  // Pre-fill customs section (visible only for non-EU). Default value empty so
+  // user must fill it in — invoice value is critical for customs declaration.
+  document.getElementById('ship-customs-desc').value     = 'Printed bottles / merchandise';
+  document.getElementById('ship-customs-origin').value   = 'NL';
+  document.getElementById('ship-customs-value').value    = '';
+  document.getElementById('ship-customs-currency').value = 'EUR';
+  document.getElementById('ship-customs-hs').value       = '';
+  updateShipCustomsVisibility();
+
   // Reset packages — one default row
   document.getElementById('ship-packages-list').innerHTML = '';
   addShipPackageRow();
@@ -4198,6 +4226,23 @@ async function submitShipment() {
     return;
   }
 
+  // For non-EU destinations, validate customs fields
+  const needsCustoms = country && !EU_COUNTRIES.has(country);
+  const customs = {
+    desc:     get_('ship-customs-desc'),
+    origin:   get_('ship-customs-origin').toUpperCase(),
+    value:    get_('ship-customs-value'),
+    currency: get_('ship-customs-currency').toUpperCase() || 'EUR',
+    hs:       get_('ship-customs-hs'),
+  };
+  if (needsCustoms) {
+    if (!customs.desc || !customs.origin || !customs.value || parseFloat(customs.value) <= 0) {
+      statusEl.textContent = 'Customs data required: description, country of origin and total value.';
+      statusEl.className   = 'form-status error';
+      return;
+    }
+  }
+
   const submitBtn = document.getElementById('ship-submit');
   submitBtn.disabled    = true;
   submitBtn.textContent = 'Booking…';
@@ -4227,6 +4272,14 @@ async function submitShipment() {
       rateService: shipSelectedRate.serviceLevel || '',
       quantity:    get(job,'Quantity') || '',
       pkgsJson:    JSON.stringify(pkgs),
+      ...(needsCustoms ? {
+        ciDesc:     customs.desc,
+        ciOrigin:   customs.origin,
+        ciValue:    customs.value,
+        ciCurrency: customs.currency,
+        ciHsCode:   customs.hs,
+        ciQuantity: get(job,'Quantity') || '1',
+      } : {}),
       t:           Date.now(),
     });
     const resp = await fetch(SCRIPT_URL + '?' + params.toString());

@@ -812,6 +812,34 @@
         <div id="ship-packages-list" style="margin-top:10px;"></div>
       </div>
 
+      <div id="ship-customs-section" class="form-section" style="display:none;">
+        <div class="form-section-label">Customs <span style="font-weight:400;color:#94a3b8;">(required for non-EU shipments)</span></div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Description of goods <span class="req">*</span></label>
+            <input type="text" id="ship-customs-desc" value="Printed bottles / merchandise" />
+          </div>
+          <div class="form-group">
+            <label>Country of origin <span class="req">*</span></label>
+            <input type="text" id="ship-customs-origin" value="NL" maxlength="2" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-3" style="margin-top:10px;">
+          <div class="form-group">
+            <label>Total value <span class="req">*</span></label>
+            <input type="number" id="ship-customs-value" placeholder="e.g. 250.00" step="0.01" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Currency</label>
+            <input type="text" id="ship-customs-currency" value="EUR" maxlength="3" />
+          </div>
+          <div class="form-group">
+            <label>HS code <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
+            <input type="text" id="ship-customs-hs" placeholder="e.g. 7013.49" />
+          </div>
+        </div>
+      </div>
+
       <div class="form-section">
         <div class="ship-section-header">
           <span class="form-section-label" style="margin:0;border:none;padding:0;">Carrier</span>
@@ -1466,7 +1494,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=86"></script>
+<script src="app.js?v=87"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
