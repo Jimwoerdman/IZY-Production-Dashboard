@@ -2093,23 +2093,32 @@ function bookCheapCargoShipment(data) {
   let pkgs = data.packages || [data.package || {}];
   if (!pkgs.length) pkgs = [{}];
 
+  // Commercial invoice block — required for non-EU shipments
+  const ci = data.commercialInvoice;
+  const xmlEsc = (v) => String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // For non-EU, each colli needs its share of the total customs value (split evenly).
+  const totalCiValue = ci ? (parseFloat(ci.value) || 0) : 0;
+  const perColli     = ci && pkgs.length > 0 ? (totalCiValue / pkgs.length) : 0;
+  const ciCurrency   = ci ? (ci.currency || 'EUR') : 'EUR';
+  const ciDesc       = ci ? (ci.description || 'Printed bottles / merchandise') : 'Printed bottles / merchandise';
+
   const colliXml = pkgs.map(function(p) {
+    const colliValue = perColli > 0 ? perColli.toFixed(2) : null;
     return '<colli>' +
-      '<description>Printed bottles / merchandise</description>' +
+      '<description>' + xmlEsc(ciDesc) + '</description>' +
       '<weight>'   + (p.weight || 12) + '</weight>' +
       '<length>'   + (p.length || 40) + '</length>' +
       '<width>'    + (p.width  || 40) + '</width>' +
       '<height>'   + (p.height || 30) + '</height>' +
       '<package>'  + (p.type   || 'PACKAGE') + '</package>' +
       '<quantity>1</quantity>' +
+      (colliValue ? '<value>' + colliValue + '</value>' : '') +
+      (colliValue ? '<currency>' + xmlEsc(ciCurrency) + '</currency>' : '') +
     '</colli>';
   }).join('');
 
   const rateIdXml = data.rateId ? '<rateId>' + data.rateId + '</rateId>' : '';
-
-  // Commercial invoice block — required for non-EU shipments
-  const ci = data.commercialInvoice;
-  const xmlEsc = (v) => String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const ciXml = ci ? (
     '<commercialInvoice>' +
       '<description>'     + xmlEsc(ci.description) + '</description>' +
