@@ -836,6 +836,40 @@ td.cell-ok      { color: var(--green);  font-weight: 600; }
   grid-column: 1 / -1;
 }
 
+/* Own Production table — compact layout, no horizontal scroll */
+.op-table-wrap table { table-layout: fixed; width: 100%; }
+.op-table-wrap thead th,
+.op-table-wrap tbody td {
+  padding: 8px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* SKU columns are short — narrow them so content/name columns get more room */
+.op-table-wrap th:nth-child(1),
+.op-table-wrap td:nth-child(1) { width: 60px; }                        /* SKU */
+.op-table-wrap th:nth-child(2),
+.op-table-wrap td:nth-child(2) { width: 80px; }                        /* Product type */
+.op-table-wrap th:nth-child(3),
+.op-table-wrap td:nth-child(3) { white-space: normal; line-height: 1.25; }  /* Product name — allow wrap */
+.op-table-wrap th:nth-child(4),
+.op-table-wrap td:nth-child(4) { white-space: normal; line-height: 1.25; }  /* Printfile name — allow wrap */
+.op-table-wrap th:nth-child(5),
+.op-table-wrap td:nth-child(5) { width: 80px; }                        /* Bottle color */
+.op-table-wrap th:nth-child(6),
+.op-table-wrap td:nth-child(6) { width: 70px; }                        /* Lid color */
+.op-table-wrap th:nth-child(7),
+.op-table-wrap td:nth-child(7) { width: 60px; text-align: right; }     /* stock */
+.op-table-wrap th:nth-child(8),
+.op-table-wrap td:nth-child(8) { width: 80px; text-align: right; }     /* Day/s stock */
+.op-table-wrap th:nth-child(9),
+.op-table-wrap td:nth-child(9) { width: 70px; }                        /* SKU print bottle */
+.op-table-wrap th:nth-child(10),
+.op-table-wrap td:nth-child(10) { width: 80px; text-align: right; }    /* Stock print bottle */
+.op-table-wrap th:last-child,
+.op-table-wrap td:last-child { width: 110px; text-align: right; }      /* Action */
+
 /* ── Calendar Tab ── */
 .cal-toolbar {
   display: flex;

@@ -4710,7 +4710,7 @@ function renderOwnProduction() {
       ${rows.length} item${rows.length !== 1 ? 's' : ''} shown
       ${lowCount > 0 ? `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${lowCount} below 21d stock</span>` : ''}
     </div>
-    <div class="aq-table-wrap table-wrap">
+    <div class="aq-table-wrap op-table-wrap table-wrap">
       <table>
         <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>Action</th></tr></thead>
         <tbody>${rows.map((r) => {
