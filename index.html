@@ -70,6 +70,7 @@
   <button class="tab-btn" data-tab="overview">Overview</button>
   <button class="tab-btn" data-tab="shipping">Shipping</button>
   <button class="tab-btn" data-tab="stock">Stock</button>
+  <button class="tab-btn" data-tab="own-production">Own Production</button>
   <button class="tab-btn" data-tab="reports">Reports</button>
 </nav>
 
@@ -443,6 +444,55 @@
       <div class="loading-msg">Loading stock…</div>
     </div>
   </section>
+
+  <!-- ─── OWN PRODUCTION ─── -->
+  <section id="tab-own-production" class="tab-content">
+    <div class="stock-header">
+      <h2>Own Production</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);">
+          <input type="checkbox" id="op-only-low" checked />
+          Only show &lt; 21 days stock
+        </label>
+        <button class="btn-secondary" onclick="loadOwnProduction()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="op-content">
+      <div class="loading-msg">Loading…</div>
+    </div>
+  </section>
+
+  <!-- Quick add modal for Own Production -->
+  <div id="op-modal-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h2>🚀 Quick add to Active Queue</h2>
+        <button class="modal-close" onclick="closeOpModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="op-modal-info" style="background:var(--surface-2);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;"></div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Quantity <span class="req">*</span></label>
+            <input type="number" id="op-modal-qty" value="500" min="1" />
+          </div>
+          <div class="form-group">
+            <label>Owner</label>
+            <select id="op-modal-owner"></select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Deadline <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+          <input type="date" id="op-modal-deadline" />
+        </div>
+        <div id="op-modal-status" class="form-status" style="margin-top:10px;"></div>
+        <div class="modal-actions" style="margin-top:14px;">
+          <button class="modal-btn-cancel" onclick="closeOpModal()">Cancel</button>
+          <button class="modal-btn-submit" id="op-modal-submit" onclick="submitOpQuickAdd()">📥 Add to Active Queue</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ─── SHIPPING HISTORY ─── -->
   <section id="tab-shipping" class="tab-content">
@@ -1504,7 +1554,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=90"></script>
+<script src="app.js?v=91"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

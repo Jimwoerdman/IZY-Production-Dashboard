@@ -316,6 +316,7 @@ function activateTab(tabName) {
   if (tabName === 'mockups') loadMockups();
   if (tabName === 'stock') loadStock();
   if (tabName === 'calendar') loadCalendar();
+  if (tabName === 'own-production') loadOwnProduction();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -4654,6 +4655,176 @@ function setupFormProgress(fieldIds, fillId, labelId, total) {
 setupFormProgress(['nj-soort','nj-quantity','nj-company','nj-print-name'], 'nj-progress-fill', 'nj-progress-label', 4);
 setupFormProgress(['mk-soort','mk-company'], 'mk-progress-fill', 'mk-progress-label', 2);
 setupFormProgress(['sv-soort','sv-quantity','sv-company'], 'sv-progress-fill', 'sv-progress-label', 3);
+
+// ── Own Production tab ───────────────────────────────────────
+let ownProductionRows = []; // [{ raw: {col: val}, daysOfStock: number, _rowIdx }]
+let opSelectedRow     = null;
+
+async function loadOwnProduction() {
+  const container = document.getElementById('op-content');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-msg">Loading…</div>';
+  try {
+    const data = await fetch(SCRIPT_URL + '?sheet=assortment&raw=1&t=' + Date.now()).then(r => r.json());
+    const rows = data.raw || [];
+    if (!rows.length) { container.innerHTML = '<div class="stock-empty">Sheet "Assortment printfiles" is empty.</div>'; return; }
+    const headers = rows[0].map(h => String(h).trim());
+    ownProductionRows = rows.slice(1)
+      .filter(r => r.some(c => String(c || '').trim() !== ''))
+      .map((r, i) => {
+        const obj = {};
+        headers.forEach((h, j) => { obj[h] = r[j]; });
+        // Column K = index 10 (0-based) — days of stock
+        const daysRaw = r[10];
+        const days = daysRaw === '' || daysRaw == null ? null : (parseFloat(String(daysRaw).replace(',', '.')) || 0);
+        return { raw: obj, headers, daysOfStock: days, _rowIdx: i };
+      });
+    renderOwnProduction();
+  } catch (err) {
+    container.innerHTML = '<div class="stock-empty" style="color:var(--red);">Error loading: ' + err.message + '</div>';
+  }
+}
+
+function renderOwnProduction() {
+  const container = document.getElementById('op-content');
+  if (!container) return;
+  const onlyLow = document.getElementById('op-only-low').checked;
+  const filtered = ownProductionRows.filter(r => !onlyLow || (r.daysOfStock != null && r.daysOfStock < 21));
+  if (!filtered.length) {
+    container.innerHTML = '<div class="stock-empty">No items match the current filter.</div>';
+    return;
+  }
+  // Use the first row's keys to determine columns to show — drop empty-header / underscore meta columns
+  const headers = (filtered[0].headers || Object.keys(filtered[0].raw)).filter(h => h && !h.startsWith('_'));
+  const rows = filtered.sort((a, b) => {
+    const av = a.daysOfStock == null ? Infinity : a.daysOfStock;
+    const bv = b.daysOfStock == null ? Infinity : b.daysOfStock;
+    return av - bv;
+  });
+  const lowCount = ownProductionRows.filter(r => r.daysOfStock != null && r.daysOfStock < 21).length;
+  container.innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-2);font-size:13px;">
+      ${rows.length} item${rows.length !== 1 ? 's' : ''} shown
+      ${lowCount > 0 ? `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${lowCount} below 21d stock</span>` : ''}
+    </div>
+    <div class="aq-table-wrap table-wrap">
+      <table>
+        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>Action</th></tr></thead>
+        <tbody>${rows.map((r, i) => {
+          const low = r.daysOfStock != null && r.daysOfStock < 21;
+          return `<tr${low ? ' style="background:#fef2f2;"' : ''}>${headers.map(h => {
+            const v = r.raw[h];
+            return `<td>${v == null || v === '' ? '—' : String(v)}</td>`;
+          }).join('')}
+          <td>${low ? `<button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button>` : ''}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  `;
+  container.querySelectorAll('.btn-quick-add').forEach(btn => {
+    btn.addEventListener('click', () => openOpModal(parseInt(btn.dataset.opidx)));
+  });
+}
+
+(function attachOpFilterHandler() {
+  const cb = document.getElementById('op-only-low');
+  if (cb) cb.addEventListener('change', renderOwnProduction);
+})();
+
+function findOpField(row, ...keywords) {
+  for (const k of keywords) {
+    const key = Object.keys(row).find(h => h.toLowerCase().includes(k.toLowerCase()));
+    if (key && row[key] != null && String(row[key]).trim() !== '') return String(row[key]).trim();
+  }
+  return '';
+}
+
+function openOpModal(opIdx) {
+  const r = ownProductionRows[opIdx];
+  if (!r) return;
+  opSelectedRow = r;
+  const printName   = findOpField(r.raw, 'print', 'design', 'name');
+  const bottleColor = findOpField(r.raw, 'bottle color', 'color');
+  const lid         = findOpField(r.raw, 'lid');
+  const days        = r.daysOfStock != null ? r.daysOfStock.toFixed(0) + 'd stock' : '—';
+  document.getElementById('op-modal-info').innerHTML =
+    `<strong>${printName || '(unnamed)'}</strong>` +
+    (bottleColor ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">Color: ${bottleColor}</span>` : '') +
+    (lid ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">Lid: ${lid}</span>` : '') +
+    `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${days}</span>`;
+  // Populate owners
+  const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(j => get(j,'Owner')).filter(Boolean)])].sort();
+  const sel = document.getElementById('op-modal-owner');
+  sel.innerHTML = owners.map(o => `<option value="${o}">${o}</option>`).join('');
+  if (currentUser && currentUser.name) {
+    const norm = normOwner(currentUser.name);
+    const opt = [...sel.options].find(o => o.value === norm);
+    if (opt) sel.value = norm;
+  }
+  document.getElementById('op-modal-qty').value      = '500';
+  document.getElementById('op-modal-deadline').value = '';
+  document.getElementById('op-modal-status').textContent = '';
+  document.getElementById('op-modal-submit').disabled    = false;
+  document.getElementById('op-modal-submit').textContent = '📥 Add to Active Queue';
+  document.getElementById('op-modal-overlay').style.display = 'flex';
+}
+
+function closeOpModal() {
+  document.getElementById('op-modal-overlay').style.display = 'none';
+  opSelectedRow = null;
+}
+
+document.getElementById('op-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeOpModal();
+});
+
+async function submitOpQuickAdd() {
+  if (!opSelectedRow) return;
+  const r = opSelectedRow;
+  const qty = parseInt(document.getElementById('op-modal-qty').value) || 0;
+  const owner    = document.getElementById('op-modal-owner').value;
+  const deadlineEl = document.getElementById('op-modal-deadline').value; // yyyy-mm-dd
+  const statusEl   = document.getElementById('op-modal-status');
+  const submitBtn  = document.getElementById('op-modal-submit');
+  if (qty <= 0) { statusEl.className = 'form-status error'; statusEl.textContent = 'Enter a valid quantity.'; return; }
+  // Convert deadline to dd/mm/yyyy
+  const deadline = deadlineEl ? deadlineEl.split('-').reverse().join('/') : '';
+  const printName   = findOpField(r.raw, 'print', 'design', 'name');
+  const bottleColor = findOpField(r.raw, 'bottle color', 'color');
+  const lid         = findOpField(r.raw, 'lid');
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Adding…';
+  statusEl.className = 'form-status';
+  statusEl.textContent = '';
+  try {
+    await postAndRead(SCRIPT_URL, JSON.stringify({
+      action:    'add_job',
+      soort:     'Bottle',
+      company:   'IZY (own production)',
+      printName,
+      quantity:  qty,
+      color:     bottleColor,
+      lid,
+      deadline,
+      owner,
+      tosleeve:   'No',
+      needmockup: 'No',
+      notes:      'Auto-added from Own Production tab',
+      changedBy:  currentUser?.email,
+      status:     'To Print',
+    }));
+    statusEl.className = 'form-status success';
+    statusEl.textContent = '✓ Added to Active Queue!';
+    setTimeout(() => { closeOpModal(); refreshData(); }, 900);
+  } catch (err) {
+    statusEl.className = 'form-status error';
+    statusEl.textContent = 'Error: ' + err.message;
+    submitBtn.disabled = false;
+    submitBtn.textContent = '📥 Add to Active Queue';
+  }
+}
 
 // ── Boot: check auth before loading data ─────────────────────
 const _stored = localStorage.getItem('izy_user');

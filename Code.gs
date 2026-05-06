@@ -266,7 +266,9 @@ function doGet(e) {
           ? ss.getSheetByName('Stock')
           : e.parameter.sheet === 'calendar'
             ? ss.getSheetByName('Calendar')
-            : ss.getSheetByName('Workfile');
+            : e.parameter.sheet === 'assortment'
+              ? ss.getSheetByName('Assortment printfiles')
+              : ss.getSheetByName('Workfile');
 
   // Raw 2D array dump for sheets with non-standard layouts
   if (e.parameter.raw === '1' && sheet) {
