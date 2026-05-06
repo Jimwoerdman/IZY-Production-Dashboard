@@ -4710,11 +4710,18 @@ function renderOwnProduction() {
     <div class="aq-table-wrap table-wrap">
       <table>
         <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>Action</th></tr></thead>
-        <tbody>${rows.map((r, i) => {
+        <tbody>${rows.map((r) => {
           const low = r.daysOfStock != null && r.daysOfStock < 21;
           return `<tr${low ? ' style="background:#fef2f2;"' : ''}>${headers.map(h => {
-            const v = r.raw[h];
-            return `<td>${v == null || v === '' ? '—' : String(v)}</td>`;
+            let v = r.raw[h];
+            if (v == null || v === '') return '<td>—</td>';
+            // Round numeric values to whole numbers for readability
+            if (typeof v === 'number' && !Number.isInteger(v)) v = Math.round(v);
+            // Highlight Days of stock when low
+            if (h.toLowerCase().includes('day') && low) {
+              return `<td style="color:var(--red);font-weight:600;">${v}d</td>`;
+            }
+            return `<td>${v}</td>`;
           }).join('')}
           <td>${low ? `<button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button>` : ''}</td>
           </tr>`;
@@ -4740,13 +4747,18 @@ function findOpField(row, ...keywords) {
   return '';
 }
 
+function opPrintName(row) {
+  // Prefer "Printfile name" (the design), fall back to product name
+  return findOpField(row, 'printfile', 'product name', 'design', 'name');
+}
+
 function openOpModal(opIdx) {
   const r = ownProductionRows[opIdx];
   if (!r) return;
   opSelectedRow = r;
-  const printName   = findOpField(r.raw, 'print', 'design', 'name');
+  const printName   = opPrintName(r.raw);
   const bottleColor = findOpField(r.raw, 'bottle color', 'color');
-  const lid         = findOpField(r.raw, 'lid');
+  const lid         = findOpField(r.raw, 'lid color', 'lid');
   const days        = r.daysOfStock != null ? r.daysOfStock.toFixed(0) + 'd stock' : '—';
   document.getElementById('op-modal-info').innerHTML =
     `<strong>${printName || '(unnamed)'}</strong>` +
@@ -4790,9 +4802,9 @@ async function submitOpQuickAdd() {
   if (qty <= 0) { statusEl.className = 'form-status error'; statusEl.textContent = 'Enter a valid quantity.'; return; }
   // Convert deadline to dd/mm/yyyy
   const deadline = deadlineEl ? deadlineEl.split('-').reverse().join('/') : '';
-  const printName   = findOpField(r.raw, 'print', 'design', 'name');
+  const printName   = opPrintName(r.raw);
   const bottleColor = findOpField(r.raw, 'bottle color', 'color');
-  const lid         = findOpField(r.raw, 'lid');
+  const lid         = findOpField(r.raw, 'lid color', 'lid');
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Adding…';

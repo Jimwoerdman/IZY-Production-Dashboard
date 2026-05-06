@@ -256,6 +256,20 @@ const DRIVE_FOLDER_ID = '1mcZ2zLKtAR02jgxhLb6l3XE20108hkbi';
 function doGet(e) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const tz    = ss.getSpreadsheetTimeZone();
+  // External spreadsheet — IZY - Dashboard (CLAUDE) — for the Own Production
+  // tab's "Assortment printfiles" sheet. Kept separate from the Operations
+  // spreadsheet so each can evolve independently.
+  const ASSORTMENT_SS_ID = '1dK0abVciq7lGubXewgfxLgrObPTU6elgJ5ZGCPQKfKI';
+  let assortmentSheet = null;
+  if (e.parameter.sheet === 'assortment') {
+    try {
+      const externalSs = SpreadsheetApp.openById(ASSORTMENT_SS_ID);
+      assortmentSheet  = externalSs.getSheetByName('Assortment printfiles');
+    } catch (err) {
+      return respondGet({ error: 'Could not open external spreadsheet: ' + err.message });
+    }
+  }
+
   const sheet = e.parameter.sheet === 'shipping'
     ? ss.getSheetByName('ShippingHistory')
     : e.parameter.sheet === 'sleeves'
@@ -267,8 +281,18 @@ function doGet(e) {
           : e.parameter.sheet === 'calendar'
             ? ss.getSheetByName('Calendar')
             : e.parameter.sheet === 'assortment'
-              ? ss.getSheetByName('Assortment printfiles')
+              ? assortmentSheet
               : ss.getSheetByName('Workfile');
+
+  // Debug: which spreadsheet is the script bound to?
+  if (e.parameter.action === 'whoami') {
+    return respondGet({
+      spreadsheetName: ss.getName(),
+      spreadsheetId:   ss.getId(),
+      spreadsheetUrl:  ss.getUrl(),
+      sheets:          ss.getSheets().map(s => s.getName()),
+    });
+  }
 
   // Raw 2D array dump for sheets with non-standard layouts
   if (e.parameter.raw === '1' && sheet) {
