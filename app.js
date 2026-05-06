@@ -4760,11 +4760,13 @@ function openOpModal(opIdx) {
   if (!r) return;
   opSelectedRow = r;
   const printName   = opPrintName(r.raw);
+  const productType = findOpField(r.raw, 'product type', 'type');
   const bottleColor = findOpField(r.raw, 'bottle color', 'color');
   const lid         = findOpField(r.raw, 'lid color', 'lid');
   const days        = r.daysOfStock != null ? r.daysOfStock.toFixed(0) + 'd stock' : '—';
   document.getElementById('op-modal-info').innerHTML =
     `<strong>${printName || '(unnamed)'}</strong>` +
+    (productType ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">${productType}</span>` : '') +
     (bottleColor ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">Color: ${bottleColor}</span>` : '') +
     (lid ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">Lid: ${lid}</span>` : '') +
     `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${days}</span>`;
@@ -4808,6 +4810,7 @@ async function submitOpQuickAdd() {
   const printName   = opPrintName(r.raw);
   const bottleColor = findOpField(r.raw, 'bottle color', 'color');
   const lid         = findOpField(r.raw, 'lid color', 'lid');
+  const productType = findOpField(r.raw, 'product type', 'type') || 'Bottle';
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Adding…';
@@ -4816,7 +4819,7 @@ async function submitOpQuickAdd() {
   try {
     await postAndRead(SCRIPT_URL, JSON.stringify({
       action:    'add_job',
-      soort:     'Bottle',
+      soort:     productType,
       company:   'IZY (own production)',
       printName,
       quantity:  qty,
