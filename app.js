@@ -4695,7 +4695,10 @@ function renderOwnProduction() {
     return;
   }
   // Use the first row's keys to determine columns to show — drop empty-header / underscore meta columns
-  const headers = (filtered[0].headers || Object.keys(filtered[0].raw)).filter(h => h && !h.startsWith('_'));
+  // and the 'Sleeve name' column (not relevant for Own Production view).
+  const HIDDEN_COLS = new Set(['sleeve name']);
+  const headers = (filtered[0].headers || Object.keys(filtered[0].raw))
+    .filter(h => h && !h.startsWith('_') && !HIDDEN_COLS.has(h.toLowerCase()));
   const rows = filtered.sort((a, b) => {
     const av = a.daysOfStock == null ? Infinity : a.daysOfStock;
     const bv = b.daysOfStock == null ? Infinity : b.daysOfStock;
