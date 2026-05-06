@@ -1177,6 +1177,7 @@ td.notes-cell {
 #add-sleeve-modal-overlay,
 #delivery-modal-overlay,
 #ship-modal-overlay,
+#op-modal-overlay,
 #cal-edit-overlay {
   position: fixed;
   inset: 0;
@@ -1270,6 +1271,7 @@ td.notes-cell {
 #add-sleeve-modal,
 #delivery-modal,
 #ship-modal,
+#op-modal,
 #cal-edit-modal {
   background: var(--surface);
   border-radius: var(--radius-lg);
@@ -1280,6 +1282,7 @@ td.notes-cell {
   box-shadow: 0 24px 60px rgba(0,0,0,0.35);
   animation: fadeIn 0.18s ease;
 }
+#op-modal { max-width: 480px; }
 
 /* ── Print Log Modal ─────────────────────────────────────────── */
 #print-modal-overlay {
