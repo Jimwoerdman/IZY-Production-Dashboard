@@ -4674,9 +4674,16 @@ async function loadOwnProduction() {
       .map((r, i) => {
         const obj = {};
         headers.forEach((h, j) => { obj[h] = r[j]; });
-        // Column K = index 10 (0-based) — days of stock
+        // Column K = index 10 (0-based) — days of stock.
+        // When there's stock but no sales data, the sheet may return '', '#DIV/0!',
+        // or NaN. Keep daysOfStock=null in those cases so the row is NOT flagged
+        // as low-stock (we don't want to print without proven demand).
         const daysRaw = r[10];
-        const days = daysRaw === '' || daysRaw == null ? null : (parseFloat(String(daysRaw).replace(',', '.')) || 0);
+        let days = null;
+        if (daysRaw !== '' && daysRaw != null) {
+          const parsed = parseFloat(String(daysRaw).replace(',', '.'));
+          if (Number.isFinite(parsed)) days = parsed;
+        }
         return { raw: obj, headers, daysOfStock: days, _rowIdx: i };
       });
     renderOwnProduction();
