@@ -2185,15 +2185,28 @@ function _parseTypeColorFromName_(name) {
 // Quantity, SKU, Name }. Tries the Assortment printfiles mapping first; if
 // no mapping exists, falls back to parsing Type/Color from the Name.
 function buildExternalStockGrouped_() {
-  const lookup = _buildSkuLookup_();
-  // Invert: blank-SKU → {type, color}, title-cased so multi-word values like
-  // "Travel Bottle" stay properly capitalised.
-  const titleCase = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
-  const skuToTC = {};
-  Object.entries(lookup.byTypeColor).forEach(([key, sku]) => {
-    const [type, color] = key.split('|');
-    skuToTC[String(sku)] = { type: titleCase(type), color: titleCase(color) };
-  });
+  // Operations Stock is the SKU allowlist — it defines which products are
+  // tracked for printing. Only show Stock Analyses rows whose SKU is here.
+  // Type+Color come from Operations Stock (canonical mapping for the UI).
+  const opsStock = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Stock');
+  const opsSkuToTC = {};
+  if (opsStock) {
+    const opsVals    = opsStock.getDataRange().getValues();
+    const opsHdr     = opsVals[0].map(h => String(h).trim().toLowerCase());
+    const opsISku    = opsHdr.indexOf('sku');
+    const opsIType   = opsHdr.indexOf('type');
+    const opsIColor  = opsHdr.indexOf('color');
+    if (opsISku >= 0 && opsIType >= 0 && opsIColor >= 0) {
+      for (let r = 1; r < opsVals.length; r++) {
+        const sku   = opsVals[r][opsISku];
+        const type  = String(opsVals[r][opsIType]  || '').trim();
+        const color = String(opsVals[r][opsIColor] || '').trim();
+        if (sku !== '' && sku != null && type && color) {
+          opsSkuToTC[String(sku)] = { type, color };
+        }
+      }
+    }
+  }
 
   const sa = _externalStockAnal_();
   if (!sa) throw new Error('Stock Analyses sheet not found');
@@ -2211,12 +2224,8 @@ function buildExternalStockGrouped_() {
     const izy  = vals[r][iIzy];
     const name = iName >= 0 ? vals[r][iName] : '';
     if (sku === '' || sku == null) continue;
-    let tc = skuToTC[String(sku)];
-    if (!tc) {
-      // Fallback: parse from Name
-      tc = _parseTypeColorFromName_(name);
-      if (!tc) continue; // truly unidentifiable — skip
-    }
+    const tc = opsSkuToTC[String(sku)];
+    if (!tc) continue; // SKU not tracked in Operations Stock → skip
     const qty = parseInt(izy);
     out.push({
       Type:     tc.type,
