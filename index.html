@@ -452,7 +452,7 @@
       <div style="display:flex;gap:8px;align-items:center;">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);">
           <input type="checkbox" id="op-only-low" checked />
-          Only show &lt; 21 days stock
+          Only show &lt; 28 days stock
         </label>
         <button class="btn-secondary" onclick="loadOwnProduction()">↻ Refresh</button>
       </div>
@@ -1554,7 +1554,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=97"></script>
+<script src="app.js?v=98"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

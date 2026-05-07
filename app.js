@@ -4689,7 +4689,7 @@ function renderOwnProduction() {
   const container = document.getElementById('op-content');
   if (!container) return;
   const onlyLow = document.getElementById('op-only-low').checked;
-  const filtered = ownProductionRows.filter(r => !onlyLow || (r.daysOfStock != null && r.daysOfStock < 21));
+  const filtered = ownProductionRows.filter(r => !onlyLow || (r.daysOfStock != null && r.daysOfStock < 28));
   if (!filtered.length) {
     container.innerHTML = '<div class="stock-empty">No items match the current filter.</div>';
     return;
@@ -4704,7 +4704,7 @@ function renderOwnProduction() {
     const bv = b.daysOfStock == null ? Infinity : b.daysOfStock;
     return av - bv;
   });
-  const lowCount = ownProductionRows.filter(r => r.daysOfStock != null && r.daysOfStock < 21).length;
+  const lowCount = ownProductionRows.filter(r => r.daysOfStock != null && r.daysOfStock < 28).length;
   container.innerHTML = `
     <div style="margin-bottom:12px;color:var(--text-2);font-size:13px;">
       ${rows.length} item${rows.length !== 1 ? 's' : ''} shown
@@ -4714,7 +4714,7 @@ function renderOwnProduction() {
       <table>
         <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>Action</th></tr></thead>
         <tbody>${rows.map((r) => {
-          const low = r.daysOfStock != null && r.daysOfStock < 21;
+          const low = r.daysOfStock != null && r.daysOfStock < 28;
           return `<tr${low ? ' style="background:#fef2f2;"' : ''}>${headers.map(h => {
             let v = r.raw[h];
             if (v == null || v === '') return '<td>—</td>';
@@ -4726,7 +4726,7 @@ function renderOwnProduction() {
             }
             return `<td>${v}</td>`;
           }).join('')}
-          <td>${low ? `<button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button>` : ''}</td>
+          <td><button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:${low ? 'var(--blue)' : 'var(--surface-2)'};color:${low ? '#fff' : 'var(--text-2)'};border:1px solid ${low ? 'var(--blue)' : 'var(--border)'};border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button></td>
           </tr>`;
         }).join('')}</tbody>
       </table>
