@@ -308,7 +308,8 @@ function doGet(e) {
     if (e.parameter.sheetName) {
       const sheet = target.getSheetByName(e.parameter.sheetName);
       if (sheet) {
-        const lastRow = Math.min(sheet.getLastRow(), 6);
+        const limit = parseInt(e.parameter.limit) || 6;
+        const lastRow = Math.min(sheet.getLastRow(), limit);
         const lastCol = sheet.getLastColumn();
         if (lastRow > 0 && lastCol > 0) {
           out.preview = sheet.getRange(1, 1, lastRow, lastCol).getValues();
@@ -2185,29 +2186,36 @@ function _parseTypeColorFromName_(name) {
 // Quantity, SKU, Name }. Tries the Assortment printfiles mapping first; if
 // no mapping exists, falls back to parsing Type/Color from the Name.
 function buildExternalStockGrouped_() {
-  // Operations Stock is the SKU allowlist — it defines which products are
-  // tracked for printing. Only show Stock Analyses rows whose SKU is here.
-  // Type+Color come from Operations Stock (canonical mapping for the UI).
+  // Stock Analyses (IZY-Dashboards) is the LEADING source. Each call to this
+  // function syncs Operations Stock's Quantity column from Stock Analyses' IZY
+  // column for every shared SKU, so the two spreadsheets always agree.
+
+  // 1. Build SKU → {row, type, color, currentQty} from Operations Stock
   const opsStock = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Stock');
-  const opsSkuToTC = {};
+  const opsSkuMap = {}; // sku → { rowIdx (1-based), type, color, qty }
+  let opsQtyCol = -1;
   if (opsStock) {
     const opsVals    = opsStock.getDataRange().getValues();
     const opsHdr     = opsVals[0].map(h => String(h).trim().toLowerCase());
     const opsISku    = opsHdr.indexOf('sku');
     const opsIType   = opsHdr.indexOf('type');
     const opsIColor  = opsHdr.indexOf('color');
-    if (opsISku >= 0 && opsIType >= 0 && opsIColor >= 0) {
+    const opsIQty    = opsHdr.indexOf('quantity');
+    opsQtyCol = opsIQty;
+    if (opsISku >= 0 && opsIType >= 0 && opsIColor >= 0 && opsIQty >= 0) {
       for (let r = 1; r < opsVals.length; r++) {
         const sku   = opsVals[r][opsISku];
         const type  = String(opsVals[r][opsIType]  || '').trim();
         const color = String(opsVals[r][opsIColor] || '').trim();
+        const qty   = parseInt(opsVals[r][opsIQty]) || 0;
         if (sku !== '' && sku != null && type && color) {
-          opsSkuToTC[String(sku)] = { type, color };
+          opsSkuMap[String(sku)] = { rowIdx: r + 1, type, color, qty };
         }
       }
     }
   }
 
+  // 2. Read Stock Analyses
   const sa = _externalStockAnal_();
   if (!sa) throw new Error('Stock Analyses sheet not found');
   const vals = sa.getDataRange().getValues();
@@ -2218,22 +2226,42 @@ function buildExternalStockGrouped_() {
   const iIzy  = hdr.findIndex(h => h.toLowerCase() === 'izy');
   if (iSku < 0 || iIzy < 0) throw new Error('Stock Analyses missing SKU or IZY column');
 
-  const out = [];
+  // 3. Build the output rows AND collect any Operations Stock cells that need
+  //    to be brought into sync with Stock Analyses' IZY value.
+  const out          = [];
+  const opsUpdates   = []; // [{ rowIdx, qty }]
+  const seenOpsSkus  = new Set();
   for (let r = 1; r < vals.length; r++) {
     const sku  = vals[r][iSku];
     const izy  = vals[r][iIzy];
     const name = iName >= 0 ? vals[r][iName] : '';
     if (sku === '' || sku == null) continue;
-    const tc = opsSkuToTC[String(sku)];
-    if (!tc) continue; // SKU not tracked in Operations Stock → skip
+    const ops = opsSkuMap[String(sku)];
+    if (!ops) continue; // SKU not tracked in Operations Stock → skip
+    seenOpsSkus.add(String(sku));
     const qty = parseInt(izy);
+    const safeQty = Number.isFinite(qty) ? qty : 0;
     out.push({
-      Type:     tc.type,
-      Color:    tc.color,
-      Quantity: Number.isFinite(qty) ? qty : 0,
+      Type:     ops.type,
+      Color:    ops.color,
+      Quantity: safeQty,
       SKU:      String(sku),
       Name:     String(name || '').trim(),
     });
+    // If Operations Stock disagrees, queue an update
+    if (ops.qty !== safeQty) {
+      opsUpdates.push({ rowIdx: ops.rowIdx, qty: safeQty });
+    }
+  }
+
+  // 4. Apply any Operations Stock corrections (one-shot sync from leading source)
+  if (opsStock && opsQtyCol >= 0 && opsUpdates.length > 0) {
+    try {
+      opsUpdates.forEach(u => opsStock.getRange(u.rowIdx, opsQtyCol + 1).setValue(u.qty));
+      Logger.log('Stock sync: pushed ' + opsUpdates.length + ' updates from Stock Analyses → Operations Stock');
+    } catch (e) {
+      Logger.log('Stock sync write failed: ' + e.message);
+    }
   }
   return out;
 }
