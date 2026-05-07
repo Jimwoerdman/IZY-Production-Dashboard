@@ -256,17 +256,28 @@ const DRIVE_FOLDER_ID = '1mcZ2zLKtAR02jgxhLb6l3XE20108hkbi';
 function doGet(e) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const tz    = ss.getSpreadsheetTimeZone();
-  // External spreadsheet — IZY - Dashboard (CLAUDE) — for the Own Production
-  // tab's "Assortment printfiles" sheet. Kept separate from the Operations
-  // spreadsheet so each can evolve independently.
-  const ASSORTMENT_SS_ID = '1dK0abVciq7lGubXewgfxLgrObPTU6elgJ5ZGCPQKfKI';
+  // External spreadsheet — IZY - Dashboards (CLAUDE) — leading source for stock
+  // and assortment data. Stock Analyses is the canonical inventory; Assortment
+  // printfiles maps Type+Color → blank-bottle SKU.
+  const EXT_SS_ID = '1dK0abVciq7lGubXewgfxLgrObPTU6elgJ5ZGCPQKfKI';
   let assortmentSheet = null;
   if (e.parameter.sheet === 'assortment') {
     try {
-      const externalSs = SpreadsheetApp.openById(ASSORTMENT_SS_ID);
+      const externalSs = SpreadsheetApp.openById(EXT_SS_ID);
       assortmentSheet  = externalSs.getSheetByName('Assortment printfiles');
     } catch (err) {
       return respondGet({ error: 'Could not open external spreadsheet: ' + err.message });
+    }
+  }
+
+  // Stock tab reads from Stock Analyses (IZY-Dashboards) joined with Assortment
+  // printfiles to derive Type+Color rows compatible with the existing UI.
+  if (e.parameter.sheet === 'stock' && !e.parameter.raw) {
+    try {
+      const rows = buildExternalStockGrouped_();
+      return respondGet({ rows });
+    } catch (err) {
+      return respondGet({ error: 'External stock fetch failed: ' + err.message });
     }
   }
 
@@ -284,14 +295,27 @@ function doGet(e) {
               ? assortmentSheet
               : ss.getSheetByName('Workfile');
 
-  // Debug: which spreadsheet is the script bound to?
+  // Debug: which spreadsheet is the script bound to? Optional ssId param to
+  // inspect any external spreadsheet by ID. With sheetName param, dump first 5 rows.
   if (e.parameter.action === 'whoami') {
-    return respondGet({
-      spreadsheetName: ss.getName(),
-      spreadsheetId:   ss.getId(),
-      spreadsheetUrl:  ss.getUrl(),
-      sheets:          ss.getSheets().map(s => s.getName()),
-    });
+    const target = e.parameter.ssId ? SpreadsheetApp.openById(e.parameter.ssId) : ss;
+    const out = {
+      spreadsheetName: target.getName(),
+      spreadsheetId:   target.getId(),
+      spreadsheetUrl:  target.getUrl(),
+      sheets:          target.getSheets().map(s => s.getName()),
+    };
+    if (e.parameter.sheetName) {
+      const sheet = target.getSheetByName(e.parameter.sheetName);
+      if (sheet) {
+        const lastRow = Math.min(sheet.getLastRow(), 6);
+        const lastCol = sheet.getLastColumn();
+        if (lastRow > 0 && lastCol > 0) {
+          out.preview = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+        }
+      }
+    }
+    return respondGet(out);
   }
 
   // Raw 2D array dump for sheets with non-standard layouts
@@ -1464,6 +1488,8 @@ function doPost(e) {
         }
       }
       if (!matched) return respond({ error: 'No Stock row found for ' + data.type + ' / ' + data.color });
+      // Mirror delivery to Stock Analyses
+      try { deductExternalStockAnalyses_(data.type, data.color, +amount); } catch (e) { Logger.log('SA mirror (delivery) failed: ' + e.message); }
       return respond({ success: true });
     }
 
@@ -1636,6 +1662,7 @@ function doPost(e) {
               if (!typeName || !colorName) return;
               const tl = typeName.trim().toLowerCase();
               const cl = colorName.trim().toLowerCase();
+              let matched = false;
               for (var si = 1; si < stockVals.length; si++) {
                 if (String(stockVals[si][stTypeCol] ?? '').trim().toLowerCase() === tl &&
                     String(stockVals[si][stColorCol] ?? '').trim().toLowerCase() === cl) {
@@ -1644,11 +1671,16 @@ function doPost(e) {
                   stockSheet.getRange(si + 1, stQtyCol + 1).setValue(newQty);
                   Logger.log('Stock reset ' + (delta > 0 ? 'refund' : 're-deduct') + ': ' + typeName + '/' + colorName + ' ' + (delta > 0 ? '+' : '') + delta + ' (' + current + '→' + newQty + ')');
                   stockLog.appendRow([logDate, typeName, colorName, delta, 'reset (' + current + '→' + newQty + ')', rowIndex, data.changedBy || '', note || '']);
-                  return;
+                  matched = true;
+                  break;
                 }
               }
-              Logger.log('Stock reset: no match for ' + typeName + '/' + colorName);
-              stockLog.appendRow([logDate, typeName, colorName, delta, 'no match', rowIndex, data.changedBy || '', note || '']);
+              if (!matched) {
+                Logger.log('Stock reset: no match for ' + typeName + '/' + colorName);
+                stockLog.appendRow([logDate, typeName, colorName, delta, 'no match', rowIndex, data.changedBy || '', note || '']);
+              }
+              // Mirror to Stock Analyses (regardless of local match)
+              try { deductExternalStockAnalyses_(typeName, colorName, delta); } catch (e) { Logger.log('SA mirror (reset) failed: ' + e.message); }
             };
 
             // Refund product stock
@@ -1751,6 +1783,9 @@ function doPost(e) {
               Logger.log('Stock ' + (note || '') + ': ' + msg);
               stockLog.appendRow([logDate, typeName, colorName, delta, 'no match', rowIndex, data.changedBy || '', msg]);
             }
+            // Mirror the change to Stock Analyses (IZY column) in IZY-Dashboards.
+            // Stock Analyses is the leading source — both must stay in sync.
+            try { deductExternalStockAnalyses_(typeName, colorName, delta); } catch (e) { Logger.log('SA mirror failed: ' + e.message); }
           };
 
           // Deduct product stock
@@ -2058,6 +2093,123 @@ function debugStatusColumn() {
   // Also show what's currently in row 2 col Q
   const valQ2 = sheet.getRange(2, 17).getValue();
   Logger.log('Value at Q2 (row 2, col 17): ' + valQ2);
+}
+
+// ── External stock helpers (Stock Analyses + Assortment printfiles) ─────────
+// Stock Analyses is the leading inventory source. Assortment printfiles maps
+// Type+Color → blank-bottle SKU via the "SKU print bottle" column. We use that
+// to display stock per Type+Color and to deduct on print logs.
+const _EXT_SS_ID = '1dK0abVciq7lGubXewgfxLgrObPTU6elgJ5ZGCPQKfKI';
+
+function _openExtSs_()       { return SpreadsheetApp.openById(_EXT_SS_ID); }
+function _externalAssortment_() { return _openExtSs_().getSheetByName('Assortment printfiles'); }
+function _externalStockAnal_()  { return _openExtSs_().getSheetByName('Stock Analyses'); }
+
+// Build a Type+Color → blank-bottle-SKU map from Assortment printfiles.
+// Multiple designs share the same blank — first hit wins (they all point to
+// the same SKU anyway).
+function _buildSkuLookup_() {
+  const sh = _externalAssortment_();
+  if (!sh) return { byTypeColor: {}, headers: [] };
+  const vals = sh.getDataRange().getValues();
+  if (!vals.length) return { byTypeColor: {}, headers: [] };
+  const hdr = vals[0].map(h => String(h).trim().toLowerCase());
+  const iType  = hdr.findIndex(h => h.includes('product type'));
+  const iColor = hdr.findIndex(h => h.includes('bottle color'));
+  const iSku   = hdr.findIndex(h => h.includes('sku print bottle'));
+  if (iType < 0 || iColor < 0 || iSku < 0) return { byTypeColor: {}, headers: hdr };
+
+  const map = {};
+  for (let r = 1; r < vals.length; r++) {
+    const t = String(vals[r][iType]  || '').trim();
+    const c = String(vals[r][iColor] || '').trim();
+    const s = vals[r][iSku];
+    if (!t || !c || s === '' || s == null) continue;
+    const key = (t + '|' + c).toLowerCase();
+    if (!map[key]) map[key] = s;
+  }
+  return { byTypeColor: map };
+}
+
+// Returns Stock Analyses rows shaped for the Stock tab UI: { Type, Color,
+// Quantity, SKU, Name }. Rows whose SKU isn't a blank-bottle SKU (e.g. printed
+// products like 21001) are skipped — those aren't part of the stockable blanks.
+function buildExternalStockGrouped_() {
+  const lookup = _buildSkuLookup_();
+  // Invert: blank-SKU → {type, color}
+  const skuToTC = {};
+  Object.entries(lookup.byTypeColor).forEach(([key, sku]) => {
+    const [type, color] = key.split('|');
+    skuToTC[String(sku)] = {
+      type:  type[0].toUpperCase() + type.slice(1),
+      color: color[0].toUpperCase() + color.slice(1),
+    };
+  });
+
+  const sa = _externalStockAnal_();
+  if (!sa) throw new Error('Stock Analyses sheet not found');
+  const vals = sa.getDataRange().getValues();
+  if (!vals.length) return [];
+  const hdr  = vals[0].map(h => String(h).trim());
+  const iSku  = hdr.findIndex(h => h.toLowerCase() === 'sku');
+  const iName = hdr.findIndex(h => h.toLowerCase() === 'name');
+  const iIzy  = hdr.findIndex(h => h.toLowerCase() === 'izy');
+  if (iSku < 0 || iIzy < 0) throw new Error('Stock Analyses missing SKU or IZY column');
+
+  const out = [];
+  for (let r = 1; r < vals.length; r++) {
+    const sku  = vals[r][iSku];
+    const izy  = vals[r][iIzy];
+    const name = iName >= 0 ? vals[r][iName] : '';
+    if (sku === '' || sku == null) continue;
+    const tc = skuToTC[String(sku)];
+    if (!tc) continue; // not a blank bottle (printed product, etc.)
+    const qty = parseInt(izy);
+    out.push({
+      Type:     tc.type,
+      Color:    tc.color,
+      Quantity: Number.isFinite(qty) ? qty : 0,
+      SKU:      String(sku),
+      Name:     String(name || '').trim(),
+    });
+  }
+  return out;
+}
+
+// Deduct (delta < 0) or refund (delta > 0) the IZY column in Stock Analyses
+// for the blank-bottle SKU that matches Type+Color. Returns true on success.
+function deductExternalStockAnalyses_(typeName, colorName, delta) {
+  if (!typeName || !colorName || !delta) return false;
+  try {
+    const lookup = _buildSkuLookup_();
+    const key = (typeName + '|' + colorName).toLowerCase().trim();
+    const sku = lookup.byTypeColor[key];
+    if (!sku) {
+      Logger.log('Stock Analyses: no SKU mapping for ' + typeName + '/' + colorName);
+      return false;
+    }
+    const sa = _externalStockAnal_();
+    if (!sa) return false;
+    const vals = sa.getDataRange().getValues();
+    const hdr  = vals[0].map(h => String(h).trim());
+    const iSku = hdr.findIndex(h => h.toLowerCase() === 'sku');
+    const iIzy = hdr.findIndex(h => h.toLowerCase() === 'izy');
+    if (iSku < 0 || iIzy < 0) return false;
+    for (let r = 1; r < vals.length; r++) {
+      if (String(vals[r][iSku]) === String(sku)) {
+        const cur = parseInt(vals[r][iIzy]) || 0;
+        const newQty = Math.max(0, cur + delta);
+        sa.getRange(r + 1, iIzy + 1).setValue(newQty);
+        Logger.log('Stock Analyses ' + (delta < 0 ? 'deducted' : 'refunded') + ': SKU ' + sku + ' ' + delta + ' (' + cur + '→' + newQty + ')');
+        return true;
+      }
+    }
+    Logger.log('Stock Analyses: SKU ' + sku + ' not found in sheet');
+    return false;
+  } catch (err) {
+    Logger.log('Stock Analyses deduct failed: ' + err.message);
+    return false;
+  }
 }
 
 function columnToLetter_(col) {
