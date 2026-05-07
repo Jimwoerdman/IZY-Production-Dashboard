@@ -2266,14 +2266,39 @@ function buildExternalStockGrouped_() {
   return out;
 }
 
+// Build a Type+Color → SKU lookup from OPERATIONS Stock. This covers everything
+// that the dashboard actually tracks (blanks + lids), unlike Assortment printfiles
+// which only has blank bottles.
+function _opsSkuByTypeColor_() {
+  const opsStock = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Stock');
+  if (!opsStock) return {};
+  const vals = opsStock.getDataRange().getValues();
+  const hdr  = vals[0].map(h => String(h).trim().toLowerCase());
+  const iSku   = hdr.indexOf('sku');
+  const iType  = hdr.indexOf('type');
+  const iColor = hdr.indexOf('color');
+  if (iSku < 0 || iType < 0 || iColor < 0) return {};
+  const map = {};
+  for (let r = 1; r < vals.length; r++) {
+    const sku   = vals[r][iSku];
+    const type  = String(vals[r][iType]  || '').trim();
+    const color = String(vals[r][iColor] || '').trim();
+    if (sku !== '' && sku != null && type && color) {
+      map[(type + '|' + color).toLowerCase()] = String(sku);
+    }
+  }
+  return map;
+}
+
 // Deduct (delta < 0) or refund (delta > 0) the IZY column in Stock Analyses
-// for the blank-bottle SKU that matches Type+Color. Returns true on success.
+// for the SKU that matches Type+Color. Resolves SKU via Operations Stock
+// (covers both blanks and lids).
 function deductExternalStockAnalyses_(typeName, colorName, delta) {
   if (!typeName || !colorName || !delta) return false;
   try {
-    const lookup = _buildSkuLookup_();
+    const lookup = _opsSkuByTypeColor_();
     const key = (typeName + '|' + colorName).toLowerCase().trim();
-    const sku = lookup.byTypeColor[key];
+    const sku = lookup[key];
     if (!sku) {
       Logger.log('Stock Analyses: no SKU mapping for ' + typeName + '/' + colorName);
       return false;
