@@ -2131,19 +2131,68 @@ function _buildSkuLookup_() {
   return { byTypeColor: map };
 }
 
+// Heuristic Type/Color parser from Stock Analyses "Name" — used as fallback
+// when a SKU has no Assortment mapping. Names look like:
+//   "IZY Bottles - Originals White 2.0"
+//   "IZY Mugs - Mat Wit Thermos Mug - 350ML"
+//   "IZY Travel Bottle - Black 500ML"
+//   "IZY Tumbler - Gray 350ML"
+function _parseTypeColorFromName_(name) {
+  if (!name) return null;
+  const s = String(name).trim();
+  const sl = s.toLowerCase();
+  let type = null;
+  if (sl.includes('travel'))      type = 'Travel Bottle';
+  else if (sl.includes('tumbler')) type = 'Tumbler';
+  else if (sl.includes('mug'))     type = 'Mug';
+  else if (sl.includes('bottle'))  type = 'Bottle';
+  else if (sl.includes('lid'))     type = sl.includes('mug') ? 'Mug lids' : 'Bottle lids';
+  if (!type) return null;
+
+  // Best-effort color extraction. Try common colors first.
+  const COLOR_PATTERNS = [
+    [/light blue/i,  'Light blue'],
+    [/dark blue/i,   'Dark blue'],
+    [/navy/i,        'Navy'],
+    [/sky blue/i,    'Sky blue'],
+    [/dark grey|dark gray/i, 'Dark grey'],
+    [/light pink/i,  'Light pink'],
+    [/dark green/i,  'Dark green'],
+    [/dark red/i,    'Dark red'],
+    [/off white/i,   'Off white'],
+    [/mat wit|wit\b/i,  'White'],
+    [/zwart/i,       'Black'],
+    [/grijs/i,       'Grey'],
+    [/rood/i,        'Red'],
+    [/groen/i,       'Green'],
+    [/blauw/i,       'Blue'],
+    [/geel/i,        'Yellow'],
+    [/oranje/i,      'Orange'],
+    [/roze/i,        'Pink'],
+    [/paars/i,       'Purple'],
+    [/zilver/i,      'Silver'],
+    [/goud/i,        'Gold'],
+    [/\b(white|black|grey|gray|silver|gold|red|blue|green|yellow|orange|pink|purple|violet|cream|beige|brown|tan|navy|coral|teal|mint|olive|amber|rose|lavender|transparent|clear)\b/i, null],
+  ];
+  for (const [re, label] of COLOR_PATTERNS) {
+    const m = s.match(re);
+    if (m) return { type, color: label || (m[0][0].toUpperCase() + m[0].slice(1).toLowerCase()) };
+  }
+  return { type, color: '—' };
+}
+
 // Returns Stock Analyses rows shaped for the Stock tab UI: { Type, Color,
-// Quantity, SKU, Name }. Rows whose SKU isn't a blank-bottle SKU (e.g. printed
-// products like 21001) are skipped — those aren't part of the stockable blanks.
+// Quantity, SKU, Name }. Tries the Assortment printfiles mapping first; if
+// no mapping exists, falls back to parsing Type/Color from the Name.
 function buildExternalStockGrouped_() {
   const lookup = _buildSkuLookup_();
-  // Invert: blank-SKU → {type, color}
+  // Invert: blank-SKU → {type, color}, title-cased so multi-word values like
+  // "Travel Bottle" stay properly capitalised.
+  const titleCase = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
   const skuToTC = {};
   Object.entries(lookup.byTypeColor).forEach(([key, sku]) => {
     const [type, color] = key.split('|');
-    skuToTC[String(sku)] = {
-      type:  type[0].toUpperCase() + type.slice(1),
-      color: color[0].toUpperCase() + color.slice(1),
-    };
+    skuToTC[String(sku)] = { type: titleCase(type), color: titleCase(color) };
   });
 
   const sa = _externalStockAnal_();
@@ -2162,8 +2211,12 @@ function buildExternalStockGrouped_() {
     const izy  = vals[r][iIzy];
     const name = iName >= 0 ? vals[r][iName] : '';
     if (sku === '' || sku == null) continue;
-    const tc = skuToTC[String(sku)];
-    if (!tc) continue; // not a blank bottle (printed product, etc.)
+    let tc = skuToTC[String(sku)];
+    if (!tc) {
+      // Fallback: parse from Name
+      tc = _parseTypeColorFromName_(name);
+      if (!tc) continue; // truly unidentifiable — skip
+    }
     const qty = parseInt(izy);
     out.push({
       Type:     tc.type,
