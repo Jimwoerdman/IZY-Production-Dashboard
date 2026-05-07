@@ -4676,14 +4676,20 @@ async function loadOwnProduction() {
         headers.forEach((h, j) => { obj[h] = r[j]; });
         // Column K = index 10 (0-based) — days of stock.
         // When there's stock but no sales data, the sheet may return '', '#DIV/0!',
-        // or NaN. Keep daysOfStock=null in those cases so the row is NOT flagged
-        // as low-stock (we don't want to print without proven demand).
-        const daysRaw = r[10];
+        // NaN, or even literal 0 (depending on how the formula coalesces). In all
+        // these cases keep daysOfStock=null so the row is NOT flagged as low-stock
+        // (we don't want to print without proven demand).
+        const daysRaw  = r[10];
+        const stockRaw = r[9];
+        const stockNum = parseFloat(String(stockRaw ?? '').replace(',', '.'));
+        const stockVal = Number.isFinite(stockNum) ? stockNum : 0;
         let days = null;
         if (daysRaw !== '' && daysRaw != null) {
           const parsed = parseFloat(String(daysRaw).replace(',', '.'));
           if (Number.isFinite(parsed)) days = parsed;
         }
+        // Days = 0 while stock > 0 → impossible in reality, must be missing sales data
+        if (days === 0 && stockVal > 0) days = null;
         return { raw: obj, headers, daysOfStock: days, _rowIdx: i };
       });
     renderOwnProduction();
