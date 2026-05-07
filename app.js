@@ -4730,13 +4730,19 @@ function renderOwnProduction() {
           const low = r.daysOfStock != null && r.daysOfStock < 28;
           return `<tr${low ? ' style="background:#fef2f2;"' : ''}>${headers.map(h => {
             let v = r.raw[h];
+            const isDaysCol = h.toLowerCase().includes('day');
+            // For the Day/s stock column, use the cleaned daysOfStock — null when
+            // sales data is missing (raw cell may show 0 in the sheet).
+            if (isDaysCol) {
+              if (r.daysOfStock == null) return '<td style="color:var(--text-3);font-style:italic;">no data</td>';
+              const dv = Math.round(r.daysOfStock);
+              return low
+                ? `<td style="color:var(--red);font-weight:600;">${dv}d</td>`
+                : `<td>${dv}d</td>`;
+            }
             if (v == null || v === '') return '<td>—</td>';
             // Round numeric values to whole numbers for readability
             if (typeof v === 'number' && !Number.isInteger(v)) v = Math.round(v);
-            // Highlight Days of stock when low
-            if (h.toLowerCase().includes('day') && low) {
-              return `<td style="color:var(--red);font-weight:600;">${v}d</td>`;
-            }
             return `<td>${v}</td>`;
           }).join('')}
           <td><button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:${low ? 'var(--blue)' : 'var(--surface-2)'};color:${low ? '#fff' : 'var(--text-2)'};border:1px solid ${low ? 'var(--blue)' : 'var(--border)'};border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button></td>
