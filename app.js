@@ -4798,8 +4798,12 @@ function openOpModal(opIdx) {
     const opt = [...sel.options].find(o => o.value === norm);
     if (opt) sel.value = norm;
   }
-  document.getElementById('op-modal-qty').value      = '500';
-  document.getElementById('op-modal-deadline').value = '';
+  document.getElementById('op-modal-qty').value      = '25';
+  // Default deadline = today + 7 days, formatted yyyy-mm-dd for <input type="date">
+  const dl7 = new Date(); dl7.setDate(dl7.getDate() + 7);
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('op-modal-deadline').value =
+    dl7.getFullYear() + '-' + pad(dl7.getMonth() + 1) + '-' + pad(dl7.getDate());
   document.getElementById('op-modal-status').textContent = '';
   document.getElementById('op-modal-submit').disabled    = false;
   document.getElementById('op-modal-submit').textContent = '📥 Add to Active Queue';
@@ -4846,7 +4850,7 @@ async function submitOpQuickAdd() {
       lid,
       deadline,
       owner,
-      tosleeve:   'No',
+      tosleeve:   'Yes',
       needmockup: 'No',
       notes:      'Auto-added from Own Production tab',
       changedBy:  currentUser?.email,
