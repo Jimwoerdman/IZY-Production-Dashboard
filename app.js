@@ -4972,7 +4972,16 @@ async function loadPrintheads() {
 }
 
 async function onReplacePrinthead(printer, head) {
-  if (!confirm('Mark the "' + head + '" head on ' + printer + ' as replaced today? Counter resets to 0.')) return;
+  // Two-step safeguard: confirm the intent, then require typing the head name
+  // exactly so an accidental click can never wipe a counter.
+  if (!confirm('⚠️ This will reset the print counter for the "' + head + '" head on ' + printer + ' to 0 (and clear any manual offset).\n\nOnly do this AFTER you have physically replaced the printhead.\n\nContinue?')) return;
+  const expected = head;
+  const typed = prompt('To confirm, type the printhead name exactly:\n\n   ' + expected, '');
+  if (typed == null) return;
+  if (typed.trim() !== expected) {
+    alert('Confirmation text did not match — replace cancelled.');
+    return;
+  }
   try {
     await postAndRead(SCRIPT_URL, JSON.stringify({
       action:    'set_printhead_replacement',
