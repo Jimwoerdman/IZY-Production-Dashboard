@@ -71,6 +71,7 @@
   <button class="tab-btn" data-tab="shipping">Shipping</button>
   <button class="tab-btn" data-tab="stock">Stock</button>
   <button class="tab-btn" data-tab="own-production">Own Production</button>
+  <button class="tab-btn" data-tab="printheads">🖨 Print Heads</button>
   <button class="tab-btn" data-tab="reports">Reports</button>
 </nav>
 
@@ -442,6 +443,21 @@
     </div>
     <div id="stock-content">
       <div class="loading-msg">Loading stock…</div>
+    </div>
+  </section>
+
+  <!-- ─── PRINT HEADS ─── -->
+  <section id="tab-printheads" class="tab-content">
+    <div class="stock-header">
+      <h2>Print Heads</h2>
+      <button class="btn-secondary" onclick="loadPrintheads()">↻ Refresh</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-2);margin:-8px 0 14px;max-width:780px;">
+      Tracks how many prints each printhead has done since its last replacement.
+      Click "Replace now" when you've physically swapped a head — the counter resets to 0 from that date.
+    </p>
+    <div id="ph-content" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+      <div class="loading-msg">Loading print heads…</div>
     </div>
   </section>
 
@@ -1570,7 +1586,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=103"></script>
+<script src="app.js?v=104"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

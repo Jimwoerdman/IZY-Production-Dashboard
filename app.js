@@ -326,6 +326,7 @@ function activateTab(tabName) {
   if (tabName === 'stock') loadStock();
   if (tabName === 'calendar') loadCalendar();
   if (tabName === 'own-production') loadOwnProduction();
+  if (tabName === 'printheads') loadPrintheads();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -4905,6 +4906,48 @@ async function submitOpQuickAdd() {
     statusEl.textContent = 'Error: ' + err.message;
     submitBtn.disabled = false;
     submitBtn.textContent = '📥 Add to Active Queue';
+  }
+}
+
+// ── Print Heads tab ──────────────────────────────────────────
+async function loadPrintheads() {
+  const el = document.getElementById('ph-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-msg">Loading print heads…</div>';
+  try {
+    const data = await fetch(SCRIPT_URL + '?action=get_printhead_status&t=' + Date.now()).then(r => r.json());
+    if (data.error) throw new Error(data.error);
+    const printers = data.printers || [];
+    el.innerHTML = printers.map(p => {
+      const lr = p.lastReplaced || '—';
+      const since = p.totalPrintsSince || 0;
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 14px;box-shadow:var(--shadow-xs);">
+        <div style="font-size:13px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.4px;">🖨 ${p.name}</div>
+        <div style="font-size:36px;font-weight:700;color:var(--text);margin:8px 0 2px;">${since.toLocaleString('en-US')}</div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">prints since last replacement</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px;">Last replaced: <strong style="color:var(--text);">${lr}</strong></div>
+        <button class="btn-secondary" data-ph-replace="${p.name}" style="width:100%;">↻ Replace now</button>
+      </div>`;
+    }).join('') || '<div class="stock-empty">No print heads configured.</div>';
+    el.querySelectorAll('[data-ph-replace]').forEach(btn => {
+      btn.addEventListener('click', () => onReplacePrinthead(btn.dataset.phReplace));
+    });
+  } catch (err) {
+    el.innerHTML = '<div class="stock-empty" style="color:var(--red);">Error: ' + err.message + '</div>';
+  }
+}
+
+async function onReplacePrinthead(name) {
+  if (!confirm('Mark "' + name + '" printhead as replaced today? The counter will reset to 0.')) return;
+  try {
+    await postAndRead(SCRIPT_URL, JSON.stringify({
+      action:    'set_printhead_replacement',
+      printer:   name,
+      changedBy: currentUser?.email,
+    }));
+    loadPrintheads();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
   }
 }
 
