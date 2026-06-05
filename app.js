@@ -267,6 +267,15 @@ function typeBadge(type) {
   return `<span style="background:${bg};color:${text};border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;white-space:nowrap;">${type}</span>`;
 }
 
+// Tag for the pre-assigned printer choice (Bottle 1 / Bottle 2).
+function printerBadge(name) {
+  if (!name) return '';
+  const isOne = /1/.test(String(name));
+  const bg = isOne ? '#e0e7ff' : '#fef3c7';
+  const tx = isOne ? '#3730a3' : '#92400e';
+  return `<span style="background:${bg};color:${tx};border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;white-space:nowrap;">🖨 ${name}</span>`;
+}
+
 function badge(status) {
   const s = (status || '').toLowerCase();
   if (s === 'shipped')          return `<span class="badge b-shipped">Shipped</span>`;
@@ -959,6 +968,7 @@ function renderActiveQueue() {
           ${still > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to print</span><span class="cell-danger">${still}</span></div>` : ''}
           ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
+          ${getCI(r,'printer to use') ? `<div class="aq-meta-item"><span class="aq-meta-label">Printer</span><span>${printerBadge(getCI(r,'printer to use'))}</span></div>` : ''}
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
@@ -969,7 +979,7 @@ function renderActiveQueue() {
         <td class="print-name">${get(r,'Name_Print') || '—'}</td>
         <td>${badge(displayStatus)}</td>
         <td>${invoiceBadge(inv)}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
+        <td>${typeBadge(get(r,'Soort'))}${getCI(r,'printer to use') ? ' ' + printerBadge(getCI(r,'printer to use')) : ''}</td>
         <td>${get(r,'Deadline') || '—'}</td>
         <td ${estTitle} style="${estStyle}">${estTxt}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
@@ -2554,6 +2564,10 @@ function openEditJobModal(rowIdx, type) {
     const sleeveToggle = document.getElementById('ej-tosleeve');
     sleeveToggle.dataset.value = sleeveVal;
     sleeveToggle.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b.dataset.opt === sleeveVal));
+    const printerVal = getCI(editJobRow, 'printer to use') || '';
+    const printerToggle = document.getElementById('ej-printer');
+    printerToggle.dataset.value = printerVal;
+    printerToggle.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b.dataset.opt === printerVal));
     document.getElementById('ej-ship-company').value = getCI(editJobRow,'ontvanger bedrijfsnaam') || getCI(editJobRow,'bedrijfsnaam') || '';
     document.getElementById('ej-ship-contact').value = get(editJobRow,'Contactpersoon')  || '';
     document.getElementById('ej-ship-phone').value   = get(editJobRow,'Telefoonnummer')  || '';
@@ -2666,6 +2680,7 @@ async function submitEditJob() {
         })(),
         ...(editJobType === 'active' ? {
           tosleeve:    document.getElementById('ej-tosleeve').dataset.value || 'No',
+          printerToUse: document.getElementById('ej-printer').dataset.value || '',
           shipCompany: document.getElementById('ej-ship-company').value.trim(),
           shipContact: document.getElementById('ej-ship-contact').value.trim(),
           shipPhone:   document.getElementById('ej-ship-phone').value.trim(),
@@ -4508,6 +4523,25 @@ document.getElementById('nj-tosleeve').addEventListener('click', function(e) {
   const opt = e.target.closest('.sleeve-opt');
   if (opt) this.dataset.value = opt.dataset.opt;
 });
+// Printer-to-use toggle: highlight active button + update data-value
+document.getElementById('nj-printer').addEventListener('click', function(e) {
+  const opt = e.target.closest('.sleeve-opt');
+  if (!opt) return;
+  this.dataset.value = opt.dataset.opt;
+  this.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b === opt));
+});
+// Show printer selector only when the chosen type is a bottle (incl. travel bottle / bottle sample)
+document.getElementById('nj-soort').addEventListener('change', function() {
+  const v = (this.value || '').toLowerCase();
+  const isBottle = v.includes('bottle');
+  document.getElementById('nj-printer-wrap').style.display = isBottle ? '' : 'none';
+});
+document.getElementById('ej-printer').addEventListener('click', function(e) {
+  const opt = e.target.closest('.sleeve-opt');
+  if (!opt) return;
+  this.dataset.value = opt.dataset.opt;
+  this.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b === opt));
+});
 document.getElementById('ej-tosleeve').addEventListener('click', function(e) {
   const opt = e.target.closest('.sleeve-opt');
   if (!opt) return;
@@ -4526,6 +4560,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   const owner     = document.getElementById('nj-owner').value;
   const needmockup = document.getElementById('nj-needmockup').dataset.value;
   const tosleeve   = document.getElementById('nj-tosleeve').dataset.value;
+  const printerToUse = document.getElementById('nj-printer').dataset.value || '';
   const notes     = withDate(document.getElementById('nj-notes').value.trim());
   const shipCompany = document.getElementById('nj-ship-company').value.trim();
   const shipContact = document.getElementById('nj-ship-contact').value.trim();
@@ -4594,6 +4629,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
         soort, company, printName,
         quantity:  parseInt(quantity),
         color, lid, deadline, owner, tosleeve, needmockup, notes,
+        printerToUse,
         mockupBase64, designFiles,
         shipCompany, shipContact, shipPhone, shipEmail,
         shipStreet, shipNumber, shipZipcode, shipCity, shipCountry,
@@ -4619,6 +4655,11 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
     addNjFileRow();
     document.getElementById('nj-needmockup').dataset.value = 'No';
     document.getElementById('nj-tosleeve').dataset.value = 'No';
+    // Reset printer toggle
+    const njPrinter = document.getElementById('nj-printer');
+    njPrinter.dataset.value = '';
+    njPrinter.querySelectorAll('.sleeve-opt').forEach(b => b.classList.toggle('active', b.dataset.opt === ''));
+    document.getElementById('nj-printer-wrap').style.display = 'none';
     setTimeout(() => { statusEl.textContent = ''; }, 4000);
     refreshData();
   } catch (err) {

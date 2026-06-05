@@ -1175,6 +1175,14 @@
               <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
             </div>
           </div>
+          <div class="form-group">
+            <label>Printer to use</label>
+            <div class="sleeve-toggle" id="ej-printer" data-value="">
+              <button type="button" class="sleeve-opt active" data-opt="">—</button>
+              <button type="button" class="sleeve-opt" data-opt="Bottle 1">Bottle 1</button>
+              <button type="button" class="sleeve-opt" data-opt="Bottle 2">Bottle 2</button>
+            </div>
+          </div>
         </div>
         <div class="form-section-label" style="margin-top:12px;margin-bottom:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-3);">Shipping</div>
         <div class="form-group" style="margin-bottom:10px;">
@@ -1480,6 +1488,14 @@
             </div>
           </div>
         </div>
+        <div class="form-group" id="nj-printer-wrap" style="margin-top:10px;display:none;">
+          <label>Printer to use <span style="font-weight:400;color:#94a3b8;">(only for bottles)</span></label>
+          <div class="sleeve-toggle" id="nj-printer" data-value="">
+            <button type="button" class="sleeve-opt active" data-opt="">—</button>
+            <button type="button" class="sleeve-opt" data-opt="Bottle 1">Bottle 1</button>
+            <button type="button" class="sleeve-opt" data-opt="Bottle 2">Bottle 2</button>
+          </div>
+        </div>
       </div>
 
       <div class="form-section">
@@ -1554,7 +1570,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=102"></script>
+<script src="app.js?v=103"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

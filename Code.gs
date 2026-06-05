@@ -675,8 +675,10 @@ function doPost(e) {
     const datePrintedCol     = headers.findIndex(h => h.toLowerCase() === 'date printed');
 
     // Fixed column positions per user specification
-    const photoCol   = 8;  // Column H
-    const printerCol = 37; // Column AK
+    const photoCol           = 8;  // Column H — phone photo URL
+    const printerToUseCol    = 25; // Column Y  — pre-assigned printer (chosen at +Add Job)
+    const printerUsedCol     = 36; // Column AJ — printer that actually printed (from print log)
+    const changedByCol       = 37; // Column AK — who logged the change (email)
 
     // Find 'Status' column by header (exact match, 1-based) — avoids 'Status (under construction)'
     const statusColIdx = headers.findIndex(h => h === 'Status');
@@ -760,9 +762,11 @@ function doPost(e) {
       // vals[18] = col S  — set via setFormula below
       // vals[19] = col T  — set via setFormula below
       vals[21] = data.tosleeve  || '';
+      vals[24] = data.printerToUse || '';  // Y  — pre-assigned printer (Bottle 1 / Bottle 2)
       vals[25] = data.notes     || '';
-      vals[35] = data.shipEmail  || '';  // AJ — recipient email
-      vals[37] = data.changedBy  || '';  // AL — printer email
+      setW('e-mailadres',    data.shipEmail || '');  // recipient email — lookup by header (not column AJ which is Printer Used)
+      vals[35] = data.printerToUse || '';  // AJ (col 36) — Printer Used, pre-filled from "to use"; overwritten on print log
+      vals[36] = data.changedBy   || '';   // AK (col 37) — who created the job
       setW('ontvanger bedrijfsnaam', data.shipCompany || '');
       setW('bedrijfsnaam',           data.shipCompany || '');
       setW('ontvanger',      data.shipContact || '');
@@ -1398,6 +1402,15 @@ function doPost(e) {
       setWf('owner',         data.owner       || '');
       setWf('notes',         data.notes       || '');
       if (data.tosleeve   !== undefined) setWf('sleeve',         data.tosleeve    || '');
+      if (data.printerToUse !== undefined) {
+        // Column Y "Printer to use" — find by header, fall back to fixed col 25
+        const c = findWf('printer to use');
+        wfSheet.getRange(rowIdx, c >= 0 ? c + 1 : 25).setValue(data.printerToUse || '');
+        // Mirror to AJ (Printer Used) only when AJ is still empty — preserves
+        // any actual printer that was logged after the assignment was made.
+        const ajVal = wfSheet.getRange(rowIdx, 36).getValue();
+        if (!String(ajVal || '').trim()) wfSheet.getRange(rowIdx, 36).setValue(data.printerToUse || '');
+      }
       if (data.shipCompany !== undefined) {
         setWf('ontvanger bedrijfsnaam', data.shipCompany || '');
         setWf('bedrijfsnaam',           data.shipCompany || '');
@@ -1839,14 +1852,14 @@ function doPost(e) {
       sheet.getRange(rowIndex, 10).setValue(data.shippingDate);
     }
 
-    // Update Printer Used (column AI = 35)
+    // Update Printer Used (column AJ = 36) — actual printer from print log
     if (data.printer !== undefined) {
-      sheet.getRange(rowIndex, printerCol).setValue(data.printer);
+      sheet.getRange(rowIndex, printerUsedCol).setValue(data.printer);
     }
 
-    // Log who made the change (column AJ = 36)
+    // Log who made the change (column AK = 37)
     if (data.changedBy) {
-      sheet.getRange(rowIndex, 36).setValue(data.changedBy);
+      sheet.getRange(rowIndex, changedByCol).setValue(data.changedBy);
     }
 
     // Phone photo already uploaded — just save the URL to column H
