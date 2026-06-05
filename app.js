@@ -4917,32 +4917,87 @@ async function loadPrintheads() {
   try {
     const data = await fetch(SCRIPT_URL + '?action=get_printhead_status&t=' + Date.now()).then(r => r.json());
     if (data.error) throw new Error(data.error);
-    const printers = data.printers || [];
-    el.innerHTML = printers.map(p => {
-      const lr = p.lastReplaced || '—';
-      const since = p.totalPrintsSince || 0;
-      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 14px;box-shadow:var(--shadow-xs);">
-        <div style="font-size:13px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.4px;">🖨 ${p.name}</div>
-        <div style="font-size:36px;font-weight:700;color:var(--text);margin:8px 0 2px;">${since.toLocaleString('en-US')}</div>
-        <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">prints since last replacement</div>
-        <div style="font-size:12px;color:var(--text-2);margin-bottom:10px;">Last replaced: <strong style="color:var(--text);">${lr}</strong></div>
-        <button class="btn-secondary" data-ph-replace="${p.name}" style="width:100%;">↻ Replace now</button>
+    const heads = data.heads || [];
+    // Group by printer
+    const byPrinter = {};
+    heads.forEach(h => {
+      if (!byPrinter[h.printer]) byPrinter[h.printer] = [];
+      byPrinter[h.printer].push(h);
+    });
+    if (!Object.keys(byPrinter).length) {
+      el.innerHTML = '<div class="stock-empty">No print heads configured.</div>';
+      return;
+    }
+    el.innerHTML = Object.entries(byPrinter).map(([printer, list]) => {
+      const headsHtml = list.map(h => {
+        const lr  = h.lastReplaced || '—';
+        const cnt = h.totalPrintsSince || 0;
+        const off = h.manualOffset || 0;
+        return `<div style="border-top:1px solid var(--border);padding:10px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:13px;font-weight:600;color:var(--text);">${h.head}</span>
+            <span style="font-size:20px;font-weight:700;color:var(--text);">${cnt.toLocaleString('en-US')}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:2px;">
+            <span>Last replaced: <strong style="color:var(--text-2);">${lr}</strong></span>
+            ${off ? `<span>Manual: +${off.toLocaleString('en-US')}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button class="btn-secondary" data-ph-add="${printer}|${h.head}" style="flex:1;padding:6px 8px;font-size:12px;">➕ Add prints</button>
+            <button class="btn-secondary" data-ph-replace="${printer}|${h.head}" style="flex:1;padding:6px 8px;font-size:12px;">↻ Replace</button>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-xs);">
+        <div style="font-size:14px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">🖨 ${printer}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">${list.length} printhead${list.length !== 1 ? 's' : ''}</div>
+        ${headsHtml}
       </div>`;
-    }).join('') || '<div class="stock-empty">No print heads configured.</div>';
+    }).join('');
     el.querySelectorAll('[data-ph-replace]').forEach(btn => {
-      btn.addEventListener('click', () => onReplacePrinthead(btn.dataset.phReplace));
+      btn.addEventListener('click', () => {
+        const [printer, head] = btn.dataset.phReplace.split('|');
+        onReplacePrinthead(printer, head);
+      });
+    });
+    el.querySelectorAll('[data-ph-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [printer, head] = btn.dataset.phAdd.split('|');
+        onAddPrintheadPrints(printer, head);
+      });
     });
   } catch (err) {
     el.innerHTML = '<div class="stock-empty" style="color:var(--red);">Error: ' + err.message + '</div>';
   }
 }
 
-async function onReplacePrinthead(name) {
-  if (!confirm('Mark "' + name + '" printhead as replaced today? The counter will reset to 0.')) return;
+async function onReplacePrinthead(printer, head) {
+  if (!confirm('Mark the "' + head + '" head on ' + printer + ' as replaced today? Counter resets to 0.')) return;
   try {
     await postAndRead(SCRIPT_URL, JSON.stringify({
       action:    'set_printhead_replacement',
-      printer:   name,
+      printer, head,
+      changedBy: currentUser?.email,
+    }));
+    loadPrintheads();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
+}
+
+async function onAddPrintheadPrints(printer, head) {
+  const input = prompt('Add prints to "' + head + '" head on ' + printer + '\n\nEnter a number (positive to add, negative to subtract):', '100');
+  if (input == null) return;
+  const delta = parseInt(input, 10);
+  if (!Number.isFinite(delta) || delta === 0) {
+    alert('Please enter a non-zero whole number.');
+    return;
+  }
+  try {
+    await postAndRead(SCRIPT_URL, JSON.stringify({
+      action:    'adjust_printhead_offset',
+      printer, head,
+      delta,
       changedBy: currentUser?.email,
     }));
     loadPrintheads();

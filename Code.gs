@@ -270,10 +270,10 @@ function doGet(e) {
     }
   }
 
-  // Printhead status (counts since last replacement, per printer)
+  // Printhead status (counts since last replacement, per printhead)
   if (e.parameter.action === 'get_printhead_status') {
     try {
-      return respondGet({ printers: getPrintheadStatus_() });
+      return respondGet({ heads: getPrintheadStatus_() });
     } catch (err) {
       return respondGet({ error: 'Printhead status failed: ' + err.message });
     }
@@ -1473,18 +1473,40 @@ function doPost(e) {
     // ── Printhead tracking ──────────────────────────────────────
     if (data.action === 'set_printhead_replacement') {
       const ph = _ensurePrintHeadsSheet_();
-      const name = String(data.printer || '').trim();
-      if (!name) return respond({ error: 'Missing printer name' });
+      const printer = String(data.printer || '').trim();
+      const head    = String(data.head    || '').trim();
+      if (!printer || !head) return respond({ error: 'Missing printer or head name' });
       const today = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
       const vals = ph.getDataRange().getValues();
       for (let r = 1; r < vals.length; r++) {
-        if (String(vals[r][0]).trim() === name) {
-          ph.getRange(r + 1, 2).setValue(today);
-          return respond({ success: true, printer: name, lastReplaced: today });
+        if (String(vals[r][0]).trim() === printer && String(vals[r][1]).trim() === head) {
+          // Reset both: new last-replaced date + clear manual offset
+          ph.getRange(r + 1, 3).setValue(today);
+          ph.getRange(r + 1, 4).setValue(0);
+          return respond({ success: true, printer, head, lastReplaced: today });
         }
       }
-      ph.appendRow([name, today]);
-      return respond({ success: true, printer: name, lastReplaced: today });
+      ph.appendRow([printer, head, today, 0]);
+      return respond({ success: true, printer, head, lastReplaced: today });
+    }
+
+    if (data.action === 'adjust_printhead_offset') {
+      const ph = _ensurePrintHeadsSheet_();
+      const printer = String(data.printer || '').trim();
+      const head    = String(data.head    || '').trim();
+      const delta   = parseInt(data.delta) || 0;
+      if (!printer || !head) return respond({ error: 'Missing printer or head name' });
+      if (!delta)            return respond({ error: 'Missing delta' });
+      const vals = ph.getDataRange().getValues();
+      for (let r = 1; r < vals.length; r++) {
+        if (String(vals[r][0]).trim() === printer && String(vals[r][1]).trim() === head) {
+          const cur = parseInt(vals[r][3]) || 0;
+          const next = Math.max(0, cur + delta);
+          ph.getRange(r + 1, 4).setValue(next);
+          return respond({ success: true, printer, head, manualOffset: next });
+        }
+      }
+      return respond({ error: 'Printhead not found: ' + printer + ' / ' + head });
     }
 
     if (data.action === 'add_stock') {
@@ -2136,49 +2158,83 @@ function debugStatusColumn() {
 }
 
 // ── Printhead tracking ──────────────────────────────────────────────────────
-const PRINTHEAD_NAMES = ['Bottle 1', 'Bottle 2', 'Mug + Tumbler', 'Travel Bottle'];
+// Each printer has multiple physical printheads that each wear independently.
+// Every print runs through every head on that printer, so all heads on the
+// same printer share the same auto-counter base — but each one tracks its own
+// last-replaced date + manual offset, so they can be replaced independently.
+const PRINTHEAD_CONFIG = [
+  { printer: 'Bottle 1',      heads: ['Color', 'White'] },
+  { printer: 'Bottle 2',      heads: ['Color', 'White'] },
+  { printer: 'Mug + Tumbler', heads: ['Color', 'White'] },
+  { printer: 'Travel Bottle', heads: ['White', 'Black & Blue', 'Red & Yellow', 'LM & LC'] },
+];
 
 function _ensurePrintHeadsSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName('PrintHeads');
   if (!sh) {
     sh = ss.insertSheet('PrintHeads');
-    sh.appendRow(['Printer', 'Last replaced']);
-    PRINTHEAD_NAMES.forEach(n => sh.appendRow([n, '']));
-  } else {
-    // Make sure all expected printer rows exist
-    const vals = sh.getDataRange().getValues();
-    const present = new Set(vals.slice(1).map(r => String(r[0]).trim()));
-    PRINTHEAD_NAMES.forEach(n => { if (!present.has(n)) sh.appendRow([n, '']); });
+    sh.appendRow(['Printer', 'Printhead', 'Last replaced', 'Manual offset']);
+    PRINTHEAD_CONFIG.forEach(p => p.heads.forEach(h => sh.appendRow([p.printer, h, '', 0])));
+    return sh;
   }
+  // Migrate / ensure structure: if first row doesn't have Printhead column,
+  // rebuild headers (preserve any "Printer / Last replaced" data we can map).
+  const headerRow = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 4)).getValues()[0]
+    .map(h => String(h || '').trim().toLowerCase());
+  const needsRebuild = !headerRow.includes('printhead');
+  if (needsRebuild) {
+    // Preserve legacy "printer → last replaced" mappings
+    const legacy = {};
+    const allVals = sh.getDataRange().getValues();
+    for (let r = 1; r < allVals.length; r++) {
+      const p = String(allVals[r][0] || '').trim();
+      const d = allVals[r][1];
+      if (p && d) legacy[p] = d;
+    }
+    sh.clear();
+    sh.appendRow(['Printer', 'Printhead', 'Last replaced', 'Manual offset']);
+    PRINTHEAD_CONFIG.forEach(p => p.heads.forEach(h => {
+      sh.appendRow([p.printer, h, legacy[p.printer] || '', 0]);
+    }));
+    return sh;
+  }
+  // Make sure every (printer, head) row exists
+  const vals = sh.getDataRange().getValues();
+  const present = new Set(vals.slice(1).map(r => (String(r[0]).trim() + '|' + String(r[1]).trim())));
+  PRINTHEAD_CONFIG.forEach(p => p.heads.forEach(h => {
+    const k = p.printer + '|' + h;
+    if (!present.has(k)) sh.appendRow([p.printer, h, '', 0]);
+  }));
   return sh;
 }
 
-// Returns { printers: [{ name, lastReplaced, totalPrintsSince }] }
+// Returns [{ printer, head, lastReplaced, manualOffset, totalPrintsSince }]
 function getPrintheadStatus_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tz = ss.getSpreadsheetTimeZone();
   const ph = _ensurePrintHeadsSheet_();
 
-  // 1. Load last-replaced dates per printer
+  // 1. Load last-replaced date + manual offset per (printer, head)
   const phVals = ph.getDataRange().getValues();
-  const lastReplaced = {};
+  const heads = {}; // key: "Printer|Head" → { lastReplaced, manualOffset }
   for (let r = 1; r < phVals.length; r++) {
-    const name = String(phVals[r][0]).trim();
-    if (!name) continue;
-    const dateVal = phVals[r][1];
+    const printer = String(phVals[r][0]).trim();
+    const head    = String(phVals[r][1]).trim();
+    if (!printer || !head) continue;
+    const dateVal = phVals[r][2];
+    const offset  = parseInt(phVals[r][3]) || 0;
     let parsedDate = null;
     if (dateVal instanceof Date && !isNaN(dateVal)) {
       parsedDate = new Date(dateVal.getFullYear(), dateVal.getMonth(), dateVal.getDate());
     } else if (typeof dateVal === 'string' && dateVal.trim()) {
-      // Expect dd/mm/yyyy
       const m = dateVal.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (m) parsedDate = new Date(+m[3], +m[2] - 1, +m[1]);
     }
-    lastReplaced[name] = parsedDate;
+    heads[printer + '|' + head] = { lastReplaced: parsedDate, manualOffset: offset };
   }
 
-  // 2. Load Workfile to map Job Row → Printer to use (for Bottle assignment)
+  // 2. Workfile Job Row → Printer to use (for Bottle 1/2 assignment)
   const wfSheet = ss.getSheetByName('Workfile');
   const wfVals  = wfSheet.getDataRange().getValues();
   const wfHdr   = wfVals[0].map(h => String(h).trim().toLowerCase());
@@ -2187,69 +2243,74 @@ function getPrintheadStatus_() {
   if (wfPrnIdx >= 0) {
     for (let r = 1; r < wfVals.length; r++) {
       const v = String(wfVals[r][wfPrnIdx] || '').trim();
-      if (v) wfRowToPrinter[r + 1] = v; // 1-based sheet row
+      if (v) wfRowToPrinter[r + 1] = v;
     }
   }
 
-  // 3. Read PrintLog and sum quantities per printer (only entries on/after last-replaced date)
-  const counts = { 'Bottle 1': 0, 'Bottle 2': 0, 'Mug + Tumbler': 0, 'Travel Bottle': 0 };
+  // 3. For each (printer, head), sum PrintLog quantities since its last-replaced date.
+  //    Every print on a printer goes through every head, so all heads on the
+  //    same printer share the base auto-count — but each has its own date cut-off.
+  const out = [];
   const logSheet = ss.getSheetByName('PrintLog');
+  let logVals = [];
+  let iDate = -1, iType = -1, iQty = -1, iJobRow = -1;
   if (logSheet && logSheet.getLastRow() > 1) {
-    const logVals  = logSheet.getDataRange().getValues();
-    const lh       = logVals[0].map(h => String(h).trim().toLowerCase());
-    const iDate    = lh.indexOf('date');
-    const iType    = lh.indexOf('type');
-    const iQty     = lh.indexOf('quantity');
-    const iJobRow  = lh.indexOf('job row');
-    for (let r = 1; r < logVals.length; r++) {
-      const row = logVals[r];
-      // Parse log entry date → normalised to local midnight
-      const dRaw = row[iDate];
-      let d = null;
-      if (dRaw instanceof Date && !isNaN(dRaw)) {
-        d = new Date(dRaw.getFullYear(), dRaw.getMonth(), dRaw.getDate());
-      } else if (typeof dRaw === 'string') {
-        const m = dRaw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (m) d = new Date(+m[3], +m[2] - 1, +m[1]);
-        if (!d) {
-          const dx = new Date(dRaw);
-          if (!isNaN(dx)) d = new Date(dx.getFullYear(), dx.getMonth(), dx.getDate());
-        }
-      }
-      if (!d) continue;
-
-      const type = String(row[iType] || '').toLowerCase().trim();
-      const qty  = parseInt(row[iQty]) || 0;
-      if (qty <= 0) continue;
-
-      // Resolve printer for this entry
-      let printer = null;
-      if (type.includes('travel'))           printer = 'Travel Bottle';
-      else if (type.includes('mug') || type.includes('tumbler')) printer = 'Mug + Tumbler';
-      else if (type.includes('bottle')) {
-        // Lookup workfile row's "Printer to use"
-        const jr = parseInt(row[iJobRow]);
-        if (jr && wfRowToPrinter[jr]) {
-          const v = wfRowToPrinter[jr];
-          if (v === 'Bottle 1' || v === 'Bottle 2') printer = v;
-        }
-      }
-      if (!printer) continue;
-
-      // Only count if the print happened on/after the printer's last replacement
-      const lr = lastReplaced[printer];
-      if (lr && d < lr) continue;
-      counts[printer] = (counts[printer] || 0) + qty;
-    }
+    logVals = logSheet.getDataRange().getValues();
+    const lh = logVals[0].map(h => String(h).trim().toLowerCase());
+    iDate   = lh.indexOf('date');
+    iType   = lh.indexOf('type');
+    iQty    = lh.indexOf('quantity');
+    iJobRow = lh.indexOf('job row');
   }
+  const parseLogDate = (dRaw) => {
+    if (dRaw instanceof Date && !isNaN(dRaw)) return new Date(dRaw.getFullYear(), dRaw.getMonth(), dRaw.getDate());
+    if (typeof dRaw === 'string') {
+      const m = dRaw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+      const dx = new Date(dRaw);
+      if (!isNaN(dx)) return new Date(dx.getFullYear(), dx.getMonth(), dx.getDate());
+    }
+    return null;
+  };
+  // Determine which printer a log entry belongs to
+  const logPrinter = (row) => {
+    const type = String(row[iType] || '').toLowerCase().trim();
+    if (type.includes('travel'))                                 return 'Travel Bottle';
+    if (type.includes('mug') || type.includes('tumbler'))        return 'Mug + Tumbler';
+    if (type.includes('bottle')) {
+      const jr = parseInt(row[iJobRow]);
+      const v = jr && wfRowToPrinter[jr];
+      if (v === 'Bottle 1' || v === 'Bottle 2') return v;
+    }
+    return null;
+  };
 
-  // 4. Shape response
   const fmt = (d) => d ? Utilities.formatDate(d, tz, 'dd/MM/yyyy') : '';
-  return PRINTHEAD_NAMES.map(name => ({
-    name,
-    lastReplaced:       fmt(lastReplaced[name]),
-    totalPrintsSince:   counts[name] || 0,
-  }));
+
+  PRINTHEAD_CONFIG.forEach(cfg => {
+    cfg.heads.forEach(headName => {
+      const key = cfg.printer + '|' + headName;
+      const h = heads[key] || { lastReplaced: null, manualOffset: 0 };
+      let auto = 0;
+      for (let r = 1; r < logVals.length; r++) {
+        const row = logVals[r];
+        if (logPrinter(row) !== cfg.printer) continue;
+        const d = parseLogDate(row[iDate]);
+        if (!d) continue;
+        if (h.lastReplaced && d < h.lastReplaced) continue;
+        auto += parseInt(row[iQty]) || 0;
+      }
+      out.push({
+        printer:          cfg.printer,
+        head:             headName,
+        lastReplaced:     fmt(h.lastReplaced),
+        manualOffset:     h.manualOffset,
+        totalPrintsSince: auto + h.manualOffset,
+      });
+    });
+  });
+
+  return out;
 }
 
 // ── External stock helpers (Stock Analyses + Assortment printfiles) ─────────
