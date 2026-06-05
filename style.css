@@ -1860,6 +1860,14 @@ td.notes-cell {
   color: white;
   box-shadow: 0 2px 6px rgba(59,130,246,0.3);
 }
+/* Generic highlight for any toggle option marked .active via JS (used by
+   non-Yes/No toggles like the Printer-to-use selector). */
+.sleeve-opt.active {
+  background: var(--blue);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+}
 
 /* ─────────────────────────────────────────────
    RESPONSIVE — tablet & mobile
