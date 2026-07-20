@@ -314,7 +314,16 @@ function isOverdue(row) {
 // ── Tab switching ─────────────────────────────────────────────
 const TAB_STORAGE_KEY = 'izy_active_tab';
 
-function activateTab(tabName) {
+// Read the tab requested via URL hash, e.g. "#tab=stock" or "#stock"
+function _tabFromHash() {
+  const h = (location.hash || '').replace(/^#/, '');
+  if (!h) return null;
+  const m = h.match(/(?:^|[&?])tab=([^&]+)/);
+  const name = m ? decodeURIComponent(m[1]) : h;
+  return document.querySelector(`.tab-btn[data-tab="${name}"]`) ? name : null;
+}
+
+function activateTab(tabName, opts = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
   const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
@@ -323,6 +332,14 @@ function activateTab(tabName) {
   if (content) content.classList.add('active');
   // Persist so a page refresh (Cmd+Shift+R) returns to the same tab
   try { sessionStorage.setItem(TAB_STORAGE_KEY, tabName); } catch (_) {}
+  // Sync the URL hash so this tab is directly linkable
+  // (e.g. https://…/#tab=stock — perfect for calendar reminders).
+  if (!opts.fromHash) {
+    const newHash = '#tab=' + tabName;
+    if (location.hash !== newHash) {
+      history.replaceState(null, '', location.pathname + location.search + newHash);
+    }
+  }
   if (tabName === 'shipping') loadShipping();
   if (tabName === 'add-job') { populateAddJobOwners(); if (!mockupLoaded) loadMockups().then(populateApprovedMockups); else populateApprovedMockups(); }
   if (tabName === 'sleeves') { populateSleeveOwners(); loadSleeves(); }
@@ -337,19 +354,26 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => activateTab(btn.dataset.tab));
 });
 
-// On mobile, always start on Active Queue.
-// On desktop, restore the last-used tab from sessionStorage so hard-refresh
-// (Cmd+Shift+R) keeps you where you were.
-if (window.innerWidth <= 768) {
-  activateTab('active-queue');
-} else {
+// Respond to browser back/forward or manual hash changes
+window.addEventListener('hashchange', () => {
+  const t = _tabFromHash();
+  if (t) activateTab(t, { fromHash: true });
+});
+
+// Startup tab-picking:
+//   URL hash (calendar deep link) > sessionStorage (last visited) > default
+// On mobile, always start on Active Queue unless a hash explicitly requests otherwise.
+(function pickInitialTab() {
+  const fromHash = _tabFromHash();
+  if (fromHash) { activateTab(fromHash, { fromHash: true }); return; }
+  if (window.innerWidth <= 768) { activateTab('active-queue'); return; }
   try {
     const saved = sessionStorage.getItem(TAB_STORAGE_KEY);
     if (saved && document.querySelector(`.tab-btn[data-tab="${saved}"]`)) {
       activateTab(saved);
     }
   } catch (_) {}
-}
+})();
 
 // ── Stats ─────────────────────────────────────────────────────
 function renderStats(rows) {
