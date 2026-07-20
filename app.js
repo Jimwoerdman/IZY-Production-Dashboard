@@ -3604,6 +3604,23 @@ async function loadSleevesStock() {
   }
 }
 
+let sleevesFilterType   = '';   // '', 'Bottle', 'Mug', 'Tumbler', 'Travel Bottle'
+let sleevesFilterSearch = '';   // text search on product / printfile
+
+// Extract a "collection" tag from an Assortment product name.
+// e.g. "IZY Bottles x Pip Studio - Okinawa"  → "Pip Studio"
+//      "IZY Mugs x Van Gogh - Sunflowers"    → "Van Gogh"
+//      "IZY Bottles x Japan Theme 2.1"       → "Japan Theme"
+//      "Sakura Dreams"                       → "" (no collection prefix)
+function _sleevesCollection(name) {
+  if (!name) return '';
+  const s = String(name);
+  // Match " x <collection>" up to the next " - " or end of string, capped at 40 chars
+  const m = s.match(/\sx\s+([^-\n]{2,40})/i);
+  if (!m) return '';
+  return m[1].trim().replace(/\s{2,}/g, ' ');
+}
+
 function renderSleevesStock() {
   const el = document.getElementById('sleeves-content');
   if (!el) return;
@@ -3611,38 +3628,109 @@ function renderSleevesStock() {
     el.innerHTML = '<div class="stock-empty">No Own Production products found.</div>';
     return;
   }
-  // Sort by product type then name for readability
-  const rows = [...sleevesRows].sort((a, b) => {
-    const t = (a.productType || '').localeCompare(b.productType || '');
-    if (t !== 0) return t;
-    return (a.productName || a.printfileName || '').localeCompare(b.productName || b.printfileName || '');
-  });
-  el.innerHTML = `
-    <div class="aq-table-wrap table-wrap">
-      <table>
-        <thead><tr>
-          <th>SKU</th><th>Type</th><th>Product</th><th>Printfile</th><th>Color</th>
-          <th style="text-align:right;">Sleeves</th><th>Action</th>
-        </tr></thead>
-        <tbody>${rows.map(r => {
-          const stock = r.sleeveStock;
-          const display = stock == null ? '<span style="color:var(--text-3);font-style:italic;">not set</span>' : stock.toLocaleString('en-US');
-          const cls = stock != null && stock < 25 ? 'style="color:var(--red);font-weight:600;"' : '';
-          return `<tr>
-            <td>${r.sku}</td>
-            <td>${r.productType || '—'}</td>
-            <td><strong>${r.productName || '—'}</strong></td>
-            <td style="color:var(--text-2);">${r.printfileName || '—'}</td>
-            <td>${r.bottleColor || '—'}</td>
-            <td style="text-align:right;" ${cls}>${display}</td>
-            <td><button class="btn-secondary" data-slv-set="${r.sku}" style="padding:4px 10px;font-size:12px;">✎ Set</button></td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table>
+
+  // Filter + sort
+  const search = (sleevesFilterSearch || '').toLowerCase();
+  const filtered = sleevesRows.filter(r => {
+    if (sleevesFilterType && (r.productType || '').toLowerCase() !== sleevesFilterType.toLowerCase()) return false;
+    if (search) {
+      const hay = (r.productName + ' ' + r.printfileName + ' ' + r.sku + ' ' + r.bottleColor).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  }).sort((a, b) =>
+    (a.productType || '').localeCompare(b.productType || '') ||
+    (_sleevesCollection(a.productName) || '').localeCompare(_sleevesCollection(b.productName) || '') ||
+    (a.productName || a.printfileName || '').localeCompare(b.productName || b.printfileName || '')
+  );
+
+  // Type counts (for filter pills)
+  const typeCounts = { Bottle: 0, Mug: 0, Tumbler: 0, 'Travel Bottle': 0 };
+  sleevesRows.forEach(r => { const t = r.productType || ''; if (typeCounts[t] != null) typeCounts[t]++; });
+
+  const TYPE_COLORS_MAP = {
+    'Bottle':        { bg: '#dbeafe', text: '#1d4ed8' },
+    'Mug':           { bg: '#fce7f3', text: '#be185d' },
+    'Tumbler':       { bg: '#fef3c7', text: '#b45309' },
+    'Travel Bottle': { bg: '#dcfce7', text: '#15803d' },
+  };
+
+  // Pills + search bar
+  const pillsHtml = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 14px;">
+      <button class="aq-type-tab${sleevesFilterType === '' ? ' active' : ''}" data-slv-type="">All <span class="aq-tab-count">${sleevesRows.length}</span></button>
+      ${Object.entries(typeCounts).filter(([_, n]) => n > 0).map(([t, n]) => {
+        const c = TYPE_COLORS_MAP[t] || { bg: '#f1f5f9', text: '#475569' };
+        return `<button class="aq-type-tab${sleevesFilterType === t ? ' active' : ''}" data-slv-type="${t}" style="--tc:${c.text};--tb:${c.bg}">${t} <span class="aq-tab-count">${n}</span></button>`;
+      }).join('')}
+      <input type="text" id="sleeves-search" placeholder="Search product / printfile…" value="${sleevesFilterSearch.replace(/"/g,'&quot;')}"
+        style="margin-left:auto;padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);min-width:220px;" />
     </div>`;
+
+  // Group filtered rows by (Type, Collection). Empty collection → "Other"
+  const groups = new Map(); // key `${type}|${collection}` → { type, collection, items[] }
+  filtered.forEach(r => {
+    const type = r.productType || 'Other';
+    const collection = _sleevesCollection(r.productName) || 'Other';
+    const key = type + '|' + collection;
+    if (!groups.has(key)) groups.set(key, { type, collection, items: [] });
+    groups.get(key).items.push(r);
+  });
+
+  const groupsHtml = filtered.length
+    ? [...groups.values()].map(g => {
+        const c = TYPE_COLORS_MAP[g.type] || { bg: '#f1f5f9', text: '#475569' };
+        const totalSleeves = g.items.reduce((s, r) => s + (r.sleeveStock || 0), 0);
+        return `
+          <div class="aq-section" style="margin-top:14px;">
+            <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
+              <span style="font-size:13px;font-weight:700;">${g.type} — ${g.collection}</span>
+              <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${g.items.length} product${g.items.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${totalSleeves.toLocaleString('en-US')} sleeves</span>
+            </div>
+            <div class="aq-table-wrap table-wrap">
+              <table>
+                <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
+                  <th>SKU</th><th>Product</th><th>Printfile</th><th>Color</th>
+                  <th style="text-align:right;">Sleeves</th><th>Action</th>
+                </tr></thead>
+                <tbody>${g.items.map(r => {
+                  const stock = r.sleeveStock;
+                  const display = stock == null ? '<span style="color:var(--text-3);font-style:italic;">not set</span>' : stock.toLocaleString('en-US');
+                  const style = stock != null && stock < 25 ? 'color:var(--red);font-weight:600;' : '';
+                  return `<tr>
+                    <td>${r.sku}</td>
+                    <td><strong>${r.productName || '—'}</strong></td>
+                    <td style="color:var(--text-2);">${r.printfileName || '—'}</td>
+                    <td>${r.bottleColor || '—'}</td>
+                    <td style="text-align:right;${style}">${display}</td>
+                    <td><button class="btn-secondary" data-slv-set="${r.sku}" style="padding:4px 10px;font-size:12px;">✎ Set</button></td>
+                  </tr>`;
+                }).join('')}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('')
+    : '<div class="stock-empty">No sleeves match the current filter.</div>';
+
+  el.innerHTML = pillsHtml + groupsHtml;
+
+  // Wire up controls
+  el.querySelectorAll('[data-slv-type]').forEach(btn => {
+    btn.addEventListener('click', () => { sleevesFilterType = btn.dataset.slvType; renderSleevesStock(); });
+  });
   el.querySelectorAll('[data-slv-set]').forEach(btn => {
     btn.addEventListener('click', () => onSetSleeveStock(btn.dataset.slvSet));
   });
+  const searchEl = document.getElementById('sleeves-search');
+  if (searchEl) {
+    searchEl.addEventListener('input', (e) => {
+      sleevesFilterSearch = e.target.value;
+      renderSleevesStock();
+      // Keep focus + caret at end
+      const s = document.getElementById('sleeves-search');
+      if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+    });
+  }
 }
 
 async function onSetSleeveStock(sku) {
