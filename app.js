@@ -3638,11 +3638,17 @@ function renderSleevesStock() {
       if (!hay.includes(search)) return false;
     }
     return true;
-  }).sort((a, b) =>
-    (a.productType || '').localeCompare(b.productType || '') ||
-    (_sleevesCollection(a.productName) || '').localeCompare(_sleevesCollection(b.productName) || '') ||
-    (a.productName || a.printfileName || '').localeCompare(b.productName || b.printfileName || '')
-  );
+  }).sort((a, b) => {
+    const t = (a.productType || '').localeCompare(b.productType || '');
+    if (t !== 0) return t;
+    const c = (_sleevesCollection(a.productName) || '').localeCompare(_sleevesCollection(b.productName) || '');
+    if (c !== 0) return c;
+    // SKU numeric ascending (falls back to string compare if not numeric)
+    const na = parseInt(a.sku, 10);
+    const nb = parseInt(b.sku, 10);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a.sku).localeCompare(String(b.sku));
+  });
 
   // Type counts (for filter pills)
   const typeCounts = { Bottle: 0, Mug: 0, Tumbler: 0, 'Travel Bottle': 0 };
