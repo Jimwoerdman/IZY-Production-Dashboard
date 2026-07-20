@@ -5008,12 +5008,15 @@ function openOpModal(opIdx) {
   const bottleColor = findOpField(r.raw, 'bottle color', 'color');
   const lid         = findOpField(r.raw, 'lid color', 'lid');
   const days        = r.daysOfStock != null ? r.daysOfStock.toFixed(0) + 'd stock' : '—';
+  const slvStockRaw = r.raw['Sleeve stock'];
+  const slvStock    = (slvStockRaw === '' || slvStockRaw == null) ? 0 : (parseInt(slvStockRaw) || 0);
   document.getElementById('op-modal-info').innerHTML =
     `<strong>${printName || '(unnamed)'}</strong>` +
     (productType ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">${productType}</span>` : '') +
     (bottleColor ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">Color: ${bottleColor}</span>` : '') +
     (lid ? `&nbsp;·&nbsp; <span style="color:var(--text-2);">Lid: ${lid}</span>` : '') +
-    `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${days}</span>`;
+    `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${days}</span>` +
+    `<div style="margin-top:6px;font-size:12px;color:var(--text-2);">Sleeve stock: <strong style="color:var(--text);">${slvStock}</strong> — <span id="op-slv-hint" style="color:var(--text-3);"></span></div>`;
   // Populate owners
   const owners = [...new Set([...KNOWN_OWNERS, ...allRows.map(j => get(j,'Owner')).filter(Boolean)])].sort();
   const sel = document.getElementById('op-modal-owner');
@@ -5032,6 +5035,16 @@ function openOpModal(opIdx) {
   document.getElementById('op-modal-status').textContent = '';
   document.getElementById('op-modal-submit').disabled    = false;
   document.getElementById('op-modal-submit').textContent = '📥 Add to Active Queue';
+  // Live update of the "sleeve job needed?" hint as the user edits qty
+  const updateSlvHint = () => {
+    const q = parseInt(document.getElementById('op-modal-qty').value) || 0;
+    const hint = document.getElementById('op-slv-hint');
+    if (!hint) return;
+    if (slvStock >= q && q > 0) hint.innerHTML = '✓ enough — <span style="color:var(--text-2);">no sleeve job</span>';
+    else                        hint.innerHTML = '<span style="color:var(--red);">need ' + Math.max(0, q - slvStock) + ' more — sleeve job will be created</span>';
+  };
+  document.getElementById('op-modal-qty').oninput = updateSlvHint;
+  updateSlvHint();
   document.getElementById('op-modal-overlay').style.display = 'flex';
 }
 
@@ -5060,6 +5073,15 @@ async function submitOpQuickAdd() {
   const lid         = findOpField(r.raw, 'lid color', 'lid');
   const productType = findOpField(r.raw, 'product type', 'type') || 'Bottle';
 
+  // Only create a sleeve job when existing sleeve stock is insufficient.
+  // Sleeve stock lives in Assortment printfiles' "Sleeve stock" column.
+  const sleeveStockRaw = r.raw['Sleeve stock'];
+  const sleeveStock = (sleeveStockRaw === '' || sleeveStockRaw == null)
+    ? 0
+    : (parseInt(sleeveStockRaw) || 0);
+  const needsSleeve = sleeveStock < qty;
+  const tosleeve = needsSleeve ? 'Yes' : 'No';
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Adding…';
   statusEl.className = 'form-status';
@@ -5075,9 +5097,11 @@ async function submitOpQuickAdd() {
       lid,
       deadline,
       owner,
-      tosleeve:   'Yes',
+      tosleeve,
       needmockup: 'No',
-      notes:      'Auto-added from Own Production tab',
+      notes:      needsSleeve
+                    ? 'Auto-added from Own Production tab — sleeve job created (' + sleeveStock + ' in stock, need ' + qty + ')'
+                    : 'Auto-added from Own Production tab — using existing sleeve stock (' + sleeveStock + ' available)',
       changedBy:  currentUser?.email,
       status:     'To Print',
     }));
