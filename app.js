@@ -3632,14 +3632,14 @@ function renderSleevesStock() {
   // Filter + sort
   const search = (sleevesFilterSearch || '').toLowerCase();
   const filtered = sleevesRows.filter(r => {
-    if (sleevesFilterType && (r.productType || '').toLowerCase() !== sleevesFilterType.toLowerCase()) return false;
+    if (sleevesFilterType && canonType(r.productType) !== sleevesFilterType) return false;
     if (search) {
       const hay = (r.productName + ' ' + r.printfileName + ' ' + r.sku + ' ' + r.bottleColor).toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
   }).sort((a, b) => {
-    const t = (a.productType || '').localeCompare(b.productType || '');
+    const t = canonType(a.productType).localeCompare(canonType(b.productType));
     if (t !== 0) return t;
     const c = (_sleevesCollection(a.productName) || '').localeCompare(_sleevesCollection(b.productName) || '');
     if (c !== 0) return c;
@@ -3650,9 +3650,18 @@ function renderSleevesStock() {
     return String(a.sku).localeCompare(String(b.sku));
   });
 
+  // Normalize product type: lowercase → canonical title case, so "travel bottle" == "Travel Bottle"
+  const canonType = (t) => {
+    const s = String(t || '').toLowerCase().trim();
+    if (s.startsWith('travel')) return 'Travel Bottle';
+    if (s.startsWith('bottle'))  return 'Bottle';
+    if (s.startsWith('mug'))     return 'Mug';
+    if (s.startsWith('tumbler')) return 'Tumbler';
+    return s ? s[0].toUpperCase() + s.slice(1) : 'Other';
+  };
   // Type counts (for filter pills)
   const typeCounts = { Bottle: 0, Mug: 0, Tumbler: 0, 'Travel Bottle': 0 };
-  sleevesRows.forEach(r => { const t = r.productType || ''; if (typeCounts[t] != null) typeCounts[t]++; });
+  sleevesRows.forEach(r => { const t = canonType(r.productType); if (typeCounts[t] != null) typeCounts[t]++; });
 
   const TYPE_COLORS_MAP = {
     'Bottle':        { bg: '#dbeafe', text: '#1d4ed8' },
@@ -3676,7 +3685,7 @@ function renderSleevesStock() {
   // Group filtered rows by (Type, Collection). Empty collection → "Other"
   const groups = new Map(); // key `${type}|${collection}` → { type, collection, items[] }
   filtered.forEach(r => {
-    const type = r.productType || 'Other';
+    const type = canonType(r.productType);
     const collection = _sleevesCollection(r.productName) || 'Other';
     const key = type + '|' + collection;
     if (!groups.has(key)) groups.set(key, { type, collection, items: [] });
