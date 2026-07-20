@@ -2044,6 +2044,7 @@ function renderSleeves() {
         ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
         ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
         <div class="aq-meta">
+          <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
           ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
@@ -2062,6 +2063,7 @@ function renderSleeves() {
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
+        <td style="text-align:right;font-weight:600;">${num(r,'Quantity') || '—'}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
         <td>${get(r,'Lid') || '—'}</td>
         <td>${get(r,'Owner') || '—'}</td>
@@ -2074,18 +2076,19 @@ function renderSleeves() {
       return { card, row };
     });
 
+    const totalQty = rows.reduce((s, r) => s + (num(r, 'Quantity') || 0), 0);
     return `
       <div class="aq-section">
         <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
           <span style="font-size:13px;font-weight:700;">${section.label}</span>
-          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
+          <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${totalQty.toLocaleString('en-US')} pcs</span>
         </div>
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
           <table>
             <thead><tr>
               <th></th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
+              <th>Type</th><th>Qty</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
@@ -2115,6 +2118,7 @@ function renderSleeves() {
         ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
         ${fileLinks ? `<div style="margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:6px;">${fileLinks}</div>` : ''}
         <div class="aq-meta">
+          <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
           ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
           ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
           ${get(r,'Owner') ? `<div class="aq-meta-item"><span class="aq-meta-label">Owner</span><span>${get(r,'Owner')}</span></div>` : ''}
@@ -2127,6 +2131,7 @@ function renderSleeves() {
         <td><strong>${get(r,'Name_Company')}</strong></td>
         <td>${badge(get(r,'Status'))}</td>
         <td>${typeBadge(get(r,'Soort'))}</td>
+        <td style="text-align:right;font-weight:600;">${num(r,'Quantity') || '—'}</td>
         <td>${get(r,'Bottle color') || '—'}</td>
         <td>${get(r,'Lid') || '—'}</td>
         <td>${get(r,'Owner') || '—'}</td>
@@ -2138,9 +2143,10 @@ function renderSleeves() {
       return { card, row };
     });
 
+    const completedTotalQty = completedFiltered.reduce((s, r) => s + (num(r, 'Quantity') || 0), 0);
     completedHtml = `<div class="sv-completed-section" style="margin-top:16px;">
       <button class="sv-completed-toggle" onclick="svCompletedOpen=!svCompletedOpen;renderSleeves();" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--hover);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);">
-        <span>📦 Ordered &amp; Finished <span style="font-weight:400;opacity:0.7;">(${completedFiltered.length} job${completedFiltered.length !== 1 ? 's' : ''})</span></span>
+        <span>📦 Ordered &amp; Finished <span style="font-weight:400;opacity:0.7;">(${completedFiltered.length} job${completedFiltered.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${completedTotalQty.toLocaleString('en-US')} pcs)</span></span>
         <span>${svCompletedOpen ? '▲ Collapse' : '▼ Expand'}</span>
       </button>
       ${svCompletedOpen ? `
@@ -2149,7 +2155,7 @@ function renderSleeves() {
           <table>
             <thead><tr>
               <th></th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
+              <th>Type</th><th>Qty</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
             </tr></thead>
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
