@@ -4884,10 +4884,22 @@ setupFormProgress(['sv-soort','sv-quantity','sv-company'], 'sv-progress-fill', '
 // ── Own Production tab ───────────────────────────────────────
 let ownProductionRows = []; // [{ raw: {col: val}, daysOfStock: number, _rowIdx }]
 let opSelectedRow     = null;
+let opFilterType      = '';  // '', 'Bottle', 'Mug', 'Tumbler', 'Travel Bottle'
+let opFilterSearch    = '';
 // SKUs that were just added via Quick Add during this session — marked so you
 // can see they've already been queued and won't accidentally add the same job
 // twice. Cleared on page refresh.
 const opJustQueuedSkus = new Set();
+
+// Case-insensitive canonicalization for Own Production types
+function opCanonType(t) {
+  const s = String(t || '').toLowerCase().trim();
+  if (s.startsWith('travel')) return 'Travel Bottle';
+  if (s.startsWith('bottle'))  return 'Bottle';
+  if (s.startsWith('mug'))     return 'Mug';
+  if (s.startsWith('tumbler')) return 'Tumbler';
+  return s ? s[0].toUpperCase() + s.slice(1) : '';
+}
 
 async function loadOwnProduction() {
   const container = document.getElementById('op-content');
@@ -4931,9 +4943,59 @@ function renderOwnProduction() {
   const container = document.getElementById('op-content');
   if (!container) return;
   const onlyLow = document.getElementById('op-only-low').checked;
-  const filtered = ownProductionRows.filter(r => !onlyLow || (r.daysOfStock != null && r.daysOfStock < 28));
+  const search  = (opFilterSearch || '').toLowerCase();
+  const filtered = ownProductionRows.filter(r => {
+    if (onlyLow && !(r.daysOfStock != null && r.daysOfStock < 28)) return false;
+    if (opFilterType) {
+      const rowType = opCanonType(findOpField(r.raw, 'product type', 'type'));
+      if (rowType !== opFilterType) return false;
+    }
+    if (search) {
+      const hay = Object.values(r.raw).join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Type counts (of the base data, respecting only onlyLow so the pills stay stable when switching types)
+  const baseForCounts = ownProductionRows.filter(r => !onlyLow || (r.daysOfStock != null && r.daysOfStock < 28));
+  const typeCounts = { Bottle: 0, Mug: 0, Tumbler: 0, 'Travel Bottle': 0 };
+  baseForCounts.forEach(r => {
+    const t = opCanonType(findOpField(r.raw, 'product type', 'type'));
+    if (typeCounts[t] != null) typeCounts[t]++;
+  });
+  const TYPE_COLORS_MAP = {
+    'Bottle':        { bg: '#dbeafe', text: '#1d4ed8' },
+    'Mug':           { bg: '#fce7f3', text: '#be185d' },
+    'Tumbler':       { bg: '#fef3c7', text: '#b45309' },
+    'Travel Bottle': { bg: '#dcfce7', text: '#15803d' },
+  };
+  const pillsHtml = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;">
+      <button class="aq-type-tab${opFilterType === '' ? ' active' : ''}" data-op-type="">All <span class="aq-tab-count">${baseForCounts.length}</span></button>
+      ${Object.entries(typeCounts).filter(([_, n]) => n > 0).map(([t, n]) => {
+        const c = TYPE_COLORS_MAP[t] || { bg: '#f1f5f9', text: '#475569' };
+        return `<button class="aq-type-tab${opFilterType === t ? ' active' : ''}" data-op-type="${t}" style="--tc:${c.text};--tb:${c.bg}">${t} <span class="aq-tab-count">${n}</span></button>`;
+      }).join('')}
+      <input type="text" id="op-search" placeholder="Search product / printfile / SKU…" value="${opFilterSearch.replace(/"/g,'&quot;')}"
+        style="margin-left:auto;padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);min-width:220px;" />
+    </div>`;
+
   if (!filtered.length) {
-    container.innerHTML = '<div class="stock-empty">No items match the current filter.</div>';
+    container.innerHTML = pillsHtml + '<div class="stock-empty">No items match the current filter.</div>';
+    // Rewire pill + search handlers even in empty state
+    container.querySelectorAll('[data-op-type]').forEach(btn => {
+      btn.addEventListener('click', () => { opFilterType = btn.dataset.opType; renderOwnProduction(); });
+    });
+    const searchEl = document.getElementById('op-search');
+    if (searchEl) {
+      searchEl.addEventListener('input', e => {
+        opFilterSearch = e.target.value;
+        renderOwnProduction();
+        const s = document.getElementById('op-search');
+        if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+      });
+    }
     return;
   }
   // Use the first row's keys to determine columns to show — drop empty-header / underscore meta columns
@@ -4946,11 +5008,11 @@ function renderOwnProduction() {
     const bv = b.daysOfStock == null ? Infinity : b.daysOfStock;
     return av - bv;
   });
-  const lowCount = ownProductionRows.filter(r => r.daysOfStock != null && r.daysOfStock < 28).length;
-  container.innerHTML = `
+  const lowCount = filtered.filter(r => r.daysOfStock != null && r.daysOfStock < 28).length;
+  container.innerHTML = pillsHtml + `
     <div style="margin-bottom:12px;color:var(--text-2);font-size:13px;">
       ${rows.length} item${rows.length !== 1 ? 's' : ''} shown
-      ${lowCount > 0 ? `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${lowCount} below 21d stock</span>` : ''}
+      ${lowCount > 0 ? `&nbsp;·&nbsp; <span style="color:var(--red);font-weight:600;">${lowCount} below 28d stock</span>` : ''}
     </div>
     <div class="aq-table-wrap op-table-wrap table-wrap">
       <table>
@@ -4990,6 +5052,18 @@ function renderOwnProduction() {
   container.querySelectorAll('.btn-quick-add').forEach(btn => {
     btn.addEventListener('click', () => openOpModal(parseInt(btn.dataset.opidx)));
   });
+  container.querySelectorAll('[data-op-type]').forEach(btn => {
+    btn.addEventListener('click', () => { opFilterType = btn.dataset.opType; renderOwnProduction(); });
+  });
+  const searchEl = document.getElementById('op-search');
+  if (searchEl) {
+    searchEl.addEventListener('input', e => {
+      opFilterSearch = e.target.value;
+      renderOwnProduction();
+      const s = document.getElementById('op-search');
+      if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+    });
+  }
 }
 
 (function attachOpFilterHandler() {
