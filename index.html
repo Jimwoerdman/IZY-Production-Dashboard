@@ -444,6 +444,14 @@
     <div id="stock-content">
       <div class="loading-msg">Loading stock…</div>
     </div>
+
+    <div class="stock-header" style="margin-top:32px;">
+      <h2 style="font-size:18px;">Sleeves per product</h2>
+      <div style="font-size:13px;color:var(--text-3);">Pre-made sleeves ready for printed products. Decrements automatically on print log.</div>
+    </div>
+    <div id="sleeves-content">
+      <div class="loading-msg">Loading sleeves…</div>
+    </div>
   </section>
 
   <!-- ─── PRINT HEADS ─── -->
@@ -1586,7 +1594,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=106"></script>
+<script src="app.js?v=107"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

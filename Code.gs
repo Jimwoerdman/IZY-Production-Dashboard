@@ -270,6 +270,15 @@ function doGet(e) {
     }
   }
 
+  // Sleeves stock per Own-Production product
+  if (e.parameter.action === 'get_sleeves_stock') {
+    try {
+      return respondGet({ rows: getSleevesStock_() });
+    } catch (err) {
+      return respondGet({ error: 'Sleeves stock failed: ' + err.message });
+    }
+  }
+
   // Printhead status (counts since last replacement, per printhead)
   if (e.parameter.action === 'get_printhead_status') {
     try {
@@ -321,7 +330,8 @@ function doGet(e) {
         const lastRow = Math.min(sheet.getLastRow(), limit);
         const lastCol = sheet.getLastColumn();
         if (lastRow > 0 && lastCol > 0) {
-          out.preview = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+          out.preview  = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+          out.formulas = sheet.getRange(1, 1, lastRow, lastCol).getFormulas();
         }
       }
     }
@@ -1470,6 +1480,21 @@ function doPost(e) {
     }
 
     // Add stock delivery
+    // ── Sleeves stock ───────────────────────────────────────────
+    if (data.action === 'set_sleeve_stock') {
+      const sku   = String(data.sku || '').trim();
+      const value = parseInt(data.value);
+      if (!sku) return respond({ error: 'Missing sku' });
+      if (!Number.isFinite(value)) return respond({ error: 'Missing/invalid value' });
+      try {
+        const newStock = updateSleeveStock_(sku, value, 'set');
+        if (newStock == null) return respond({ error: 'SKU not found in Assortment printfiles: ' + sku });
+        return respond({ success: true, sku, sleeveStock: newStock });
+      } catch (err) {
+        return respond({ error: 'set_sleeve_stock failed: ' + err.message });
+      }
+    }
+
     // ── Printhead tracking ──────────────────────────────────────
     if (data.action === 'set_printhead_replacement') {
       const ph = _ensurePrintHeadsSheet_();
@@ -1867,6 +1892,17 @@ function doPost(e) {
             }
             // If lid color === bottle color: lid comes with the bottle, no spare lid movement needed
           }
+
+          // Sleeve stock: deduct one sleeve per printed unit if the job's
+          // Name_Print matches an Own Production product in Assortment printfiles.
+          try {
+            const namePrintCol = headers.findIndex(h => h.trim().toLowerCase() === 'name_print');
+            const namePrint    = namePrintCol >= 0 ? String(rowData[namePrintCol] || '').trim() : '';
+            if (namePrint && sessionQty > 0) {
+              const res = deductSleeveForPrint_(namePrint, sessionQty);
+              if (res) Logger.log('Sleeve stock deducted: SKU ' + res.sku + ' -' + sessionQty + ' → ' + res.newStock);
+            }
+          } catch (slvErr) { Logger.log('Sleeve deduct failed: ' + slvErr.message); }
         }
       }
     }
@@ -2311,6 +2347,91 @@ function getPrintheadStatus_() {
   });
 
   return out;
+}
+
+// ── Sleeves stock (per Own-Production product) ──────────────────────────────
+// Sleeve stock lives in a new column "Sleeve stock" on the Assortment
+// printfiles sheet (external IZY-Dashboards spreadsheet). Not tracked in Picqer.
+// Ensures the column exists; returns its 1-based column index.
+function _ensureSleeveStockColumn_() {
+  const sh = _externalAssortment_();
+  if (!sh) throw new Error('Assortment printfiles sheet not found');
+  const hdr = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 20)).getValues()[0]
+    .map(h => String(h || '').trim().toLowerCase());
+  let idx = hdr.findIndex(h => h === 'sleeve stock');
+  if (idx >= 0) return idx + 1;
+  const newCol = sh.getLastColumn() + 1;
+  sh.getRange(1, newCol).setValue('Sleeve stock');
+  return newCol;
+}
+
+// Returns [{ sku, name, printfileName, productType, sleeveStock }]
+function getSleevesStock_() {
+  const sh = _externalAssortment_();
+  if (!sh) throw new Error('Assortment printfiles sheet not found');
+  const sleeveCol = _ensureSleeveStockColumn_();
+  const vals = sh.getDataRange().getValues();
+  if (!vals.length) return [];
+  const hdr = vals[0].map(h => String(h || '').trim().toLowerCase());
+  const iSku       = hdr.indexOf('sku');
+  const iType      = hdr.findIndex(h => h.includes('product type'));
+  const iProdName  = hdr.findIndex(h => h.includes('product name'));
+  const iPrintFile = hdr.findIndex(h => h.includes('printfile name'));
+  const iBottleClr = hdr.findIndex(h => h.includes('bottle color'));
+  const iSleeve    = sleeveCol - 1;
+  const out = [];
+  for (let r = 1; r < vals.length; r++) {
+    const sku = vals[r][iSku];
+    if (sku === '' || sku == null) continue;
+    const rawStock = vals[r][iSleeve];
+    const stock = (rawStock === '' || rawStock == null) ? null : (parseInt(rawStock) || 0);
+    out.push({
+      sku:           String(sku),
+      productType:   iType      >= 0 ? String(vals[r][iType]      || '').trim() : '',
+      productName:   iProdName  >= 0 ? String(vals[r][iProdName]  || '').trim() : '',
+      printfileName: iPrintFile >= 0 ? String(vals[r][iPrintFile] || '').trim() : '',
+      bottleColor:   iBottleClr >= 0 ? String(vals[r][iBottleClr] || '').trim() : '',
+      sleeveStock:   stock,
+    });
+  }
+  return out;
+}
+
+// Update or increment sleeve stock for a given SKU. If mode='set', writes the
+// value; if mode='delta', adds delta (can be negative). Returns new value.
+function updateSleeveStock_(sku, valueOrDelta, mode) {
+  const sh = _externalAssortment_();
+  if (!sh) throw new Error('Assortment printfiles sheet not found');
+  const sleeveCol = _ensureSleeveStockColumn_();
+  const vals = sh.getDataRange().getValues();
+  const hdr = vals[0].map(h => String(h || '').trim().toLowerCase());
+  const iSku = hdr.indexOf('sku');
+  for (let r = 1; r < vals.length; r++) {
+    if (String(vals[r][iSku]).trim() === String(sku).trim()) {
+      const cur = parseInt(vals[r][sleeveCol - 1]) || 0;
+      const next = mode === 'delta' ? Math.max(0, cur + (parseInt(valueOrDelta) || 0))
+                                     : Math.max(0, parseInt(valueOrDelta) || 0);
+      sh.getRange(r + 1, sleeveCol).setValue(next);
+      return next;
+    }
+  }
+  return null; // SKU not found
+}
+
+// Called from log_print flow: attempt to deduct qty sleeves from the matching
+// Assortment row. Matches by Workfile row's Name_Print → Assortment
+// "Printfile name" first, then "Product name" as fallback. Returns { matched, sku, name, newStock } or null.
+function deductSleeveForPrint_(namePrint, qty) {
+  if (!namePrint || !qty) return null;
+  const target = String(namePrint).trim().toLowerCase();
+  const rows = getSleevesStock_();
+  const match = rows.find(r =>
+    (r.printfileName && r.printfileName.toLowerCase() === target) ||
+    (r.productName   && r.productName.toLowerCase()   === target)
+  );
+  if (!match) return null;
+  const newStock = updateSleeveStock_(match.sku, -qty, 'delta');
+  return { matched: true, sku: match.sku, name: match.productName || match.printfileName, newStock };
 }
 
 // ── External stock helpers (Stock Analyses + Assortment printfiles) ─────────

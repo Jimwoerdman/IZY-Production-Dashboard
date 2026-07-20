@@ -3586,6 +3586,86 @@ async function loadStock() {
   } catch (err) {
     container.innerHTML = '<div class="loading-msg">Error loading stock.</div>';
   }
+  loadSleevesStock();
+}
+
+let sleevesRows = [];
+async function loadSleevesStock() {
+  const el = document.getElementById('sleeves-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-msg">Loading sleeves…</div>';
+  try {
+    const data = await fetch(SCRIPT_URL + '?action=get_sleeves_stock&t=' + Date.now()).then(r => r.json());
+    if (data.error) throw new Error(data.error);
+    sleevesRows = data.rows || [];
+    renderSleevesStock();
+  } catch (err) {
+    el.innerHTML = '<div class="stock-empty" style="color:var(--red);">Error: ' + err.message + '</div>';
+  }
+}
+
+function renderSleevesStock() {
+  const el = document.getElementById('sleeves-content');
+  if (!el) return;
+  if (!sleevesRows.length) {
+    el.innerHTML = '<div class="stock-empty">No Own Production products found.</div>';
+    return;
+  }
+  // Sort by product type then name for readability
+  const rows = [...sleevesRows].sort((a, b) => {
+    const t = (a.productType || '').localeCompare(b.productType || '');
+    if (t !== 0) return t;
+    return (a.productName || a.printfileName || '').localeCompare(b.productName || b.printfileName || '');
+  });
+  el.innerHTML = `
+    <div class="aq-table-wrap table-wrap">
+      <table>
+        <thead><tr>
+          <th>SKU</th><th>Type</th><th>Product</th><th>Printfile</th><th>Color</th>
+          <th style="text-align:right;">Sleeves</th><th>Action</th>
+        </tr></thead>
+        <tbody>${rows.map(r => {
+          const stock = r.sleeveStock;
+          const display = stock == null ? '<span style="color:var(--text-3);font-style:italic;">not set</span>' : stock.toLocaleString('en-US');
+          const cls = stock != null && stock < 25 ? 'style="color:var(--red);font-weight:600;"' : '';
+          return `<tr>
+            <td>${r.sku}</td>
+            <td>${r.productType || '—'}</td>
+            <td><strong>${r.productName || '—'}</strong></td>
+            <td style="color:var(--text-2);">${r.printfileName || '—'}</td>
+            <td>${r.bottleColor || '—'}</td>
+            <td style="text-align:right;" ${cls}>${display}</td>
+            <td><button class="btn-secondary" data-slv-set="${r.sku}" style="padding:4px 10px;font-size:12px;">✎ Set</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  el.querySelectorAll('[data-slv-set]').forEach(btn => {
+    btn.addEventListener('click', () => onSetSleeveStock(btn.dataset.slvSet));
+  });
+}
+
+async function onSetSleeveStock(sku) {
+  const row = sleevesRows.find(r => String(r.sku) === String(sku));
+  const label = row ? (row.productName || row.printfileName || sku) : sku;
+  const current = row && row.sleeveStock != null ? row.sleeveStock : '';
+  const input = prompt('Set sleeve stock for "' + label + '"\n\nEnter the current number of pre-made sleeves in stock:', String(current));
+  if (input == null) return;
+  const value = parseInt(input, 10);
+  if (!Number.isFinite(value) || value < 0) {
+    alert('Please enter a valid non-negative whole number.');
+    return;
+  }
+  try {
+    await postAndRead(SCRIPT_URL, JSON.stringify({
+      action:    'set_sleeve_stock',
+      sku, value,
+      changedBy: currentUser?.email,
+    }));
+    loadSleevesStock();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
 }
 
 const STOCK_TYPE_CONFIG = {
