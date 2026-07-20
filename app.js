@@ -3650,6 +3650,16 @@ function renderSleevesStock() {
     return;
   }
 
+  // Normalize product type: lowercase → canonical title case, so "travel bottle" == "Travel Bottle"
+  const canonType = (t) => {
+    const s = String(t || '').toLowerCase().trim();
+    if (s.startsWith('travel')) return 'Travel Bottle';
+    if (s.startsWith('bottle'))  return 'Bottle';
+    if (s.startsWith('mug'))     return 'Mug';
+    if (s.startsWith('tumbler')) return 'Tumbler';
+    return s ? s[0].toUpperCase() + s.slice(1) : 'Other';
+  };
+
   // Filter + sort
   const search = (sleevesFilterSearch || '').toLowerCase();
   const filtered = sleevesRows.filter(r => {
@@ -3670,16 +3680,6 @@ function renderSleevesStock() {
     if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
     return String(a.sku).localeCompare(String(b.sku));
   });
-
-  // Normalize product type: lowercase → canonical title case, so "travel bottle" == "Travel Bottle"
-  const canonType = (t) => {
-    const s = String(t || '').toLowerCase().trim();
-    if (s.startsWith('travel')) return 'Travel Bottle';
-    if (s.startsWith('bottle'))  return 'Bottle';
-    if (s.startsWith('mug'))     return 'Mug';
-    if (s.startsWith('tumbler')) return 'Tumbler';
-    return s ? s[0].toUpperCase() + s.slice(1) : 'Other';
-  };
   // Type counts (for filter pills)
   const typeCounts = { Bottle: 0, Mug: 0, Tumbler: 0, 'Travel Bottle': 0 };
   sleevesRows.forEach(r => { const t = canonType(r.productType); if (typeCounts[t] != null) typeCounts[t]++; });
