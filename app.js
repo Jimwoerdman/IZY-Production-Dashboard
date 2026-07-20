@@ -4884,6 +4884,10 @@ setupFormProgress(['sv-soort','sv-quantity','sv-company'], 'sv-progress-fill', '
 // ── Own Production tab ───────────────────────────────────────
 let ownProductionRows = []; // [{ raw: {col: val}, daysOfStock: number, _rowIdx }]
 let opSelectedRow     = null;
+// SKUs that were just added via Quick Add during this session — marked so you
+// can see they've already been queued and won't accidentally add the same job
+// twice. Cleared on page refresh.
+const opJustQueuedSkus = new Set();
 
 async function loadOwnProduction() {
   const container = document.getElementById('op-content');
@@ -4952,8 +4956,12 @@ function renderOwnProduction() {
       <table>
         <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>Action</th></tr></thead>
         <tbody>${rows.map((r) => {
-          const low = r.daysOfStock != null && r.daysOfStock < 28;
-          return `<tr${low ? ' style="background:#fef2f2;"' : ''}>${headers.map(h => {
+          const low     = r.daysOfStock != null && r.daysOfStock < 28;
+          const queued  = opJustQueuedSkus.has(String(r.raw['SKU']));
+          const rowStyle = queued
+            ? 'style="background:#f8fafc;opacity:0.55;"'
+            : (low ? 'style="background:#fef2f2;"' : '');
+          return `<tr ${rowStyle}>${headers.map(h => {
             let v = r.raw[h];
             const isDaysCol = h.toLowerCase().includes('day');
             // For the Day/s stock column, use the cleaned daysOfStock — null when
@@ -4961,7 +4969,7 @@ function renderOwnProduction() {
             if (isDaysCol) {
               if (r.daysOfStock == null) return '<td style="color:var(--text-3);font-style:italic;">no data</td>';
               const dv = Math.round(r.daysOfStock);
-              return low
+              return low && !queued
                 ? `<td style="color:var(--red);font-weight:600;">${dv}d</td>`
                 : `<td>${dv}d</td>`;
             }
@@ -4970,7 +4978,10 @@ function renderOwnProduction() {
             if (typeof v === 'number' && !Number.isInteger(v)) v = Math.round(v);
             return `<td>${v}</td>`;
           }).join('')}
-          <td><button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:${low ? 'var(--blue)' : 'var(--surface-2)'};color:${low ? '#fff' : 'var(--text-2)'};border:1px solid ${low ? 'var(--blue)' : 'var(--border)'};border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button></td>
+          <td>${queued
+            ? `<span style="display:inline-block;padding:4px 10px;font-size:12px;font-weight:600;background:#dcfce7;color:#15803d;border-radius:var(--radius-sm);white-space:nowrap;">✓ Just queued</span>`
+            : `<button class="btn-quick-add" data-opidx="${ownProductionRows.indexOf(r)}" style="background:${low ? 'var(--blue)' : 'var(--surface-2)'};color:${low ? '#fff' : 'var(--text-2)'};border:1px solid ${low ? 'var(--blue)' : 'var(--border)'};border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ Quick Add</button>`
+          }</td>
           </tr>`;
         }).join('')}</tbody>
       </table>
@@ -5107,6 +5118,11 @@ async function submitOpQuickAdd() {
     }));
     statusEl.className = 'form-status success';
     statusEl.textContent = '✓ Added to Active Queue!';
+    // Mark this SKU as just-queued so the row shows as "✓ Just queued"
+    // (muted, no Quick Add button) preventing duplicate adds until refresh.
+    const skuJustAdded = String(r.raw['SKU'] || '');
+    if (skuJustAdded) opJustQueuedSkus.add(skuJustAdded);
+    renderOwnProduction();
     setTimeout(() => { closeOpModal(); refreshData(); }, 900);
   } catch (err) {
     statusEl.className = 'form-status error';
