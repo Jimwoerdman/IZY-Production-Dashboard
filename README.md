@@ -28,3 +28,11 @@ Then open http://localhost:8080
 - `index.html` — dashboard layout
 - `style.css` — styling
 - `app.js` — data fetching, filtering, rendering
+
+## Reliable Add Job — frontend v119
+
+The existing Apps Script deployment now runs v153. The Add Job flow sends a stable UUID, checks saved receipts, and resumes incomplete files/sleeves/mockups without creating a second job. Partial failures keep the form intact. If a previous uncertain attempt has different input, the app asks before treating it as a new job. A browser reload preserves request references, not form contents or attachments.
+
+Backend source and tests for the reliability layer are maintained with the integrated IZY workspace (`integrations/print/ReliableJobs.gs`). Apps Script still requires its own deployment; GitHub Pages only publishes this frontend. Do not redeploy the historical Code.gs in this repository alone: the live backend also requires the ReliableJobs module and wrapper patch.
+
+Normal refresh loads app.js?v=119. Existing Google login and staff permissions remain unchanged.

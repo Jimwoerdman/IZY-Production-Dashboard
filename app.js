@@ -1,3 +1,62 @@
+// Shared by standalone print app and the authenticated suite adapter.
+const IZY_JOB_PENDING_KEY='izy_print_pending_v2';
+function izyPendingJobs(){try{return JSON.parse(localStorage.getItem(IZY_JOB_PENDING_KEY)||'{}')}catch{return {}}}
+function izySavePending(value){localStorage.setItem(IZY_JOB_PENDING_KEY,JSON.stringify(value));}
+function izyJobReceipt(receipt,message){
+ let panel=document.getElementById('izy-job-receipt');
+ if(!panel){panel=document.createElement('section');panel.id='izy-job-receipt';panel.setAttribute('role','status');panel.style.cssText='padding:18px 22px;margin:16px 28px;background:white;border:1px solid #dce4ef;border-radius:10px;white-space:pre-line;font-size:14px;line-height:1.7';document.querySelector('header').insertAdjacentElement('afterend',panel);}
+ const labels={job:'Printopdracht',formulas:'Berekeningen',fileLinks:'Bestandskoppelingen',sleeve:'Sleeveopdracht',mockup:'Mockupopdracht'};
+ const steps=receipt?.steps||{};
+ panel.textContent=[message||'Opslaan controleren…',receipt?.requestId?'Verzoeknummer: '+receipt.requestId:'',...Object.entries(steps).map(([key,value])=>{
+  const name=labels[key]||(key==='file-mockup'?'Mockupbestand':key.startsWith('file-design-')?'Ontwerpbestand '+(Number(key.slice(12))+1):key);
+  return name+': '+({done:'bevestigd',failed:'niet afgerond',processing:'bezig',skipped:'niet aangevraagd'}[value.status]||value.status)+(value.message?' — '+value.message:'');
+ })].filter(Boolean).join('\n');
+}
+async function izyReadJobStatus(requestId){
+ const response=await fetch(SCRIPT_URL+'?action=get_job_status&requestId='+encodeURIComponent(requestId));
+ const data=await response.json();if(!response.ok||data.error||data.protocol!==2)throw new Error(data.error||'Opslagstatus niet bereikbaar.');return data;
+}
+async function izySubmitJob(body,onProgress){
+ const payload=JSON.parse(body);
+ if(!Number.isSafeInteger(payload.quantity)||payload.quantity<=0)throw new Error('Vul een positief geheel aantal in.');
+ if(new TextEncoder().encode(body).length>15500000)throw new Error('De bestanden zijn samen te groot. Gebruik maximaal circa 11 MB aan bestanden per opdracht.');
+ const caps=await fetch(SCRIPT_URL+'?action=job_capabilities').then(r=>r.json());
+ if(caps.protocol!==2||!caps.idempotentJobs)throw new Error('Betrouwbaar opslaan is nog niet actief in de Google-backend. Er is niets verstuurd.');
+ const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body)))).map(x=>x.toString(16).padStart(2,'0')).join('');
+ let pending=izyPendingJobs();
+ // A changed form must never silently bypass a request with an unknown outcome.
+ for(const [hash,entry] of Object.entries(pending)){
+  if(hash===digest)continue;
+  const state=await izyReadJobStatus(entry.id);
+  if(state.receipt?.state==='complete'){delete pending[hash];continue;}
+  const warning=state.found?'Een eerdere opdracht is nog niet volledig afgerond.':'Van een eerdere poging is nog geen opslagbevestiging bekend.';
+  if(!confirm(warning+' Verzoeknummer: '+entry.id+'\nControleer eerst de wachtrij. Wil je deze gewijzigde gegevens uitdrukkelijk als een NIEUWE opdracht toevoegen?'))throw new Error('Nieuwe opdracht geannuleerd; eerdere poging blijft bewaard.');
+ }
+ const requestId=pending[digest]?.id||crypto.randomUUID();
+ pending[digest]={id:requestId};izySavePending(pending);
+ const before=await izyReadJobStatus(requestId);
+ if(before.receipt?.state==='complete'){delete pending[digest];izySavePending(pending);izyJobReceipt(before.receipt,'Deze opdracht was al volledig opgeslagen. Er is niets dubbel toegevoegd.');return {success:true,receipt:before.receipt};}
+ izyJobReceipt(before.receipt||{requestId,steps:{}},before.found?'Ontbrekende onderdelen opnieuw proberen…':'Opdracht wordt opgeslagen…');
+ let polling=false,finished=false;
+ const timer=setInterval(async()=>{if(polling||finished)return;polling=true;try{const status=await izyReadJobStatus(requestId);if(status.receipt&&!finished)izyJobReceipt(status.receipt,'Opslagstatus');}catch{}finally{polling=false;}},6000);
+ let data;
+ try {
+  const response=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...payload,requestId}),signal:AbortSignal.timeout(95000)});
+  data=await response.json();
+  if(!data.receipt||data.receipt.requestId!==requestId)throw new Error(data.error||'Geen geldige opslagbevestiging ontvangen.');
+ } catch(error) {
+  try{const status=await izyReadJobStatus(requestId);data={receipt:status.receipt};}catch{}
+  if(!data?.receipt){izyJobReceipt({requestId,steps:{}},'Uitkomst nog onbekend. Controleer de wachtrij. Hetzelfde formulier opnieuw versturen gebruikt hetzelfde verzoeknummer.');throw new Error('Opslag niet bevestigd. Je invoer is behouden; probeer dezelfde opdracht opnieuw, zonder de gegevens te wijzigen.');}
+ } finally {finished=true;clearInterval(timer);}
+ const receipt=data.receipt;
+ if(receipt.state!=='complete'){
+  izyJobReceipt(receipt,'Gedeeltelijk opgeslagen. Je invoer blijft staan. Klik opnieuw op toevoegen om alleen ontbrekende onderdelen te herstellen.');
+  throw new Error('Nog niet alles bevestigd. De bestaande opdracht wordt bij opnieuw proberen niet dubbel toegevoegd.');
+ }
+ delete pending[digest];izySavePending(pending);if(onProgress)onProgress(1);
+ izyJobReceipt(receipt,'Volledig opgeslagen en teruggelezen.');return {...data,success:true};
+}
+
 const SHEET_ID    = '1vIERVGUheXWkMS155VWfBEuCrUV4qXGYSUM9mIdppfc';
 const CSV_URL     = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 const SHIP_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=1459899540`;
@@ -2488,6 +2547,7 @@ async function postWithProgress(url, body, onProgress) {
 
 /** Like postWithProgress but reads the response so server errors are visible. */
 async function postAndRead(url, body, onProgress) {
+ if(JSON.parse(body).action==='add_job')return izySubmitJob(body,onProgress);
   let p = 0;
   const timer = onProgress ? setInterval(() => {
     p = Math.min(0.93, p + (0.93 - p) * 0.12);
@@ -2558,7 +2618,7 @@ document.getElementById('sv-submit').addEventListener('click', async function() 
       JSON.stringify({
         action:    'add_sleeve_job',
         soort, company, printName,
-        quantity:  parseInt(quantity),
+        quantity:  Number(quantity),
         deadline, owner, bottleColor, lidColor, notes,
         designFiles,
         changedBy: currentUser?.email,
@@ -4834,6 +4894,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
   if (mockupFile) filesToRead.push({ file: mockupFile, role: 'mockup' });
   for (const inp of designFileInputs) { if (inp.files && inp.files[0]) filesToRead.push({ file: inp.files[0], role: 'design' }); }
 
+  if(filesToRead.reduce((sum,x)=>sum+x.file.size,0)>11000000){statusEl.className='form-status error';statusEl.textContent='Bestanden zijn samen groter dan 11 MB. Kies kleinere bestanden.';this.disabled=false;return;}
   // Read all files with progress
   let mockupBase64 = null;
   const designFiles = [];
@@ -4845,7 +4906,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
       const f = await readFileAsBase64(file, p => setProgress((baseProgress + p / filesToRead.length) * 0.4, `Reading file ${i + 1} of ${filesToRead.length}… ${Math.round(p * 100)}%`));
       if (role === 'mockup') mockupBase64 = f.data;
       else designFiles.push({ base64: f.data, mime: f.mime, name: f.name });
-    } catch (_) {}
+    } catch(err){hideProgress();statusEl.className='form-status error';statusEl.textContent='Bestand kon niet worden gelezen: '+file.name;this.disabled=false;return;}
   }
 
   if (filesToRead.length === 0) setProgress(0, 'Uploading…');
@@ -4857,7 +4918,7 @@ document.getElementById('nj-submit').addEventListener('click', async function() 
       JSON.stringify({
         action:    'add_job',
         soort, company, printName,
-        quantity:  parseInt(quantity),
+        quantity:  Number(quantity),
         color, lid, deadline, owner, tosleeve, needmockup, notes,
         printerToUse,
         mockupBase64, designFiles,
