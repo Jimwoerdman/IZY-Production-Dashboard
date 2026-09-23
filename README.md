@@ -36,3 +36,7 @@ The existing Apps Script deployment now runs v153. The Add Job flow sends a stab
 Backend source and tests for the reliability layer are maintained with the integrated IZY workspace (`integrations/print/ReliableJobs.gs`). Apps Script still requires its own deployment; GitHub Pages only publishes this frontend. Do not redeploy the historical Code.gs in this repository alone: the live backend also requires the ReliableJobs module and wrapper patch.
 
 Normal refresh loads app.js?v=119. Existing Google login and staff permissions remain unchanged.
+
+## v120 — Eerste en laatste fles
+
+De actieve printwachtrij opent de fotocontrole van de bestaande IZY-suite. Jim koppelt Ivans telefoon eenmalig via **Telefoon & toegang** op `/print/controle`. Foto’s, beoordelingen en tijdregistratie worden daar bewaard. De bestaande Workfile en PrintLog blijven ongewijzigd. De Google Apps Script-backend hoeft voor deze wijziging niet opnieuw gedeployed te worden.

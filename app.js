@@ -1,3 +1,16 @@
+// This extension only opens the protected photo workflow; it never changes print jobs.
+async function izyOpenPhotoCheck(rowIndex,stage){
+ const r=allRows[rowIndex];if(!r)return;
+ const value=k=>String(get(r,k)||'').trim();
+ const source=value('IZY Job ID')?'job:'+value('IZY Job ID'):'legacy:'+value('Priority')+'|'+value('Name_Company')+'|'+value('Name_Print')+'|'+value('Soort')+'|'+value('Bottle color');
+ // Reserve a tab during the click gesture, before the asynchronous digest.
+ const tab=window.open('about:blank','_blank');
+ try{const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(source));const id=Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32);const url='https://izy-replenishment.izybottles.chatgpt.site/print/controle?batch='+id+'&stage='+stage;
+ if(tab){tab.opener=null;tab.location.replace(url);}else location.href=url;
+ }catch{if(tab)tab.close();alert('Fotocontrole kon niet worden geopend. Probeer opnieuw.');}
+}
+function izyPhotoButtons(idx){return `<button class="btn-log" onclick="event.stopPropagation();izyOpenPhotoCheck(${idx},'first')">Foto eerste fles</button><button class="btn-log" onclick="event.stopPropagation();izyOpenPhotoCheck(${idx},'last')">Foto laatste fles</button>`;}
+
 // Shared by standalone print app and the authenticated suite adapter.
 const IZY_JOB_PENDING_KEY='izy_print_pending_v2';
 function izyPendingJobs(){try{return JSON.parse(localStorage.getItem(IZY_JOB_PENDING_KEY)||'{}')}catch{return {}}}
@@ -1042,7 +1055,7 @@ function renderActiveQueue() {
       const sr = r['_sheetRow'];
       const upBtn   = `<button class="btn-move-up"   data-section="${section.label}" data-sr="${sr}" ${rowIndex === 0 ? 'disabled' : ''} title="Move up">▲</button>`;
       const downBtn = `<button class="btn-move-down" data-section="${section.label}" data-sr="${sr}" ${rowIndex === rows.length - 1 ? 'disabled' : ''} title="Move down">▼</button>`;
-      const actionBtns = `${upBtn}${downBtn}<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `${izyPhotoButtons(idx)}${upBtn}${downBtn}<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
 
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
@@ -1125,7 +1138,7 @@ function renderActiveQueue() {
       const days  = daysFrom(d);
       const idx   = allRows.indexOf(r);
       const sleeveBtn = `<button class="btn-sleeve" data-rowidx="${idx}">✕ Sleeve</button>`;
-      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `${izyPhotoButtons(idx)}<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
@@ -1200,7 +1213,7 @@ function renderActiveQueue() {
       const sleeveVal = (get(r,'To sleeve?') || getCI(r,'sleeve')).toLowerCase();
       const sleeveBtn = sleeveVal !== 'yes' ? '' :
         `<button class="btn-sleeve sleeved" data-rowidx="${idx}">✓ Sleeved</button>`;
-      const actionBtns = `<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-ship" data-rowidx="${idx}" style="background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">✓ Ship</button><button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
+      const actionBtns = `${izyPhotoButtons(idx)}<button class="btn-log" data-rowidx="${idx}">✏️ Log</button><button class="btn-log aq-btn-edit" data-rowidx="${idx}" style="background:var(--blue-dim);color:var(--blue);">✎ Edit</button>${sleeveBtn}<button class="btn-ship" data-rowidx="${idx}" style="background:#15803d;color:#fff;border:none;border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">✓ Ship</button><button class="btn-reset" data-rowidx="${idx}">↺ Reset</button>`;
       const aqFileUrls = (getCI(r,'file') || getCI(r,'design') || '').split(/[\n,]/).map(u => u.trim()).filter(Boolean);
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
