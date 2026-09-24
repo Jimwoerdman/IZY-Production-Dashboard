@@ -1,3 +1,16 @@
+// Presentation only: keep the original selection and update/edit handlers.
+function izySupportHead(){return `<colgroup><col style="width:3%"><col style="width:29%"><col style="width:18%"><col style="width:14%"><col style="width:7%"><col style="width:13%"><col style="width:16%"></colgroup><thead><tr><th aria-label="Selection"></th><th>Job & files</th><th>Product</th><th>Planning</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>`;}
+function izySupportRow(r,idx,actions,kind){
+ const e=izyQueueEscape,company=get(r,'Name_Company'),name=get(r,'Name_Print'),notes=get(r,'Notes');
+ const selected=(kind==='sv'?svSelected:mkSelected).has(idx),deadline=get(r,'Deadline');
+ const urls=(getCI(r,'file')||'').split(/[\n,]/).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+ const files=urls.map((u,i)=>`<a href="${e(u)}" target="_blank" rel="noopener noreferrer">File${urls.length>1?' '+(i+1):''} ↗</a>`).join(' ');
+ return `<tr class="izy-support-row${selected?' row-selected':''}"><td><input type="checkbox" class="row-select ${kind}-select" data-${kind}idx="${idx}" aria-label="Select ${e(company)} ${e(name)}" ${selected?'checked':''}></td>
+ <td><div class="izy-queue-job"><strong>${e(company)}</strong><span class="izy-queue-design">${e(name||'—')}</span>${files?`<div class="izy-queue-files">${files}</div>`:''}${notes?`<details class="izy-job-note"><summary>Note: ${e(lastNote(notes))}</summary><p>${e(notes)}</p></details>`:''}</div></td>
+ <td><div class="izy-queue-stack"><strong>${e(get(r,'Soort')||'—')}</strong><span>Colour ${e(get(r,'Bottle color')||'—')} · Lid ${e(get(r,'Lid')||'—')}</span></div></td>
+ <td><div class="izy-queue-stack"><strong>${e(deadline||'No deadline')}</strong><span>${e(get(r,'Owner')||'—')}</span></div></td><td class="izy-support-qty">${e(get(r,'Quantity')||'—')}</td><td>${badge(get(r,'Status'))}</td><td><div class="izy-support-actions">${actions.replaceAll('✏️ Update','Update').replaceAll('✎ Edit','Edit')}</div></td></tr>`;
+}
+
 // Shared presentation only. Existing filters, queue order and action handlers remain authoritative.
 function izyQueueEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function izyQueueView(r,idx,actions,status,estimate='',estimateLate=false){
@@ -2836,27 +2849,14 @@ function renderSleeves() {
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
         : '—';
 
-      const row = `<tr class="${isDone ? 'row-shipped' : ''}${svSelected.has(idx) ? ' row-selected' : ''}">
-        <td><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td>${badge(get(r,'Status'))}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td style="text-align:right;font-weight:600;">${num(r,'Quantity') || '—'}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${get(r,'Owner') || '—'}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+      const row = izySupportRow(r,idx,actionBtns,"sv");
 
       return { card, row };
     });
 
     const totalQty = rows.reduce((s, r) => s + (num(r, 'Quantity') || 0), 0);
     return `
-      <div class="aq-section">
+      <div class="aq-section" style="--queue-tint:${c.bg};--queue-accent:${c.text}">
         <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
           <span style="font-size:13px;font-weight:700;">${section.label}</span>
           <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${totalQty.toLocaleString('en-US')} pcs</span>
@@ -2864,10 +2864,7 @@ function renderSleeves() {
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
           <table>
-            <thead><tr>
-              <th></th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Qty</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
-            </tr></thead>
+            ${izySupportHead()}
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
         </div>
@@ -2904,20 +2901,7 @@ function renderSleeves() {
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
-      const row = `<tr class="row-shipped${svSelected.has(idx) ? ' row-selected' : ''}">
-        <td><input type="checkbox" class="row-select sv-select" data-svidx="${idx}" ${svSelected.has(idx) ? 'checked' : ''} /></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td>${badge(get(r,'Status'))}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td style="text-align:right;font-weight:600;">${num(r,'Quantity') || '—'}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${get(r,'Owner') || '—'}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+      const row = izySupportRow(r,idx,actionBtns,"sv");
       return { card, row };
     });
 
@@ -2931,10 +2915,7 @@ function renderSleeves() {
         <div class="aq-cards" style="margin-top:10px;">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap" style="margin-top:8px;">
           <table>
-            <thead><tr>
-              <th></th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Qty</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
-            </tr></thead>
+            ${izySupportHead()}
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
         </div>` : ''}
@@ -3738,25 +3719,13 @@ function renderMockups() {
         ? rawFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${rawFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ')
         : '—';
 
-      const row = `<tr class="${isDone ? 'row-shipped' : ''}${mkSelected.has(idx) ? ' row-selected' : ''}">
-        <td><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td>${badge(get(r,'Status'))}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${get(r,'Owner') || '—'}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+      const row = izySupportRow(r,idx,actionBtns,"mk");
 
       return { card, row };
     });
 
     return `
-      <div class="aq-section">
+      <div class="aq-section" style="--queue-tint:${c.bg};--queue-accent:${c.text}">
         <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
           <span style="font-size:13px;font-weight:700;">${section.label}</span>
           <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''}</span>
@@ -3764,10 +3733,7 @@ function renderMockups() {
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
           <table>
-            <thead><tr>
-              <th></th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
-            </tr></thead>
+            ${izySupportHead()}
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
         </div>
@@ -3803,19 +3769,7 @@ function renderMockups() {
         </div>
         <div class="aq-card-actions">${actionBtns}</div>
       </div>`;
-      const row = `<tr class="row-shipped${mkSelected.has(idx) ? ' row-selected' : ''}">
-        <td><input type="checkbox" class="row-select mk-select" data-mkidx="${idx}" ${mkSelected.has(idx) ? 'checked' : ''} /></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td>${badge(get(r,'Status'))}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${get(r,'Owner') || '—'}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td>${fileCell}</td>
-        <td class="notes-cell" title="${(get(r,'Notes') || '').replace(/"/g,'&quot;')}">${lastNote(get(r,'Notes')) || '—'}</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+      const row = izySupportRow(r,idx,actionBtns,"mk");
       return { card, row };
     });
 
@@ -3828,10 +3782,7 @@ function renderMockups() {
         <div class="aq-cards" style="margin-top:10px;">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap" style="margin-top:8px;">
           <table>
-            <thead><tr>
-              <th></th><th>Company</th><th>Status</th>
-              <th>Type</th><th>Color</th><th>Lid</th><th>Owner</th><th>Deadline</th><th>Files</th><th>Notes</th><th></th>
-            </tr></thead>
+            ${izySupportHead()}
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
         </div>` : ''}

@@ -22,6 +22,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 <link rel="stylesheet" href="print-workspace.css?v=124" />
+<link rel="stylesheet" href="print-sections.css?v=125" />
 </head>
 <body>
 
@@ -693,6 +694,213 @@
     <div id="sv-sections"></div>
   </section>
 
+<section id="tab-add-job" class="tab-content">
+  <div class="add-job-card">
+
+    <div class="add-job-header">
+      <div class="add-job-header-icon">🖨️</div>
+      <div>
+        <div class="add-job-title">New Print Job</div>
+        <div class="add-job-subtitle">Fill in the details below to add a job to the Workfile</div>
+      </div>
+    </div>
+
+    <div class="form-section" id="nj-mockup-prefill-section">
+      <div class="form-section-label">Import from Approved Mockup <span style="font-weight:400;color:#94a3b8;">(optional)</span></div>
+      <div class="form-group">
+        <select id="nj-mockup-select">
+          <option value="">— Select an approved mockup to pre-fill —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-completion-bar" style="padding: 14px 0 0;">
+      <div class="form-completion-bar-track"><div class="form-completion-bar-fill" id="nj-progress-fill"></div></div>
+      <div class="form-completion-label" id="nj-progress-label">0 / 4 required fields</div>
+    </div>
+
+    <form id="add-job-form" onsubmit="return false;">
+
+      <div class="form-section">
+        <div class="form-section-label">Job</div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Product Type <span class="req">*</span></label>
+            <select id="nj-soort" required>
+              <option value="">Select type…</option>
+              <option value="Bottle">Bottle</option>
+              <option value="Mug">Mug</option>
+              <option value="Travel Bottle">Travel Bottle</option>
+              <option value="Tumbler">Tumbler</option>
+              <option value="Sample Bottle">Sample Bottle</option>
+              <option value="Sample Mug">Sample Mug</option>
+              <option value="Sample Travel Bottle">Sample Travel Bottle</option>
+            </select>
+            <span id="nj-priority-hint" style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;"></span>
+          </div>
+          <div class="form-group">
+            <label>Owner</label>
+            <select id="nj-owner"><option value="">Select owner…</option></select>
+          </div>
+          <div class="form-group">
+            <label>Quantity <span class="req">*</span></label>
+            <input type="number" id="nj-quantity" required min="1" placeholder="e.g. 100" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Company <span class="req">*</span></label>
+            <input type="text" id="nj-company" required placeholder="Company name" />
+          </div>
+          <div class="form-group">
+            <label>Print Name <span class="req">*</span></label>
+            <input type="text" id="nj-print-name" required placeholder="Print job name" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-label">Product</div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Bottle Color</label>
+            <select id="nj-color">
+              <option value="">Select color…</option>
+              <option>White</option><option>Black</option><option>Gray</option>
+              <option>Light Blue</option><option>Blue</option><option>Green</option>
+              <option>Red</option><option>Orange</option><option>Yellow</option>
+              <option>Pink</option><option>Silver</option><option>Gold</option>
+              <option>Nvt</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Lid Color</label>
+            <select id="nj-lid">
+              <option value="">Select color…</option>
+              <option>White</option><option>Black</option><option>Gray</option>
+              <option>Light Blue</option><option>Blue</option><option>Green</option>
+              <option>Red</option><option>Orange</option><option>Yellow</option>
+              <option>Pink</option><option>Silver</option><option>Gold</option>
+              <option>Nvt</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Picture Mockup</label>
+            <label class="file-upload-area" id="nj-mockup-label" for="nj-mockup">
+              <span class="file-upload-icon">🖼️</span>
+              <span id="nj-mockup-name">Click to upload image</span>
+              <input type="file" id="nj-mockup" accept="image/*" style="display:none;" />
+            </label>
+          </div>
+          <div class="form-group">
+            <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI…)</span></label>
+            <div id="nj-files-list"></div>
+            <button type="button" id="nj-add-file" class="btn-add-file">+ Add file</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-label">Planning</div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Deadline</label>
+            <input type="date" id="nj-deadline" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Need Mockup?</label>
+            <div class="sleeve-toggle" id="nj-needmockup" data-value="No">
+              <button type="button" class="sleeve-opt" data-opt="No">No</button>
+              <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>To Sleeve?</label>
+            <div class="sleeve-toggle" id="nj-tosleeve" data-value="No">
+              <button type="button" class="sleeve-opt" data-opt="No">No</button>
+              <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" id="nj-printer-wrap" style="margin-top:10px;display:none;">
+          <label>Printer to use <span style="font-weight:400;color:#94a3b8;">(only for bottles)</span></label>
+          <div class="sleeve-toggle" id="nj-printer" data-value="">
+            <button type="button" class="sleeve-opt active" data-opt="">—</button>
+            <button type="button" class="sleeve-opt" data-opt="Bottle 1">Bottle 1</button>
+            <button type="button" class="sleeve-opt" data-opt="Bottle 2">Bottle 2</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-label">Shipping <span style="font-weight:400;color:#94a3b8;">(optional — pre-fills ship modal)</span></div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>Company name</label>
+          <input type="text" id="nj-ship-company" placeholder="Receiver company" />
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Contact person</label>
+            <input type="text" id="nj-ship-contact" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="nj-ship-phone" placeholder="+31612345678" />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="text" id="nj-ship-email" placeholder="contact@company.com" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Street</label>
+            <input type="text" id="nj-ship-street" placeholder="Street name" />
+          </div>
+          <div class="form-group">
+            <label>Number</label>
+            <input type="text" id="nj-ship-number" placeholder="12a" />
+          </div>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group">
+            <label>Postcode</label>
+            <input type="text" id="nj-ship-zipcode" placeholder="1234 AB" />
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="nj-ship-city" placeholder="Amsterdam" />
+          </div>
+          <div class="form-group">
+            <label>Country</label>
+            <input type="text" id="nj-ship-country" placeholder="NL" maxlength="2" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-label">Notes</div>
+        <div class="form-group">
+          <textarea id="nj-notes" rows="3" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" id="nj-submit" class="btn-nj-submit">Add Print Job</button>
+        <span id="nj-status" class="form-status"></span>
+      </div>
+      <div id="nj-upload-progress" style="display:none;margin-top:12px;">
+        <div class="upload-bar-track"><div id="nj-upload-fill" class="upload-bar-fill"></div></div>
+        <div id="nj-upload-label" class="upload-bar-label"></div>
+      </div>
+
+    </form>
+  </div>
+</section>
 </main>
 
 <footer>
@@ -1381,213 +1589,7 @@
   </div>
 </div>
 
-<section id="tab-add-job" class="tab-content">
-  <div class="add-job-card">
 
-    <div class="add-job-header">
-      <div class="add-job-header-icon">🖨️</div>
-      <div>
-        <div class="add-job-title">New Print Job</div>
-        <div class="add-job-subtitle">Fill in the details below to add a job to the Workfile</div>
-      </div>
-    </div>
-
-    <div class="form-section" id="nj-mockup-prefill-section">
-      <div class="form-section-label">Import from Approved Mockup <span style="font-weight:400;color:#94a3b8;">(optional)</span></div>
-      <div class="form-group">
-        <select id="nj-mockup-select">
-          <option value="">— Select an approved mockup to pre-fill —</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-completion-bar" style="padding: 14px 0 0;">
-      <div class="form-completion-bar-track"><div class="form-completion-bar-fill" id="nj-progress-fill"></div></div>
-      <div class="form-completion-label" id="nj-progress-label">0 / 4 required fields</div>
-    </div>
-
-    <form id="add-job-form" onsubmit="return false;">
-
-      <div class="form-section">
-        <div class="form-section-label">Job</div>
-        <div class="form-grid form-grid-3">
-          <div class="form-group">
-            <label>Product Type <span class="req">*</span></label>
-            <select id="nj-soort" required>
-              <option value="">Select type…</option>
-              <option value="Bottle">Bottle</option>
-              <option value="Mug">Mug</option>
-              <option value="Travel Bottle">Travel Bottle</option>
-              <option value="Tumbler">Tumbler</option>
-              <option value="Sample Bottle">Sample Bottle</option>
-              <option value="Sample Mug">Sample Mug</option>
-              <option value="Sample Travel Bottle">Sample Travel Bottle</option>
-            </select>
-            <span id="nj-priority-hint" style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;"></span>
-          </div>
-          <div class="form-group">
-            <label>Owner</label>
-            <select id="nj-owner"><option value="">Select owner…</option></select>
-          </div>
-          <div class="form-group">
-            <label>Quantity <span class="req">*</span></label>
-            <input type="number" id="nj-quantity" required min="1" placeholder="e.g. 100" />
-          </div>
-        </div>
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Company <span class="req">*</span></label>
-            <input type="text" id="nj-company" required placeholder="Company name" />
-          </div>
-          <div class="form-group">
-            <label>Print Name <span class="req">*</span></label>
-            <input type="text" id="nj-print-name" required placeholder="Print job name" />
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-label">Product</div>
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Bottle Color</label>
-            <select id="nj-color">
-              <option value="">Select color…</option>
-              <option>White</option><option>Black</option><option>Gray</option>
-              <option>Light Blue</option><option>Blue</option><option>Green</option>
-              <option>Red</option><option>Orange</option><option>Yellow</option>
-              <option>Pink</option><option>Silver</option><option>Gold</option>
-              <option>Nvt</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Lid Color</label>
-            <select id="nj-lid">
-              <option value="">Select color…</option>
-              <option>White</option><option>Black</option><option>Gray</option>
-              <option>Light Blue</option><option>Blue</option><option>Green</option>
-              <option>Red</option><option>Orange</option><option>Yellow</option>
-              <option>Pink</option><option>Silver</option><option>Gold</option>
-              <option>Nvt</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Picture Mockup</label>
-            <label class="file-upload-area" id="nj-mockup-label" for="nj-mockup">
-              <span class="file-upload-icon">🖼️</span>
-              <span id="nj-mockup-name">Click to upload image</span>
-              <input type="file" id="nj-mockup" accept="image/*" style="display:none;" />
-            </label>
-          </div>
-          <div class="form-group">
-            <label>Design Files <span style="font-weight:400;color:#94a3b8;">(optional — PDF, AI…)</span></label>
-            <div id="nj-files-list"></div>
-            <button type="button" id="nj-add-file" class="btn-add-file">+ Add file</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-label">Planning</div>
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Deadline</label>
-            <input type="date" id="nj-deadline" />
-          </div>
-        </div>
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Need Mockup?</label>
-            <div class="sleeve-toggle" id="nj-needmockup" data-value="No">
-              <button type="button" class="sleeve-opt" data-opt="No">No</button>
-              <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>To Sleeve?</label>
-            <div class="sleeve-toggle" id="nj-tosleeve" data-value="No">
-              <button type="button" class="sleeve-opt" data-opt="No">No</button>
-              <button type="button" class="sleeve-opt" data-opt="Yes">Yes</button>
-            </div>
-          </div>
-        </div>
-        <div class="form-group" id="nj-printer-wrap" style="margin-top:10px;display:none;">
-          <label>Printer to use <span style="font-weight:400;color:#94a3b8;">(only for bottles)</span></label>
-          <div class="sleeve-toggle" id="nj-printer" data-value="">
-            <button type="button" class="sleeve-opt active" data-opt="">—</button>
-            <button type="button" class="sleeve-opt" data-opt="Bottle 1">Bottle 1</button>
-            <button type="button" class="sleeve-opt" data-opt="Bottle 2">Bottle 2</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-label">Shipping <span style="font-weight:400;color:#94a3b8;">(optional — pre-fills ship modal)</span></div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <label>Company name</label>
-          <input type="text" id="nj-ship-company" placeholder="Receiver company" />
-        </div>
-        <div class="form-grid form-grid-3">
-          <div class="form-group">
-            <label>Contact person</label>
-            <input type="text" id="nj-ship-contact" placeholder="Full name" />
-          </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input type="text" id="nj-ship-phone" placeholder="+31612345678" />
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="text" id="nj-ship-email" placeholder="contact@company.com" />
-          </div>
-        </div>
-        <div class="form-grid form-grid-2">
-          <div class="form-group">
-            <label>Street</label>
-            <input type="text" id="nj-ship-street" placeholder="Street name" />
-          </div>
-          <div class="form-group">
-            <label>Number</label>
-            <input type="text" id="nj-ship-number" placeholder="12a" />
-          </div>
-        </div>
-        <div class="form-grid form-grid-3">
-          <div class="form-group">
-            <label>Postcode</label>
-            <input type="text" id="nj-ship-zipcode" placeholder="1234 AB" />
-          </div>
-          <div class="form-group">
-            <label>City</label>
-            <input type="text" id="nj-ship-city" placeholder="Amsterdam" />
-          </div>
-          <div class="form-group">
-            <label>Country</label>
-            <input type="text" id="nj-ship-country" placeholder="NL" maxlength="2" />
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-label">Notes</div>
-        <div class="form-group">
-          <textarea id="nj-notes" rows="3" placeholder="Optional notes…" style="width:100%;resize:vertical;"></textarea>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" id="nj-submit" class="btn-nj-submit">Add Print Job</button>
-        <span id="nj-status" class="form-status"></span>
-      </div>
-      <div id="nj-upload-progress" style="display:none;margin-top:12px;">
-        <div class="upload-bar-track"><div id="nj-upload-fill" class="upload-bar-fill"></div></div>
-        <div id="nj-upload-label" class="upload-bar-label"></div>
-      </div>
-
-    </form>
-  </div>
-</section>
 
 <div id="selection-bar" class="selection-bar" style="display:none;">
   <span id="selection-bar-text"></span>
@@ -1595,7 +1597,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=124"></script>
+<script src="app.js?v=125"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
