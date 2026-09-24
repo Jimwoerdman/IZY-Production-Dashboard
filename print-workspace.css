@@ -25,3 +25,35 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(max-width:440px){.izy-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 @media(min-width:721px){.izy-queue-actions{flex-direction:row;align-items:center;flex-wrap:wrap;gap:4px}.izy-photo-actions,.izy-work-actions{display:contents!important}#tab-active-queue .izy-queue-actions button{min-height:26px;padding:3px 6px!important}#tab-active-queue .aq-table-wrap td{padding-top:6px;padding-bottom:6px}}
+
+/* Colour is tied to the existing product groups and work status. */
+body{background:#edf1f8}
+#tab-active-queue .aq-section{--queue-tint:#e0e7ff;--queue-accent:#3730a3;border-color:color-mix(in srgb,var(--queue-accent) 28%,white);box-shadow:0 2px 5px #28375b0a}
+#tab-active-queue .aq-section-title{background:var(--queue-tint)!important;color:var(--queue-accent)!important;border-bottom-color:color-mix(in srgb,var(--queue-accent) 25%,white);border-left:5px solid var(--queue-accent)}
+#tab-active-queue .aq-section-count{color:var(--queue-accent)!important}
+#tab-active-queue .aq-table-wrap th{background:color-mix(in srgb,var(--queue-tint) 65%,white)!important;color:var(--queue-accent)!important;border-bottom:1px solid color-mix(in srgb,var(--queue-accent) 20%,white)}
+#tab-active-queue .aq-table-wrap tr:nth-child(odd){background:color-mix(in srgb,var(--queue-tint) 24%,white)}
+#tab-active-queue .aq-table-wrap tr:nth-child(even){background:color-mix(in srgb,var(--queue-tint) 52%,white)}
+#tab-active-queue .aq-table-wrap td{border-bottom-color:color-mix(in srgb,var(--queue-accent) 12%,white)}
+#tab-active-queue .aq-table-wrap tr:hover{background:color-mix(in srgb,var(--queue-tint) 85%,white)}
+#tab-active-queue .aq-table-wrap tr.row-selected{background:#dfe7ff;box-shadow:inset 3px 0 #3456cc}
+#tab-active-queue .aq-type-tab[data-type]{background:var(--tb,#e4eaff)!important;color:var(--tc,#294bb4)!important;border-color:color-mix(in srgb,var(--tc,#294bb4) 38%,white)!important}
+#tab-active-queue .aq-type-tab.active{box-shadow:inset 0 -3px var(--tc,#355bd1);font-weight:750!important}
+#tab-active-queue .aq-type-tab .aq-tab-count{background:#ffffffb3!important;color:inherit!important}
+#tab-active-queue .izy-queue-printer{background:#ece3ff;color:#59339b;border-color:#d6c0f5}
+#tab-active-queue .izy-queue-quantity strong{color:var(--queue-accent)}
+#tab-active-queue .izy-queue-status .b-to-print{background:#dbeafe;color:#1e40af;border:1px solid #a5c6fa}
+#tab-active-queue .izy-queue-status .b-progress{background:#ede1ff;color:#6536a5;border:1px solid #d3b5f4}
+#tab-active-queue .izy-queue-status .b-waiting{background:#ffedaf;color:#854b0e;border:1px solid #e7c366}
+#tab-active-queue .izy-queue-status .b-ready-ship,#tab-active-queue .izy-queue-status .b-shipped{background:#c9f1d9;color:#176339;border:1px solid #8cceaa}
+#tab-active-queue .izy-deadline.is-late{background:#ffe0dd;color:#a12d28}
+#tab-active-queue .izy-photo-actions button:first-child{background:#dbe8ff!important;color:#244cac!important;border-color:#a9c3f5!important}
+#tab-active-queue .izy-photo-actions button:last-child{background:#eae0ff!important;color:#6534a7!important;border-color:#cdb4ef!important}
+#tab-active-queue .izy-work-actions .btn-log:not(.aq-btn-edit){background:#d5edf3!important;color:#125369!important;border-color:#9dcbd8!important}
+#tab-active-queue .izy-work-actions .aq-btn-edit{background:#fff0ce!important;color:#845214!important;border-color:#e6c881!important}
+#tab-active-queue .izy-work-actions .btn-ship{background:#c9f1d9!important;color:#176339!important;border-color:#8cceaa!important}
+#tab-active-queue .izy-work-actions .btn-reset{color:#9b4545!important}
+#tab-active-queue .izy-queue-files a{color:#214fa5;text-decoration:underline;text-underline-offset:2px}
+#tab-active-queue .aq-card{border-left:3px solid var(--queue-accent)!important;background:color-mix(in srgb,var(--queue-tint) 30%,white)}
+#tab-active-queue .aq-card:nth-child(even){background:color-mix(in srgb,var(--queue-tint) 55%,white)}
+#tab-active-queue .aq-card.row-selected{background:#dfe7ff}

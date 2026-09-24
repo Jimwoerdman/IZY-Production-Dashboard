@@ -1096,7 +1096,7 @@ function renderActiveQueue() {
     });
 
     return `
-      <div class="aq-section">
+      <div class="aq-section" style="--queue-tint:${c.bg};--queue-accent:${c.text}">
         <div class="aq-section-title" style="background:${c.bg};color:${c.text};">
           <span style="font-size:13px;font-weight:700;">${section.label}</span>
           <span class="aq-section-count" style="color:${c.text};opacity:0.7;">${rows.length} job${rows.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${rows.reduce((s,r) => s + num(r,'Quantity'), 0)} pcs</span>
@@ -1132,7 +1132,7 @@ function renderActiveQueue() {
       const {card,row} = izyQueueView(r,idx,actionBtns,'Waiting');
       return { card, row };
     });
-    return `<div class="aq-section">
+    return `<div class="aq-section" style="--queue-tint:#fef3c7;--queue-accent:#92400e">
       <div class="aq-section-title" style="background:#fef3c7;color:#92400e;">
         <span style="font-size:13px;font-weight:700;">⏳ Waiting for Sleeve</span>
         <span class="aq-section-count" style="color:#92400e;opacity:0.7;">${waitingFiltered.length} job${waitingFiltered.length !== 1 ? 's' : ''}</span>
@@ -1171,7 +1171,7 @@ function renderActiveQueue() {
       const {card,row} = izyQueueView(r,idx,actionBtns,'Ready to Ship');
       return { card, row };
     });
-    return `<div class="aq-section">
+    return `<div class="aq-section" style="--queue-tint:#dcfce7;--queue-accent:#15803d">
       <div class="aq-section-title" style="background:#dcfce7;color:#15803d;">
         <span style="font-size:13px;font-weight:700;">✓ Ready to Ship</span>
         <span class="aq-section-count" style="color:#15803d;opacity:0.7;">${rtsFiltered.length} job${rtsFiltered.length !== 1 ? 's' : ''}</span>
