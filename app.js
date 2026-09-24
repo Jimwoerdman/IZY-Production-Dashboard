@@ -1,3 +1,28 @@
+// Shared presentation only. Existing filters, queue order and action handlers remain authoritative.
+function izyQueueEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function izyQueueView(r,idx,actions,status,estimate='',estimateLate=false){
+ const e=izyQueueEscape,company=get(r,'Name_Company'),name=get(r,'Name_Print'),total=num(r,'Quantity'),remaining=get(r,'Quantity still to print'),still=num(r,'Quantity still to print');
+ const deadline=get(r,'Deadline'),days=daysFrom(parseDate(deadline)),type=get(r,'Soort'),color=get(r,'Bottle color'),lid=get(r,'Lid'),printer=getCI(r,'printer to use');
+ const urls=(getCI(r,'file')||getCI(r,'design')||'').split(/[\n,]/).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+ const files=urls.length?`<div class="izy-queue-files">${urls.map((url,i)=>`<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${urls.length===1?'Open print file':'Print file '+(i+1)} <span aria-hidden="true">↗</span></a>`).join('')}</div>`:'<span class="izy-queue-muted izy-file-empty">No print file linked</span>';
+ const check=`<input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" aria-label="Select ${e(company)} ${e(name)}" ${aqSelected.has(idx)?'checked':''}/>`;
+ const job=`<div class="izy-queue-job"><span class="izy-queue-ref">#${e(get(r,'Priority')||'—')}</span><strong>${e(company)}</strong><span class="izy-queue-design">${e(name||'—')}</span>${files}</div>`;
+ const product=`<div class="izy-queue-stack"><strong>${e(type||'—')}</strong><span><span class="izy-queue-muted">Colour</span> ${e(color||'—')}</span><span><span class="izy-queue-muted">Lid</span> ${e(lid||'—')}</span>${printer?`<span class="izy-queue-printer">${e(printer)}</span>`:''}</div>`;
+ const late=days!==null&&days<0;
+ const planning=`<div class="izy-queue-stack"><strong>${e(deadline||'No deadline')}</strong>${days!==null?`<span class="izy-deadline ${late?'is-late':''}">${late?Math.abs(days)+'d overdue':days===0?'Due today':days+'d left'}</span>`:''}${estimate?`<span class="izy-queue-muted ${estimateLate?'izy-estimate-late':''}">Est. ${e(estimate)}</span>`:''}</div>`;
+ const quantity=`<div class="izy-queue-quantity"><strong>${remaining!==''?e(Math.max(0,still)):'—'}</strong><span>left to print</span><small>${e(total)} total</small></div>`;
+ const state=`<div class="izy-queue-stack izy-queue-status">${badge(status)}<span class="izy-invoice-label">Invoice</span>${invoiceBadge(matchInvoice(company))}</div>`;
+ // Photo buttons are always visible; operational actions wrap as a separate compact group.
+ const photos=actions.match(/<button[^>]*onclick="event.stopPropagation\(\);izyOpenPhotoCheck[\s\S]*?<\/button>/g)||[];
+ let ops=actions;for(const photo of photos)ops=ops.replace(photo,'');
+ ops=ops.replace('✏️ Log','Log print').replace('✎ Edit','Edit').replace('↺ Reset','Reset');
+ const controls=`<div class="izy-queue-actions"><div class="izy-photo-actions">${photos.join('')}</div><div class="izy-work-actions">${ops}</div></div>`;
+ const row=`<tr class="izy-queue-row ${aqSelected.has(idx)?'row-selected':''}"><td>${check}</td><td>${job}</td><td>${product}</td><td>${planning}</td><td>${quantity}</td><td>${state}</td><td>${controls}</td></tr>`;
+ const card=`<article class="aq-card izy-queue-card ${aqSelected.has(idx)?'row-selected':''}"><div class="izy-card-title">${check}${job}</div><div class="izy-card-grid"><div><span class="izy-field-title">Product</span>${product}</div><div><span class="izy-field-title">Planning</span>${planning}</div><div><span class="izy-field-title">Quantity</span>${quantity}</div><div><span class="izy-field-title">Status</span>${state}</div></div>${controls}</article>`;
+ return {row,card};
+}
+function izyQueueTableHead(){return `<colgroup><col style="width:3%"><col style="width:24%"><col style="width:14%"><col style="width:12%"><col style="width:9%"><col style="width:12%"><col style="width:26%"></colgroup><thead><tr><th aria-label="Selection"></th><th>Job & print files</th><th>Product & printer</th><th>Planning</th><th>Quantity</th><th>Status</th><th>Photo checks & actions</th></tr></thead>`;}
+
 // This extension only opens the protected photo workflow; it never changes print jobs.
 async function izyOpenPhotoCheck(rowIndex,stage){
  const r=allRows[rowIndex];if(!r)return;
@@ -1063,46 +1088,9 @@ function renderActiveQueue() {
         : '';
 
       const inv  = matchInvoice(get(r,'Name_Company'));
-      const card = `<div class="aq-card${isOverdue(r) ? ' overdue' : ''}${aqSelected.has(idx) ? ' row-selected' : ''}" style="--tc:${c.text};--tb:${c.bg}">
-        <div class="aq-card-top">
-          <div class="aq-card-left">
-            <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
-            <span class="aq-company">${get(r,'Name_Company')}</span>
-          </div>
-          <div class="aq-badges">${badge(displayStatus)}${invoiceBadge(inv)}</div>
-        </div>
-        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
-        ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
-        <div class="aq-meta">
-          <div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline') || '—'}</span></div>
-          <div class="aq-meta-item" ${estTitle}><span class="aq-meta-label">Est. print</span><span style="${estStyle}">${estTxt}</span></div>
-          <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
-          <div class="aq-meta-item"><span class="aq-meta-label">Qty</span><span>${num(r,'Quantity') || '—'}</span></div>
-          ${still > 0 ? `<div class="aq-meta-item"><span class="aq-meta-label">Still to print</span><span class="cell-danger">${still}</span></div>` : ''}
-          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
-          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
-          ${getCI(r,'printer to use') ? `<div class="aq-meta-item"><span class="aq-meta-label">Printer</span><span>${printerBadge(getCI(r,'printer to use'))}</span></div>` : ''}
-        </div>
-        <div class="aq-card-actions">${actionBtns}</div>
-      </div>`;
 
-      const row = `<tr class="${isOverdue(r) ? 'row-overdue' : ''}${aqSelected.has(idx) ? ' row-selected' : ''}">
-        <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
-        <td>${badge(displayStatus)}</td>
-        <td>${invoiceBadge(inv)}</td>
-        <td>${typeBadge(get(r,'Soort'))}${getCI(r,'printer to use') ? ' ' + printerBadge(getCI(r,'printer to use')) : ''}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td ${estTitle} style="${estStyle}">${estTxt}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${num(r,'Quantity') || '—'}</td>
-        <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
-        <td>${daysCell(days)}</td>
-        <td>${aqFileUrls.length ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;">📎${aqFileUrls.length > 1 ? (i+1) : ''}</a>`).join(' ') : '—'}</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+
+      const {card,row} = izyQueueView(r,idx,actionBtns,displayStatus, estDate ? estTxt : '', estLate);
 
       return { card, row };
     });
@@ -1116,11 +1104,7 @@ function renderActiveQueue() {
         <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
         <div class="aq-table-wrap table-wrap">
           <table>
-            <thead style="--th-bg:${c.text};--th-bg-img:none;"><tr>
-              <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
-              <th>Type</th><th>Deadline</th><th>Est. Print</th><th>Color</th><th>Lid</th>
-              <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Files</th><th>Actions</th>
-            </tr></thead>
+            ${izyQueueTableHead()}
             <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
           </table>
         </div>
@@ -1143,42 +1127,9 @@ function renderActiveQueue() {
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
         : '';
-      const card = `<div class="aq-card${aqSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#92400e;--tb:#fef3c7">
-        <div class="aq-card-top">
-          <div class="aq-card-left">
-            <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
-            <span class="aq-company">${get(r,'Name_Company')}</span>
-          </div>
-          ${badge('Waiting')}
-        </div>
-        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
-        ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
-        <div class="aq-meta">
-          <div class="aq-meta-item"><span class="aq-meta-label">Type</span>${typeBadge(get(r,'Soort'))}</div>
-          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          <div class="aq-meta-item"><span class="aq-meta-label">Days left</span>${daysCell(days)}</div>
-          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
-          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
-        </div>
-        <div class="aq-card-actions">${actionBtns}</div>
-      </div>`;
+
       const inv   = matchInvoice(get(r,'Name_Company'));
-      const row = `<tr class="${aqSelected.has(idx) ? 'row-selected' : ''}">
-        <td><label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
-        <td>${badge('Waiting')}</td>
-        <td>${invoiceBadge(inv)}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${num(r,'Quantity') || '—'}</td>
-        <td>—</td>
-        <td>${daysCell(days)}</td>
-        <td>—</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+      const {card,row} = izyQueueView(r,idx,actionBtns,'Waiting');
       return { card, row };
     });
     return `<div class="aq-section">
@@ -1189,11 +1140,7 @@ function renderActiveQueue() {
       <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
       <div class="aq-table-wrap aq-waiting-table table-wrap">
         <table>
-          <thead style="background:#92400e;background-image:none;"><tr>
-            <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
-            <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-            <th>Qty</th><th>Still</th><th>Days Left</th><th>Files</th><th>Actions</th>
-          </tr></thead>
+          ${izyQueueTableHead()}
           <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
         </table>
       </div>
@@ -1218,41 +1165,10 @@ function renderActiveQueue() {
       const aqFileLink = aqFileUrls.length
         ? aqFileUrls.map((u,i) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;">📎${aqFileUrls.length > 1 ? ' File '+(i+1) : ' File'}</a>`).join(' ')
         : '';
-      const card = `<div class="aq-card${aqSelected.has(idx) ? ' row-selected' : ''}" style="--tc:#15803d;--tb:#dcfce7">
-        <div class="aq-card-top">
-          <div class="aq-card-left">
-            <label class="row-check-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></label>
-            <span class="aq-company">${get(r,'Name_Company')}</span>
-          </div>
-          ${badge('Ready to Ship')}
-        </div>
-        ${get(r,'Name_Print') ? `<div class="aq-print-name">${get(r,'Name_Print')}</div>` : ''}
-        ${aqFileLink ? `<div style="margin:4px 0 2px;">${aqFileLink}</div>` : ''}
-        <div class="aq-meta">
-          <div class="aq-meta-item"><span class="aq-meta-label">Type</span>${typeBadge(get(r,'Soort'))}</div>
-          ${get(r,'Deadline') ? `<div class="aq-meta-item"><span class="aq-meta-label">Deadline</span><span>${get(r,'Deadline')}</span></div>` : ''}
-          ${get(r,'Bottle color') ? `<div class="aq-meta-item"><span class="aq-meta-label">Color</span><span>${get(r,'Bottle color')}</span></div>` : ''}
-          ${get(r,'Lid') ? `<div class="aq-meta-item"><span class="aq-meta-label">Lid</span><span>${get(r,'Lid')}</span></div>` : ''}
-        </div>
-        <div class="aq-card-actions">${actionBtns}</div>
-      </div>`;
+
       const inv   = matchInvoice(get(r,'Name_Company'));
       const still = num(r,'Quantity still to print');
-      const row = `<tr class="${aqSelected.has(idx) ? 'row-selected' : ''}">
-        <td><input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" ${aqSelected.has(idx) ? 'checked' : ''} /></td>
-        <td><strong>${get(r,'Name_Company')}</strong></td>
-        <td class="print-name">${get(r,'Name_Print') || '—'}</td>
-        <td>${badge('Ready to Ship')}</td>
-        <td>${invoiceBadge(inv)}</td>
-        <td>${typeBadge(get(r,'Soort'))}</td>
-        <td>${get(r,'Deadline') || '—'}</td>
-        <td>${get(r,'Bottle color') || '—'}</td>
-        <td>${get(r,'Lid') || '—'}</td>
-        <td>${num(r,'Quantity') || '—'}</td>
-        <td class="${still > 0 ? 'cell-danger' : ''}">${still > 0 ? still : '—'}</td>
-        <td>${daysCell(days)}</td>
-        <td style="white-space:nowrap">${actionBtns}</td>
-      </tr>`;
+      const {card,row} = izyQueueView(r,idx,actionBtns,'Ready to Ship');
       return { card, row };
     });
     return `<div class="aq-section">
@@ -1263,11 +1179,7 @@ function renderActiveQueue() {
       <div class="aq-cards">${rowsHtml.map(x => x.card).join('')}</div>
       <div class="aq-table-wrap aq-rts-table table-wrap">
         <table>
-          <thead style="background:#15803d;background-image:none;"><tr>
-            <th></th><th>Company</th><th>Print Name</th><th>Status</th><th>Invoice</th>
-            <th>Type</th><th>Deadline</th><th>Color</th><th>Lid</th>
-            <th>Qty</th><th>Still to Print</th><th>Days Left</th><th>Actions</th>
-          </tr></thead>
+          ${izyQueueTableHead()}
           <tbody>${rowsHtml.map(x => x.row).join('')}</tbody>
         </table>
       </div>
