@@ -4,24 +4,24 @@ function izyQueueView(r,idx,actions,status,estimate='',estimateLate=false){
  const e=izyQueueEscape,company=get(r,'Name_Company'),name=get(r,'Name_Print'),total=num(r,'Quantity'),remaining=get(r,'Quantity still to print'),still=num(r,'Quantity still to print');
  const deadline=get(r,'Deadline'),days=daysFrom(parseDate(deadline)),type=get(r,'Soort'),color=get(r,'Bottle color'),lid=get(r,'Lid'),printer=getCI(r,'printer to use');
  const urls=(getCI(r,'file')||getCI(r,'design')||'').split(/[\n,]/).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
- const files=urls.length?`<div class="izy-queue-files">${urls.map((url,i)=>`<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${urls.length===1?'Open print file':'Print file '+(i+1)} <span aria-hidden="true">↗</span></a>`).join('')}</div>`:'<span class="izy-queue-muted izy-file-empty">No print file linked</span>';
+ const files=urls.length?`<div class="izy-queue-files">${urls.map((url,i)=>`<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${urls.length===1?'File':'File '+(i+1)} <span aria-hidden="true">↗</span></a>`).join('')}</div>`:'<span class="izy-queue-muted izy-file-empty">No file</span>';
  const check=`<input type="checkbox" class="row-select aq-select" data-rowidx="${idx}" aria-label="Select ${e(company)} ${e(name)}" ${aqSelected.has(idx)?'checked':''}/>`;
- const job=`<div class="izy-queue-job"><span class="izy-queue-ref">#${e(get(r,'Priority')||'—')}</span><strong>${e(company)}</strong><span class="izy-queue-design">${e(name||'—')}</span>${files}</div>`;
- const product=`<div class="izy-queue-stack"><strong>${e(type||'—')}</strong><span><span class="izy-queue-muted">Colour</span> ${e(color||'—')}</span><span><span class="izy-queue-muted">Lid</span> ${e(lid||'—')}</span>${printer?`<span class="izy-queue-printer">${e(printer)}</span>`:''}</div>`;
+ const job=`<div class="izy-queue-job"><div class="izy-job-heading"><strong title="${e(company)}">${e(company)}</strong><span class="izy-queue-ref">#${e(get(r,'Priority')||'—')}</span></div><div class="izy-design-line"><span class="izy-queue-design" title="${e(name||'—')}">${e(name||'—')}</span>${files}</div></div>`;
+ const product=`<div class="izy-queue-stack"><div class="izy-product-heading"><strong>${e(type||'—')}</strong>${printer?`<span class="izy-queue-printer">${e(printer)}</span>`:''}</div><span class="izy-product-colours"><span class="izy-queue-muted">Colour</span> ${e(color||'—')} <span class="izy-queue-muted">· Lid</span> ${e(lid||'—')}</span></div>`;
  const late=days!==null&&days<0;
  const planning=`<div class="izy-queue-stack"><strong>${e(deadline||'No deadline')}</strong>${days!==null?`<span class="izy-deadline ${late?'is-late':''}">${late?Math.abs(days)+'d overdue':days===0?'Due today':days+'d left'}</span>`:''}${estimate?`<span class="izy-queue-muted ${estimateLate?'izy-estimate-late':''}">Est. ${e(estimate)}</span>`:''}</div>`;
- const quantity=`<div class="izy-queue-quantity"><strong>${remaining!==''?e(Math.max(0,still)):'—'}</strong><span>left to print</span><small>${e(total)} total</small></div>`;
- const state=`<div class="izy-queue-stack izy-queue-status">${badge(status)}<span class="izy-invoice-label">Invoice</span>${invoiceBadge(matchInvoice(company))}</div>`;
+ const quantity=`<div class="izy-queue-quantity"><div><strong>${remaining!==''?e(Math.max(0,still)):'—'}</strong> <span>left</span></div><small>${e(total)} total</small></div>`;
+ const state=`<div class="izy-queue-stack izy-queue-status">${badge(status)}${invoiceBadge(matchInvoice(company))}</div>`;
  // Photo buttons are always visible; operational actions wrap as a separate compact group.
  const photos=actions.match(/<button[^>]*onclick="event.stopPropagation\(\);izyOpenPhotoCheck[\s\S]*?<\/button>/g)||[];
  let ops=actions;for(const photo of photos)ops=ops.replace(photo,'');
  ops=ops.replace('✏️ Log','Log print').replace('✎ Edit','Edit').replace('↺ Reset','Reset');
- const controls=`<div class="izy-queue-actions"><div class="izy-photo-actions">${photos.join('')}</div><div class="izy-work-actions">${ops}</div></div>`;
+ const controls=`<div class="izy-queue-actions"><div class="izy-photo-actions">${photos.join('').replaceAll('Foto eerste fles','Foto eerste').replaceAll('Foto laatste fles','Foto laatste')}</div><div class="izy-work-actions">${ops}</div></div>`;
  const row=`<tr class="izy-queue-row ${aqSelected.has(idx)?'row-selected':''}"><td>${check}</td><td>${job}</td><td>${product}</td><td>${planning}</td><td>${quantity}</td><td>${state}</td><td>${controls}</td></tr>`;
  const card=`<article class="aq-card izy-queue-card ${aqSelected.has(idx)?'row-selected':''}"><div class="izy-card-title">${check}${job}</div><div class="izy-card-grid"><div><span class="izy-field-title">Product</span>${product}</div><div><span class="izy-field-title">Planning</span>${planning}</div><div><span class="izy-field-title">Quantity</span>${quantity}</div><div><span class="izy-field-title">Status</span>${state}</div></div>${controls}</article>`;
  return {row,card};
 }
-function izyQueueTableHead(){return `<colgroup><col style="width:3%"><col style="width:24%"><col style="width:14%"><col style="width:12%"><col style="width:9%"><col style="width:12%"><col style="width:26%"></colgroup><thead><tr><th aria-label="Selection"></th><th>Job & print files</th><th>Product & printer</th><th>Planning</th><th>Quantity</th><th>Status</th><th>Photo checks & actions</th></tr></thead>`;}
+function izyQueueTableHead(){return `<colgroup><col style="width:3%"><col style="width:25%"><col style="width:14%"><col style="width:12%"><col style="width:8%"><col style="width:12%"><col style="width:26%"></colgroup><thead><tr><th aria-label="Selection"></th><th>Job & print files</th><th>Product & printer</th><th>Planning</th><th>Quantity</th><th>Status</th><th>Photo checks & actions</th></tr></thead>`;}
 
 // This extension only opens the protected photo workflow; it never changes print jobs.
 async function izyOpenPhotoCheck(rowIndex,stage){
