@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=25" />
+  <link rel="stylesheet" href="style.css?v=26" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
 <link rel="stylesheet" href="print-workspace.css?v=124" />
@@ -74,6 +74,7 @@
   <button class="tab-btn" data-tab="stock">Stock</button>
   <button class="tab-btn" data-tab="own-production">Own Production</button>
   <button class="tab-btn" data-tab="printheads">🖨 Print Heads</button>
+  <button class="tab-btn" data-tab="manual">📘 Manual</button>
   <button class="tab-btn" data-tab="reports">Reports</button>
 </nav>
 
@@ -468,6 +469,25 @@
     </p>
     <div id="ph-content" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
       <div class="loading-msg">Loading print heads…</div>
+    </div>
+  </section>
+
+  <!-- ─── MANUAL ─── -->
+  <section id="tab-manual" class="tab-content">
+    <div class="stock-header">
+      <h2>Manuals</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-2);margin:-8px 0 14px;max-width:780px;">
+      Werkinstructies per machine. Kies een machine en open de manual.
+    </p>
+    <div id="manual-list" class="manual-grid"></div>
+    <div id="manual-viewer" class="manual-viewer" style="display:none;">
+      <div class="manual-viewer-bar">
+        <button class="manual-btn" onclick="closeManual()">← Alle manuals</button>
+        <span id="manual-viewer-title" class="manual-viewer-title"></span>
+        <a id="manual-viewer-open" class="manual-btn" href="#" target="_blank" rel="noopener">Open in nieuw tabblad ↗</a>
+      </div>
+      <iframe id="manual-frame" title="Manual" src="about:blank"></iframe>
     </div>
   </section>
 
@@ -1597,7 +1617,7 @@
   <button id="selection-bar-mark-shipped" class="selection-bar-btn" style="display:none;" onclick="bulkMarkShipped()">✓ Mark all as Shipped</button>
   <button class="selection-bar-clear" onclick="clearSelection()">✕ Clear</button>
 </div>
-<script src="app.js?v=125"></script>
+<script src="app.js?v=126"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

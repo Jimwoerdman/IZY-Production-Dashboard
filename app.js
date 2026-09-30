@@ -887,6 +887,66 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1LuTt6ySUIXR_Rp3f8
 // List your printers here:
 const PRINTERS = ['Bottle 1', 'Bottle 2', 'Mug 1', 'Travel Bottle 1'];
 
+
+// ─────────────────────────────────────────────────────────────
+// ── Manuals ──────────────────────────────────────────────────
+// Nieuwe manual toevoegen: zet het HTML-bestand in /manuals (foto's in
+// /manuals/img/<machine>/) en voeg hieronder een regel toe bij de juiste printer.
+const MANUALS = [
+  {
+    printer: 'Travel Bottle 1',
+    machine: 'Suntech C360-CF3 Cylinder Printer',
+    manuals: [
+      { id: 'travel-bottle-1-opstarten', title: 'Printer opstarten', desc: 'Aanzetten, Siemens-scherm, Press Ink, printkoppen schoonvegen en PrintExp openen.', file: 'manuals/travel-bottle-1-opstarten.html', updated: '30-09-2026' },
+    ],
+  },
+  { printer: 'Bottle 1', machine: '', manuals: [] },
+  { printer: 'Bottle 2', machine: '', manuals: [] },
+  { printer: 'Mug 1',    machine: '', manuals: [] },
+];
+
+function _escM(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+function renderManuals() {
+  const list = document.getElementById('manual-list');
+  if (!list) return;
+  list.innerHTML = MANUALS.map(m => `
+    <div class="manual-card">
+      <div class="manual-card-head">
+        <h3>${_escM(m.printer)}</h3>
+        ${m.machine ? `<span class="manual-machine">${_escM(m.machine)}</span>` : ''}
+      </div>
+      ${m.manuals.length ? m.manuals.map(d => `
+        <button class="manual-item" onclick="openManual('${d.id}')">
+          <span class="manual-item-title">${_escM(d.title)}</span>
+          <span class="manual-item-desc">${_escM(d.desc)}</span>
+          <span class="manual-item-meta">Bijgewerkt ${_escM(d.updated)}</span>
+        </button>`).join('') : `<div class="manual-empty">Nog geen manual</div>`}
+    </div>`).join('');
+}
+
+function openManual(id) {
+  let found = null, printer = '';
+  MANUALS.forEach(m => m.manuals.forEach(d => { if (d.id === id) { found = d; printer = m.printer; } }));
+  if (!found) return;
+  document.getElementById('manual-list').style.display = 'none';
+  document.getElementById('manual-viewer').style.display = '';
+  document.getElementById('manual-viewer-title').textContent = printer + ' — ' + found.title;
+  document.getElementById('manual-viewer-open').href = found.file;
+  const frame = document.getElementById('manual-frame');
+  frame.onload = () => {
+    try { frame.style.height = (frame.contentDocument.documentElement.scrollHeight + 20) + 'px'; } catch (_) {}
+  };
+  frame.src = found.file;
+  window.scrollTo(0, 0);
+}
+
+function closeManual() {
+  document.getElementById('manual-viewer').style.display = 'none';
+  document.getElementById('manual-list').style.display = '';
+  document.getElementById('manual-frame').src = 'about:blank';
+}
+
 function todayStr() {
   const d = new Date();
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
@@ -1228,6 +1288,7 @@ function activateTab(tabName, opts = {}) {
   if (tabName === 'calendar') loadCalendar();
   if (tabName === 'own-production') loadOwnProduction();
   if (tabName === 'printheads') loadPrintheads();
+  if (tabName === 'manual') renderManuals();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {

@@ -40,3 +40,9 @@ Normal refresh loads app.js?v=119. Existing Google login and staff permissions r
 ## v120 — Eerste en laatste fles
 
 De actieve printwachtrij opent de fotocontrole van de bestaande IZY-suite. Jim koppelt Ivans telefoon eenmalig via **Telefoon & toegang** op `/print/controle`. Foto’s, beoordelingen en tijdregistratie worden daar bewaard. De bestaande Workfile en PrintLog blijven ongewijzigd. De Google Apps Script-backend hoeft voor deze wijziging niet opnieuw gedeployed te worden.
+
+## Manuals (tab "Manual")
+Werkinstructies per machine staan in `manuals/`.
+Nieuwe manual toevoegen:
+1. Zet het HTML-bestand in `manuals/` (bijv. `manuals/bottle-1-opstarten.html`) en foto's in `manuals/img/<machine>/`.
+2. Voeg in `app.js` bovenaan in `MANUALS` een regel toe bij de juiste printer.

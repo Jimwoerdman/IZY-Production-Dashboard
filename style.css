@@ -2065,3 +2065,22 @@ tr.row-selected td { background: #eff6ff !important; }
 }
 .selection-bar-btn:hover { background: rgba(255,255,255,0.22); }
 .selection-bar-btn:disabled { opacity: 0.5; cursor: default; }
+
+
+/* ── Manuals ── */
+.manual-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.manual-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow-xs); display:flex; flex-direction:column; gap:10px; }
+.manual-card-head h3 { font-size:15px; font-weight:700; color:var(--text); }
+.manual-machine { font-size:12px; color:var(--text-2); }
+.manual-item { text-align:left; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; cursor:pointer; display:flex; flex-direction:column; gap:3px; font-family:inherit; }
+.manual-item:hover { border-color:var(--blue); background:var(--blue-dim); }
+.manual-item-title { font-size:14px; font-weight:600; color:var(--text); }
+.manual-item-desc { font-size:12px; color:var(--text-2); line-height:1.4; }
+.manual-item-meta { font-size:11px; color:var(--text-3); }
+.manual-empty { font-size:13px; color:var(--text-3); font-style:italic; padding:6px 0; }
+.manual-viewer { display:flex; flex-direction:column; gap:12px; }
+.manual-viewer-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.manual-viewer-title { font-weight:700; font-size:15px; color:var(--text); flex:1; min-width:0; }
+.manual-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:7px 12px; font:600 13px inherit; font-family:inherit; color:var(--text); cursor:pointer; text-decoration:none; }
+.manual-btn:hover { border-color:var(--blue); color:var(--blue); }
+#manual-frame { width:100%; min-height:80vh; border:1px solid var(--border); border-radius:var(--radius); background:#fff; }
