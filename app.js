@@ -897,8 +897,8 @@ const MANUALS = [
     printer: 'Travel Bottle 1',
     machine: 'Suntech C360-CF3 Cylinder Printer',
     manuals: [
-      { id: 'travel-bottle-1-opstarten', title: 'Deel 1: Printer opstarten', desc: 'Aanzetten, Siemens-scherm, Press Ink, printkoppen schoonvegen en PrintExp openen.', file: 'manuals/travel-bottle-1-opstarten.html', updated: '30-09-2026' },
-      { id: 'travel-bottle-1-printen', title: 'Deel 2: Flessen printen', desc: 'Temperatuur checken, order uit het dashboard openen in PrintExp, aantal instellen, fles plaatsen en printen.', file: 'manuals/travel-bottle-1-printen.html', updated: '30-09-2026' },
+      { id: 'travel-bottle-1-opstarten', title: 'Deel 1: Printer opstarten', desc: 'Aanzetten, Siemens-scherm, Press Ink, printkoppen schoonvegen en PrintExp openen.', file: 'manuals/travel-bottle-1-opstarten.html', file_en: 'manuals/travel-bottle-1-opstarten-en.html', title_en: 'Part 1: Starting the printer', updated: '30-09-2026' },
+      { id: 'travel-bottle-1-printen', title: 'Deel 2: Flessen printen', desc: 'Temperatuur checken, order uit het dashboard openen in PrintExp, aantal instellen, fles plaatsen en printen.', file: 'manuals/travel-bottle-1-printen.html', file_en: 'manuals/travel-bottle-1-printen-en.html', title_en: 'Part 2: Printing bottles', updated: '30-09-2026' },
     ],
   },
   { printer: 'Bottle 1', machine: '', manuals: [] },
@@ -918,27 +918,33 @@ function renderManuals() {
         ${m.machine ? `<span class="manual-machine">${_escM(m.machine)}</span>` : ''}
       </div>
       ${m.manuals.length ? m.manuals.map(d => `
-        <button class="manual-item" onclick="openManual('${d.id}')">
-          <span class="manual-item-title">${_escM(d.title)}</span>
+        <div class="manual-item">
+          <span class="manual-item-title">${_escM(d.title)}${d.title_en ? ` <span class="manual-item-en">/ ${_escM(d.title_en)}</span>` : ''}</span>
           <span class="manual-item-desc">${_escM(d.desc)}</span>
           <span class="manual-item-meta">Bijgewerkt ${_escM(d.updated)}</span>
-        </button>`).join('') : `<div class="manual-empty">Nog geen manual</div>`}
+          <div class="manual-langs">
+            <button class="manual-btn" onclick="openManual('${d.id}','nl')">🇳🇱 Nederlands</button>
+            ${d.file_en ? `<button class="manual-btn" onclick="openManual('${d.id}','en')">🇬🇧 English</button>` : ''}
+          </div>
+        </div>`).join('') : `<div class="manual-empty">Nog geen manual / No manual yet</div>`}
     </div>`).join('');
 }
 
-function openManual(id) {
+function openManual(id, lang) {
   let found = null, printer = '';
   MANUALS.forEach(m => m.manuals.forEach(d => { if (d.id === id) { found = d; printer = m.printer; } }));
   if (!found) return;
+  const en = lang === 'en' && found.file_en;
+  const file = en ? found.file_en : found.file;
   document.getElementById('manual-list').style.display = 'none';
   document.getElementById('manual-viewer').style.display = '';
-  document.getElementById('manual-viewer-title').textContent = printer + ' — ' + found.title;
-  document.getElementById('manual-viewer-open').href = found.file;
+  document.getElementById('manual-viewer-title').textContent = printer + ' — ' + (en ? (found.title_en || found.title) : found.title);
+  document.getElementById('manual-viewer-open').href = file;
   const frame = document.getElementById('manual-frame');
   frame.onload = () => {
     try { frame.style.height = (frame.contentDocument.documentElement.scrollHeight + 20) + 'px'; } catch (_) {}
   };
-  frame.src = found.file;
+  frame.src = file;
   window.scrollTo(0, 0);
 }
 

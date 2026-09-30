@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel Bottle Printer Startup</title>
+<style>
+/* Layout: eenvoudige werkinstructie — één kolom, genummerde stappen, foto's onder de tekst */
+:root{--bg:#ffffff;--ink:#1a1a1a;--muted:#555a60;--line:#d9d9d9;--accent:#e8501e;--soft:#f5f5f5;--warn:#fff4ec;--ok:#1f7a45;--no:#b3261e;
+--body:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:24px 56px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:32px}
+h1{font-size:30px;line-height:1.2;margin:0}
+h2{font-size:22px;line-height:1.3;margin:0}
+header{display:grid;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+header p{margin:0}
+.eyebrow{font-size:13px;color:var(--muted)}
+.code{font-family:var(--mono);font-weight:700;background:var(--soft);border:1px solid var(--line);padding:0 6px;border-radius:4px}
+.hero{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.hero img{width:100%;border-radius:6px;display:block}
+.need{display:grid;gap:8px}.need ul{margin:0;padding-left:20px}
+@media (max-width:600px){.hero{grid-template-columns:1fr}.hero img{max-width:260px}}
+.step{display:grid;gap:14px;border-top:1px solid var(--line);padding-top:24px;scroll-margin-top:16px}
+.step-head{display:flex;gap:12px;align-items:center}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:19px;display:grid;place-items:center}
+.step-body{display:grid;gap:14px;min-width:0}
+.step ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+figure.wide{grid-column:span 2}
+@media (max-width:480px){figure.wide{grid-column:auto}.shots{grid-template-columns:1fr}}
+figure{margin:0;display:grid;gap:4px;min-width:0}
+figure img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;border:1px solid var(--line)}
+figure.wide img{aspect-ratio:16/9}
+figcaption{font-size:14px;color:var(--muted);line-height:1.35}
+.warn{background:var(--warn);border-left:4px solid var(--accent);padding:12px 14px;display:grid;gap:6px}
+.warn strong{font-size:17px}
+.warn .row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:start}
+.warn .row img{width:100%;border-radius:4px;aspect-ratio:3/4;object-fit:cover}
+@media (max-width:560px){.warn .row{grid-template-columns:1fr}.warn .row img{max-width:200px}}
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-weight:600}
+.do{color:var(--ok)}.dont{color:var(--no)}
+@media (max-width:480px){.dd{grid-template-columns:1fr}}
+.ready{color:var(--ok);font-weight:700}
+.check{border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:10px}
+.check .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.check ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:6px 4px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:3px}
+.check input:checked + span{text-decoration:line-through;color:var(--muted)}
+.check button{font:600 14px var(--body);background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.check button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bar{display:none}
+.done{font-weight:700;color:var(--ok)}
+footer{color:var(--muted);font-size:14px}
+</style>
+</head><body>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">IZY Bottles · Work instruction · Part 1</div>
+  <h1>Starting the travel bottle printer</h1>
+  <p>How to switch on the UV cylinder printer for travel bottles (Suntech C360-CF3) and get it ready to print. Follow the steps in this order.</p>
+  <p><b>You need:</b> non-dust cloth (lint-free) · <b>PC code:</b> <span class="code">1997</span> · <b>Time:</b> approx. 5–10 min</p>
+</header>
+
+<section class="hero">
+  <img src="img/travel-bottle-1/overview.jpg" alt="The travel bottle printer with the Siemens control screen and the buttons on the front">
+  <div class="need">
+    <h2>The machine</h2>
+    <ul>
+      <li><b>Siemens touchscreen</b>, with the UV Lamp, Lighting Lamp and Vacuum lights below it, plus the <b>Press Ink</b> and <b>Print start</b> buttons.</li>
+      <li><b>Start / Stop</b> buttons next to the machine door.</li>
+      <li>The <b>4 print heads</b> are behind the door.</li>
+      <li>The <b>computer</b> with the <b>PrintExp X64</b> print software is next to the machine.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- STAP 1 -->
+<article class="step" id="s1">
+  <div class="step-head"><div class="num">1</div><h2>Switch on the machine and computer</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>When you arrive, press the green <b>START</b> button on the machine straight away.</li>
+      <li>Switch on the computer.</li>
+    </ol>
+    <div class="shots">
+      <figure><img src="img/travel-bottle-1/start.jpg" alt="Finger on the green start button, red stop button next to it"><figcaption>Green START button. The red button is STOP.</figcaption></figure>
+    </div>
+    <div class="warn">
+      <strong>Warning: does the power trip?</strong>
+      <div class="row">
+        <div>
+          <p style="margin:0">Sometimes the circuit breaker (the "stopper") trips when you switch on. If so:</p>
+          <ol>
+            <li>Go to the <b>door behind the machine</b>. The fuse box is there.</li>
+            <li>Push the <b>switch that has dropped down</b> back <b>up</b>.</li>
+            <li>Go back and continue with step 1.</li>
+          </ol>
+          <p style="margin:6px 0 0;color:var(--muted);font-size:15px">Nothing tripped? Just continue with step 2.</p>
+        </div>
+        <img src="img/travel-bottle-1/kast.jpg" alt="Fuse box behind the door behind the machine">
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- STAP 2 -->
+<article class="step" id="s2">
+  <div class="step-head"><div class="num">2</div><h2>Log in to the computer</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Log in with code <span class="code">1997</span>.</li>
+      <li>Let the computer start up. Meanwhile, continue with step 3.</li>
+    </ol>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1/pc.jpg" alt="Windows login screen of the print computer"><figcaption>Login screen → code 1997.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<!-- STAP 3 -->
+<article class="step" id="s3">
+  <div class="step-head"><div class="num">3</div><h2>Set up the Siemens screen</h2></div>
+  <div class="step-body">
+    <p style="margin:0">While the computer starts up, go to the Siemens touchscreen on the machine.</p>
+    <ol>
+      <li>Tap <b>System Login</b>.</li>
+      <li>Tap <b>Select manual</b> <span style="color:var(--muted)">(yellow box, ①)</span>.</li>
+      <li>Tap <b>Alarm elimination</b> <span style="color:var(--muted)">(②)</span>. The red square turns green.</li>
+    </ol>
+    <div class="shots">
+      <figure><img src="img/travel-bottle-1/login.jpg" alt="Siemens start screen with the System Login button"><figcaption>Start screen → System Login.</figcaption></figure>
+      <figure class="wide" style="grid-column:span 2"><img src="img/travel-bottle-1/main.jpg" alt="Main screen with Select manual and Alarm elimination marked" style="object-fit:contain;background:var(--soft)"><figcaption>① Select manual → ② Alarm elimination. The red square must turn green.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<!-- STAP 4 -->
+<article class="step" id="s4">
+  <div class="step-head"><div class="num">4</div><h2>Purge the print heads</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Open the machine <b>door</b>. You can now see the <b>4 print heads</b>.</li>
+      <li>Hold the <b>Press Ink</b> button down for <b>5 seconds</b>.</li>
+      <li>Watch the print heads meanwhile: only let go when ink drips down from <b>all 4 heads</b>.</li>
+    </ol>
+    <div class="shots">
+      <figure><img src="img/travel-bottle-1/door.jpg" alt="Opening the machine door"><figcaption>Open the door.</figcaption></figure>
+      <figure><img src="img/travel-bottle-1/pressink.jpg" alt="Press Ink button on the control panel"><figcaption>Press Ink button (next to Print start).</figcaption></figure>
+      <figure><img src="img/travel-bottle-1/heads.jpg" alt="The print heads above the catch cloth"><figcaption>Look here: is ink dripping from all 4 heads?</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<!-- STAP 5 -->
+<article class="step" id="s5">
+  <div class="step-head"><div class="num">5</div><h2>Wipe the print heads clean</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Take a <b>non-dust cloth</b> (lint-free).</li>
+      <li>Fold the cloth neatly.</li>
+      <li>Wipe the print heads <b>from back to front</b>. One direction only, starting at the back each time.</li>
+    </ol>
+    <div class="dd">
+      <div class="do">✓ Non-dust cloth, neatly folded</div>
+      <div class="dont">✗ No wet cloth or wet wipe</div>
+      <div class="do">✓ Only from back to front</div>
+      <div class="dont">✗ Do not wipe back and forth</div>
+    </div>
+    <div class="shots">
+      <figure><img src="img/travel-bottle-1/cloth.jpg" alt="Folded lint-free cloth"><figcaption>Cloth neatly folded.</figcaption></figure>
+      <figure><img src="img/travel-bottle-1/wipe-en.jpg" alt="Wiping a print head with the cloth"><figcaption>Wipe in one direction: from back to front.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<!-- STAP 6 -->
+<article class="step" id="s6">
+  <div class="step-head"><div class="num">6</div><h2>Open the print software</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>The computer has now started. Open <b>PrintExp X64</b> using the icon on the desktop.</li>
+      <li><b>No error messages</b>? Then the printer is ready and you can start printing.</li>
+    </ol>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1/icon.jpg" alt="Desktop with the PrintExp X64 icon"><figcaption>The coloured PrintExp X64 icon (not FlexiPRINT).</figcaption></figure>
+      <figure class="wide"><img src="img/travel-bottle-1/software.jpg" alt="PrintExp open on the computer"><figcaption>PrintExp open, no error → ready.</figcaption></figure>
+    </div>
+    <p class="ready" style="margin:0">✓ Ready to print.</p>
+  </div>
+</article>
+
+<section class="check" aria-labelledby="ck">
+  <div class="top"><h2 id="ck">Checklist</h2><button type="button" id="reset">Start over</button></div>
+  <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+  <ul id="list">
+    <li><label><input type="checkbox" id="c1"><span>START pressed on the machine</span></label></li>
+    <li><label><input type="checkbox" id="c2"><span>Computer switched on</span></label></li>
+    <li><label><input type="checkbox" id="c3"><span>Power OK (if not: switch in the fuse box behind the machine back up)</span></label></li>
+    <li><label><input type="checkbox" id="c4"><span>Logged in to the PC with 1997</span></label></li>
+    <li><label><input type="checkbox" id="c5"><span>Siemens: System Login → Select manual → Alarm elimination (green)</span></label></li>
+    <li><label><input type="checkbox" id="c6"><span>Door open, Press Ink 5 sec: ink from all 4 heads</span></label></li>
+    <li><label><input type="checkbox" id="c7"><span>Heads wiped, back to front</span></label></li>
+    <li><label><input type="checkbox" id="c8"><span>PrintExp X64 open, no error messages</span></label></li>
+  </ul>
+  <div id="msg" class="done" hidden>All checked. The printer is ready.</div>
+</section>
+
+<footer>Machine: Travel Bottle 1 · Suntech C360-CF3 Cylinder Printer. Based on the instruction video of 30 September 2026. In doubt, or an error in PrintExp? Do not print; check with a colleague first.</footer>
+</div>
+
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('#list input'));
+  var key='izy-manual-travel-bottle-1-opstarten-en';
+  function save(){try{localStorage.setItem(key,JSON.stringify(boxes.map(function(b){return b.checked})))}catch(e){}}
+  function upd(){var n=boxes.filter(function(b){return b.checked}).length;document.getElementById('prog').style.width=(n/boxes.length*100)+'%';document.getElementById('msg').hidden=n!==boxes.length}
+  try{var s=JSON.parse(localStorage.getItem(key)||'null');if(s)boxes.forEach(function(b,i){b.checked=!!s[i]})}catch(e){}
+  boxes.forEach(function(b){b.addEventListener('change',function(){save();upd()})});
+  document.getElementById('reset').addEventListener('click',function(){boxes.forEach(function(b){b.checked=false});save();upd()});
+  upd();
+})();
+</script>
+</body></html>
