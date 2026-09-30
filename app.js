@@ -899,6 +899,7 @@ const MANUALS = [
     manuals: [
       { id: 'travel-bottle-1-opstarten', title: 'Deel 1: Printer opstarten', desc: 'Aanzetten, Siemens-scherm, Press Ink, printkoppen schoonvegen en PrintExp openen.', file: 'manuals/travel-bottle-1-opstarten.html', file_en: 'manuals/travel-bottle-1-opstarten-en.html', title_en: 'Part 1: Starting the printer', updated: '30-09-2026' },
       { id: 'travel-bottle-1-printen', title: 'Deel 2: Flessen printen', desc: 'Temperatuur checken, order uit het dashboard openen in PrintExp, aantal instellen, fles plaatsen en printen.', file: 'manuals/travel-bottle-1-printen.html', file_en: 'manuals/travel-bottle-1-printen-en.html', title_en: 'Part 2: Printing bottles', updated: '30-09-2026' },
+      { id: 'travel-bottle-1-tijdens-na', title: 'Deel 3: Tijdens en na het printen', title_en: 'Part 3: During and after printing', desc: 'Wat je doet terwijl de printer print, print-job loggen en sleeve-orders verwerken.', file: 'manuals/travel-bottle-1-tijdens-na.html', file_en: 'manuals/travel-bottle-1-tijdens-na-en.html', updated: '30-09-2026' },
     ],
   },
   { printer: 'Bottle 1', machine: '', manuals: [] },
