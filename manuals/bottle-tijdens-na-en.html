@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bottle Printer During and After</title>
+<style>
+/* Layout: eenvoudige werkinstructie — één kolom, genummerde stappen, foto's onder de tekst */
+:root{--bg:#ffffff;--ink:#1a1a1a;--muted:#555a60;--line:#d9d9d9;--accent:#e8501e;--soft:#f5f5f5;--warn:#fff4ec;--ok:#1f7a45;--no:#b3261e;
+--body:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:24px 56px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:32px}
+h1{font-size:30px;line-height:1.2;margin:0}
+h2{font-size:22px;line-height:1.3;margin:0}
+header{display:grid;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+header p{margin:0}
+.eyebrow{font-size:13px;color:var(--muted)}
+.code{font-family:var(--mono);font-weight:700;background:var(--soft);border:1px solid var(--line);padding:0 6px;border-radius:4px}
+.hero{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.hero img{width:100%;border-radius:6px;display:block}
+.need{display:grid;gap:8px}.need ul{margin:0;padding-left:20px}
+@media (max-width:600px){.hero{grid-template-columns:1fr}.hero img{max-width:260px}}
+.step{display:grid;gap:14px;border-top:1px solid var(--line);padding-top:24px;scroll-margin-top:16px}
+.step-head{display:flex;gap:12px;align-items:center}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:19px;display:grid;place-items:center}
+.step-body{display:grid;gap:14px;min-width:0}
+.step ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+figure.wide{grid-column:span 2}
+@media (max-width:480px){figure.wide{grid-column:auto}.shots{grid-template-columns:1fr}}
+figure{margin:0;display:grid;gap:4px;min-width:0}
+figure img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;border:1px solid var(--line)}
+figure.wide img{aspect-ratio:16/9}
+figcaption{font-size:14px;color:var(--muted);line-height:1.35}
+.warn{background:var(--warn);border-left:4px solid var(--accent);padding:12px 14px;display:grid;gap:6px}
+.warn strong{font-size:17px}
+.warn .row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:start}
+.warn .row img{width:100%;border-radius:4px;aspect-ratio:3/4;object-fit:cover}
+@media (max-width:560px){.warn .row{grid-template-columns:1fr}.warn .row img{max-width:200px}}
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-weight:600}
+.do{color:var(--ok)}.dont{color:var(--no)}
+@media (max-width:480px){.dd{grid-template-columns:1fr}}
+.ready{color:var(--ok);font-weight:700}
+.check{border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:10px}
+.check .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.check ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:6px 4px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:3px}
+.check input:checked + span{text-decoration:line-through;color:var(--muted)}
+.check button{font:600 14px var(--body);background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.check button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bar{display:none}
+.done{font-weight:700;color:var(--ok)}
+footer{color:var(--muted);font-size:14px}
+
+.rule{background:var(--accent);color:#fff;border-radius:8px;padding:16px 18px;display:grid;gap:4px}
+.rule strong{font-size:19px}.rule p{margin:0}
+.tl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.2fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.tl>div{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px}
+.tl .lab{display:block;margin-bottom:4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tl .mid{background:var(--soft);border:2px solid var(--accent)}
+.tl .mid ul{margin:0;padding-left:20px}
+.tl .bar2{margin-bottom:6px;height:8px;border-radius:9px;background:repeating-linear-gradient(90deg,var(--accent) 0 14px,transparent 14px 20px);opacity:.8}
+@media (max-width:640px){.tl{grid-template-columns:1fr}}
+.tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.task{border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:4px}
+.task b{font-size:16px}.task span{font-size:14px;color:var(--muted)}
+.task .n{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700;font-size:14px}
+.mock{border:1px solid var(--line);border-radius:10px;max-width:380px;background:var(--bg);box-shadow:0 4px 14px rgba(0,0,0,.08);overflow:hidden;font-family:Inter,var(--body)}
+.mock-h{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+.mock-h .lg{background:#4f6ef7;color:#fff;font-size:10px;padding:3px 7px;border-radius:5px}
+.mock-b{padding:12px 14px;display:grid;gap:10px}
+.mf{display:grid;gap:4px;font-size:13px;font-weight:600}
+.mf .in{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-weight:400;background:var(--soft)}
+.mf.hl .in{border:2px solid var(--accent)}
+.mf .note{font-weight:400;font-size:12px;color:var(--accent)}
+.mock-f{display:flex;justify-content:flex-end;gap:8px;padding:0 14px 12px}
+.mbtn{border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600;border:1px solid var(--line)}
+.mbtn.pri{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.b-log{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:#3b82f6;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600}
+.b-sl{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600}
+.b-ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#16a34a;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+.st{border-radius:999px;padding:5px 12px;font-weight:700;border:1px solid var(--line);background:var(--soft)}
+.arr{color:var(--muted);font-size:13px}
+.arr b{color:var(--ink)}
+.flowrow{display:grid;gap:10px}
+</style>
+</head><body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">IZY Bottles · Work instruction · Part 3</div>
+  <h1>During and after printing</h1>
+  <p>For <b>Bottle 1 and Bottle 2</b>. What to do while the printer is running, and how to log your work in the print dashboard afterwards. Do part 1 and 2 first.</p>
+</header>
+
+<div class="rule">
+  <strong>Golden rule</strong>
+  <p>Everything besides printing you do <b>only while a bottle is in the printer</b>. The printer should never wait for you.</p>
+</div>
+
+<article class="step" id="s1">
+  <div class="step-head"><div class="num">1</div><h2>During printing</h2></div>
+  <div class="step-body">
+    <p style="margin:0">While a bottle is being printed, you have time. Use it. This is what one round looks like:</p>
+    <div class="tl" aria-label="Timeline of one bottle">
+      <div><span class="lab">Start</span>Bottle in (Push → Clamp), <b>Print → Yes</b></div>
+      <div class="mid"><span class="lab">Printer running</span><div class="bar2"></div>Meanwhile you do:<ul><li>sleeving</li><li>stickering</li><li>tidying up</li><li>preparing the next print job</li></ul></div>
+      <div><span class="lab">Done</span>Bottle out (Clamp → Push), next one in <b>straight away</b></div>
+    </div>
+    <div class="tasks">
+      <div class="task"><div class="n">1</div><b>Sleeving</b><span>Printed bottles that need a sleeve.</span></div>
+      <div class="task"><div class="n">2</div><b>Stickering</b><span>Stickers on the bottles or packaging.</span></div>
+      <div class="task"><div class="n">3</div><b>Tidying up</b><span>Workspace, boxes and waste.</span></div>
+      <div class="task"><div class="n">4</div><b>Prepare the next job</b><span>Set out blank bottles, look up the next file.</span></div>
+    </div>
+    <div class="dd">
+      <div class="do">✓ Do tasks while the printer prints</div>
+      <div class="dont">✗ Leave the printer empty because you are still busy</div>
+    </div>
+    <div class="shots"><figure><img src="img/bottle-printen/printing.jpg" alt="Printer printing with UV light"><figcaption>Blue light = printer busy. This is your time for the other tasks.</figcaption></figure></div>
+  </div>
+</article>
+
+<article class="step" id="s2">
+  <div class="step-head"><div class="num">2</div><h2>After printing: log the print job</h2></div>
+  <div class="step-body">
+    <div class="warn"><strong>When to log?</strong><p style="margin:0">Only log once the <b>next order is already running</b>. So: first the new bottle in the printer and printing, <i>then</i> log. Otherwise it costs print time.</p></div>
+    <ol>
+      <li>Open the print dashboard, <b>Active Queue</b> tab.</li>
+      <li>Find the order you just finished and click <b>Log print</b>.</li>
+      <li>In the pop-up, fill in:
+        <ul>
+          <li><b>Pieces printed this session</b>: number of bottles printed</li>
+          <li><b>Faulty Prints</b>: number of faulty bottles</li>
+          <li><b>Printer Used</b>: Bottle 1 or Bottle 2</li>
+        </ul>
+      </li>
+      <li>Click <b>Submit</b>.</li>
+    </ol>
+    <div class="btns"><span class="b-log">Log print</span><span class="arr">← this button in Active Queue</span></div>
+    <div class="mock" aria-label="Example of the pop-up">
+      <div class="mock-h"><span class="lg">IZY</span>Log Print Update</div>
+      <div class="mock-b">
+        <div class="mf hl">Pieces printed this session<span class="in">155</span><span class="note">number of bottles printed</span></div>
+        <div class="mf hl">Faulty Prints<span class="in">3</span><span class="note">number of faulty bottles</span></div>
+        <div class="mf hl">Printer Used<span class="in">Bottle 1</span><span class="note">pick the printer you printed on</span></div>
+      </div>
+      <div class="mock-f"><span class="mbtn">Cancel</span><span class="mbtn pri">Submit</span></div>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--muted)">Example with made-up numbers. Always enter your own counts.</p>
+  </div>
+</article>
+
+<article class="step" id="s3">
+  <div class="step-head"><div class="num">3</div><h2>Does the order need sleeving?</h2></div>
+  <div class="step-body">
+    <p style="margin:0">After logging, an order that needs sleeves moves to <b>To Sleeve</b> automatically. After sleeving, process it in the dashboard too:</p>
+    <ol>
+      <li>Sleeve the bottles (while the next order is printing).</li>
+      <li>Find the order in the dashboard and press the red <b>✕ Sleeve</b> button.</li>
+      <li>Confirm. The button turns green (<b>✓ Sleeved</b>) and the order is ready to ship.</li>
+    </ol>
+    <div class="btns"><span class="b-sl">✕ Sleeve</span><span class="arr">→ press after sleeving →</span><span class="b-ok">✓ Sleeved</span></div>
+    <div class="flowrow">
+      <div class="flow"><span class="lab" style="font-weight:700;min-width:120px">With sleeve</span><span class="st">To Print</span><span class="arr"><b>Log print</b> →</span><span class="st">To Sleeve</span><span class="arr"><b>✕ Sleeve</b> →</span><span class="st">Ready to Ship</span></div>
+      <div class="flow"><span class="lab" style="font-weight:700;min-width:120px">Without sleeve</span><span class="st">To Print</span><span class="arr"><b>Log print</b> →</span><span class="st">Ready to Ship</span></div>
+    </div>
+  </div>
+</article>
+
+<section class="check" aria-labelledby="ck">
+  <div class="top"><h2 id="ck">Checklist</h2><button type="button" id="reset">Start over</button></div>
+  <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+  <ul id="list">
+    <li><label><input type="checkbox" id="c1"><span>Other tasks done only while a bottle was in the printer</span></label></li>
+    <li><label><input type="checkbox" id="c2"><span>Never left the printer empty and waiting</span></label></li>
+    <li><label><input type="checkbox" id="c3"><span>Next order is already running</span></label></li>
+    <li><label><input type="checkbox" id="c4"><span>Log print: printed + faulty entered, Submit</span></label></li>
+    <li><label><input type="checkbox" id="c5"><span>Sleeve order: pressed red ✕ Sleeve after sleeving</span></label></li>
+  </ul>
+  <div id="msg" class="done" hidden>All checked. Order processed.</div>
+</section>
+
+<footer>Machine: Bottle 1 / Bottle 2.</footer>
+</div>
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('#list input'));
+  var key='izy-manual-bottle-tijdens-na-en';
+  function save(){try{localStorage.setItem(key,JSON.stringify(boxes.map(function(b){return b.checked})))}catch(e){}}
+  function upd(){var n=boxes.filter(function(b){return b.checked}).length;document.getElementById('prog').style.width=(n/boxes.length*100)+'%';document.getElementById('msg').hidden=n!==boxes.length}
+  try{var s=JSON.parse(localStorage.getItem(key)||'null');if(s)boxes.forEach(function(b,i){b.checked=!!s[i]})}catch(e){}
+  boxes.forEach(function(b){b.addEventListener('change',function(){save();upd()})});
+  document.getElementById('reset').addEventListener('click',function(){boxes.forEach(function(b){b.checked=false});save();upd()});
+  upd();
+})();
+</script>
+</body></html>
