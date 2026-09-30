@@ -905,9 +905,11 @@ const MANUALS = [
   },
   { printer: 'Bottle 1', machine: 'Zelfde printer als Bottle 2', manuals: [
       { id: 'bottle1-opstarten', title: 'Deel 1: Printer opstarten', title_en: 'Part 1: Starting the printer', desc: 'Power on, inktkraantjes open, Color/White doorspuiten, printkop schoonvegen, DPCS-software, compressor en temperatuur.', file: 'manuals/bottle-opstarten.html', file_en: 'manuals/bottle-opstarten-en.html', updated: '30-09-2026' },
+      { id: 'bottle1-printen', title: 'Deel 2: Flessen printen', title_en: 'Part 2: Printing bottles', desc: 'Temperatuur, schacht vullen, afzuiging, printbestand + instellingen (Zone Print, X Length 238, C and W), Push/Clamp en printen.', file: 'manuals/bottle-printen.html', file_en: 'manuals/bottle-printen-en.html', updated: '30-09-2026' },
     ] },
   { printer: 'Bottle 2', machine: 'Zelfde printer als Bottle 1', manuals: [
       { id: 'bottle2-opstarten', title: 'Deel 1: Printer opstarten', title_en: 'Part 1: Starting the printer', desc: 'Power on, inktkraantjes open, Color/White doorspuiten, printkop schoonvegen, DPCS-software, compressor en temperatuur.', file: 'manuals/bottle-opstarten.html', file_en: 'manuals/bottle-opstarten-en.html', updated: '30-09-2026' },
+      { id: 'bottle2-printen', title: 'Deel 2: Flessen printen', title_en: 'Part 2: Printing bottles', desc: 'Temperatuur, schacht vullen, afzuiging, printbestand + instellingen (Zone Print, X Length 238, C and W), Push/Clamp en printen.', file: 'manuals/bottle-printen.html', file_en: 'manuals/bottle-printen-en.html', updated: '30-09-2026' },
     ] },
   { printer: 'Mug 1',    machine: '', manuals: [] },
 ];
