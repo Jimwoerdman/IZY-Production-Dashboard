@@ -897,7 +897,8 @@ const MANUALS = [
     printer: 'Travel Bottle 1',
     machine: 'Suntech C360-CF3 Cylinder Printer',
     manuals: [
-      { id: 'travel-bottle-1-opstarten', title: 'Printer opstarten', desc: 'Aanzetten, Siemens-scherm, Press Ink, printkoppen schoonvegen en PrintExp openen.', file: 'manuals/travel-bottle-1-opstarten.html', updated: '30-09-2026' },
+      { id: 'travel-bottle-1-opstarten', title: 'Deel 1: Printer opstarten', desc: 'Aanzetten, Siemens-scherm, Press Ink, printkoppen schoonvegen en PrintExp openen.', file: 'manuals/travel-bottle-1-opstarten.html', updated: '30-09-2026' },
+      { id: 'travel-bottle-1-printen', title: 'Deel 2: Flessen printen', desc: 'Temperatuur checken, order uit het dashboard openen in PrintExp, aantal instellen, fles plaatsen en printen.', file: 'manuals/travel-bottle-1-printen.html', updated: '30-09-2026' },
     ],
   },
   { printer: 'Bottle 1', machine: '', manuals: [] },

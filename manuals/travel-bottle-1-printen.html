@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel Bottle Printer Printen</title>
+<style>
+/* Layout: eenvoudige werkinstructie — één kolom, genummerde stappen, foto's onder de tekst */
+:root{--bg:#ffffff;--ink:#1a1a1a;--muted:#555a60;--line:#d9d9d9;--accent:#e8501e;--soft:#f5f5f5;--warn:#fff4ec;--ok:#1f7a45;--no:#b3261e;
+--body:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:24px 56px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:32px}
+h1{font-size:30px;line-height:1.2;margin:0}
+h2{font-size:22px;line-height:1.3;margin:0}
+header{display:grid;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+header p{margin:0}
+.eyebrow{font-size:13px;color:var(--muted)}
+.code{font-family:var(--mono);font-weight:700;background:var(--soft);border:1px solid var(--line);padding:0 6px;border-radius:4px}
+.hero{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.hero img{width:100%;border-radius:6px;display:block}
+.need{display:grid;gap:8px}.need ul{margin:0;padding-left:20px}
+@media (max-width:600px){.hero{grid-template-columns:1fr}.hero img{max-width:260px}}
+.step{display:grid;gap:14px;border-top:1px solid var(--line);padding-top:24px;scroll-margin-top:16px}
+.step-head{display:flex;gap:12px;align-items:center}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:19px;display:grid;place-items:center}
+.step-body{display:grid;gap:14px;min-width:0}
+.step ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+figure.wide{grid-column:span 2}
+@media (max-width:480px){figure.wide{grid-column:auto}.shots{grid-template-columns:1fr}}
+figure{margin:0;display:grid;gap:4px;min-width:0}
+figure img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;border:1px solid var(--line)}
+figure.wide img{aspect-ratio:16/9}
+figcaption{font-size:14px;color:var(--muted);line-height:1.35}
+.warn{background:var(--warn);border-left:4px solid var(--accent);padding:12px 14px;display:grid;gap:6px}
+.warn strong{font-size:17px}
+.warn .row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:start}
+.warn .row img{width:100%;border-radius:4px;aspect-ratio:3/4;object-fit:cover}
+@media (max-width:560px){.warn .row{grid-template-columns:1fr}.warn .row img{max-width:200px}}
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-weight:600}
+.do{color:var(--ok)}.dont{color:var(--no)}
+@media (max-width:480px){.dd{grid-template-columns:1fr}}
+.ready{color:var(--ok);font-weight:700}
+.check{border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:10px}
+.check .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.check ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:6px 4px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:3px}
+.check input:checked + span{text-decoration:line-through;color:var(--muted)}
+.check button{font:600 14px var(--body);background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.check button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bar{display:none}
+.done{font-weight:700;color:var(--ok)}
+footer{color:var(--muted);font-size:14px}
+</style>
+</head><body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">IZY Bottles · Werkinstructie · Deel 2</div>
+  <h1>Travel bottles printen</h1>
+  <p>Zo bedien je de travel bottle printer en print je een order. Doe eerst <b>deel 1: printer opstarten</b>. De machine en PrintExp moeten aan staan.</p>
+  <p><b>Nodig:</b> print dashboard (Microsoft Edge) · de blanco flessen van de order · <b>Printtijd:</b> ca. 2 min per fles</p>
+</header>
+
+<article class="step" id="s1">
+  <div class="step-head"><div class="num">1</div><h2>Temperatuur printkoppen controleren</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Ga in PrintExp naar het tabblad <b>Voltage</b>.</li>
+      <li>Klik rechts onderin op <b>Refresh</b>.</li>
+      <li>Kijk bij de rij <b>Head Temp</b>: alle koppen moeten <b>minimaal 43 °C</b> zijn.</li>
+    </ol>
+    <div class="warn"><strong>Lager dan 43 °C?</strong><p style="margin:0">Nog niet printen. Wacht even en klik opnieuw op Refresh.</p></div>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1-printen/temp.jpg" alt="PrintExp Voltage-tabblad met de rij Head Temp"><figcaption>Voltage → Head Temp. In de video: 47 °C, dus klaar om te printen.</figcaption></figure>
+      <figure><img src="img/travel-bottle-1-printen/refresh.jpg" alt="Refresh-knop in PrintExp"><figcaption>Refresh rechts onderin.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<article class="step" id="s2">
+  <div class="step-head"><div class="num">2</div><h2>Order kiezen in het print dashboard</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Open het <b>print dashboard</b> in Microsoft Edge.</li>
+      <li>Ga naar het blok <b>Travel Bottles</b>. Alleen die orders gaan op deze machine.</li>
+      <li>Kies de <b>bovenste</b> order.</li>
+      <li>Kopieer de <b>Print Name</b> van die order.</li>
+      <li>Onthoud de <b>Qty</b> (aantal flessen). Die heb je nodig bij stap 4.</li>
+    </ol>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1-printen/dash.jpg" alt="Print dashboard met het blok Travel Bottles"><figcaption>Print dashboard: blok Travel Bottles, bovenste regel.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<article class="step" id="s3">
+  <div class="step-head"><div class="num">3</div><h2>Printbestand openen in PrintExp</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Ga terug naar PrintExp en klik op <b>OpenFiles</b>.</li>
+      <li>Plak de Print Name in het zoekveld.</li>
+      <li>Open het bestand. Het verschijnt links in de <b>Print job list</b>.</li>
+    </ol>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1-printen/openfiles.jpg" alt="PrintExp met de knop OpenFiles"><figcaption>OpenFiles linksboven.</figcaption></figure>
+      <figure class="wide"><img src="img/travel-bottle-1-printen/dialog.jpg" alt="Bestand openen-venster"><figcaption>Plak de naam en open het bestand.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<article class="step" id="s4">
+  <div class="step-head"><div class="num">4</div><h2>Aantal flessen instellen</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Klik met de <b>rechtermuisknop</b> op het bestand dat je net geopend hebt.</li>
+      <li>Kies <b>Task Setting</b>.</li>
+      <li>Vul bij <b>Count</b> het aantal flessen in, <b>plus 5% of plus 5 stuks</b>.</li>
+      <li>Klik op OK.</li>
+    </ol>
+    <div class="warn"><strong>Voorbeeld</strong><p style="margin:0">De order is 150 flessen, dus vul je <b>155</b> in.</p></div>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1-printen/rclick.jpg" alt="Rechtsklikmenu op het printbestand"><figcaption>Rechtermuisknop op het bestand → Task Setting.</figcaption></figure>
+      <figure class="wide"><img src="img/travel-bottle-1-printen/count.jpg" alt="Task Property-venster met het veld Count"><figcaption>Count = aantal + 5%.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<article class="step" id="s5">
+  <div class="step-head"><div class="num">5</div><h2>Fles in de machine leggen</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Pak een fles. Leg je wijsvinger op de fles, in lijn met het <b>midden van de schroefdraad</b>.</li>
+      <li>Leg de fles in de houder met de <b>opening naar rechts</b>.</li>
+      <li>Draai de fles zo dat je vinger <b>recht omhoog</b> wijst.</li>
+      <li>Draai de fles daarna een <b>klein stukje terug</b> (ongeveer 10%).</li>
+    </ol>
+    <div class="shots">
+      <figure><img src="img/travel-bottle-1-printen/finger.jpg" alt="Hand met vinger op de fles bij de schroefdraad"><figcaption>Vinger in lijn met het midden van de schroefdraad.</figcaption></figure>
+      <figure><img src="img/travel-bottle-1-printen/holder.jpg" alt="Fles in de houder van de machine"><figcaption>Fles in de houder, opening naar rechts.</figcaption></figure>
+    </div>
+  </div>
+</article>
+
+<article class="step" id="s6">
+  <div class="step-head"><div class="num">6</div><h2>Printen</h2></div>
+  <div class="step-body">
+    <ol>
+      <li>Ga terug naar de computer. Klik weer met de <b>rechtermuisknop</b> op het bestand en kies <b>Print</b>. De taak staat nu klaar.</li>
+      <li>Druk op de machine op de groene knop <b>Print start</b>.</li>
+      <li>De machine print de fles. Wacht ongeveer <b>2 minuten</b> tot de fles klaar is.</li>
+    </ol>
+    <div class="shots">
+      <figure class="wide"><img src="img/travel-bottle-1-printen/printjob.jpg" alt="Print job list in PrintExp"><figcaption>Rechtermuisknop → Print. Taak staat klaar.</figcaption></figure>
+      <figure><img src="img/travel-bottle-1-printen/printstart.jpg" alt="Print start-knop op de machine"><figcaption>Groene Print start-knop op het paneel.</figcaption></figure>
+      <figure><img src="img/travel-bottle-1-printen/uv.jpg" alt="Machine aan het printen met UV-licht"><figcaption>De fles wordt geprint (blauw UV-licht).</figcaption></figure>
+    </div>
+    <p class="ready" style="margin:0">✓ Fles klaar. Haal hem eruit, leg de volgende fles erin (stap 5) en druk weer op Print start.</p>
+  </div>
+</article>
+
+<section class="check" aria-labelledby="ck">
+  <div class="top"><h2 id="ck">Afvinklijst</h2><button type="button" id="reset">Opnieuw beginnen</button></div>
+  <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+  <ul id="list">
+    <li><label><input type="checkbox" id="c1"><span>Deel 1 gedaan: machine en PrintExp aan</span></label></li>
+    <li><label><input type="checkbox" id="c2"><span>Voltage → Refresh: Head Temp minimaal 43 °C</span></label></li>
+    <li><label><input type="checkbox" id="c3"><span>Dashboard: bovenste Travel Bottles-order gekozen, Print Name gekopieerd</span></label></li>
+    <li><label><input type="checkbox" id="c4"><span>PrintExp: OpenFiles, bestand geopend</span></label></li>
+    <li><label><input type="checkbox" id="c5"><span>Task Setting: Count = aantal + 5%</span></label></li>
+    <li><label><input type="checkbox" id="c6"><span>Fles erin: opening rechts, vinger omhoog, klein stukje terug</span></label></li>
+    <li><label><input type="checkbox" id="c7"><span>Rechtermuisknop → Print, daarna Print start op de machine</span></label></li>
+  </ul>
+  <div id="msg" class="done" hidden>Alles afgevinkt. De order loopt.</div>
+</section>
+
+<footer>Machine: Travel Bottle 1 · Suntech C360-CF3 Cylinder Printer. Gemaakt op basis van de instructievideo van 30 september 2026.</footer>
+</div>
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('#list input'));
+  var key='izy-manual-travel-bottle-1-printen';
+  function save(){try{localStorage.setItem(key,JSON.stringify(boxes.map(function(b){return b.checked})))}catch(e){}}
+  function upd(){var n=boxes.filter(function(b){return b.checked}).length;document.getElementById('prog').style.width=(n/boxes.length*100)+'%';document.getElementById('msg').hidden=n!==boxes.length}
+  try{var s=JSON.parse(localStorage.getItem(key)||'null');if(s)boxes.forEach(function(b,i){b.checked=!!s[i]})}catch(e){}
+  boxes.forEach(function(b){b.addEventListener('change',function(){save();upd()})});
+  document.getElementById('reset').addEventListener('click',function(){boxes.forEach(function(b){b.checked=false});save();upd()});
+  upd();
+})();
+</script>
+</body></html>
