@@ -1080,7 +1080,7 @@ function showApp() {
 
   // Restrict tabs for limited users
   if (ACTIVE_QUEUE_ONLY.includes((currentUser.email || '').toLowerCase())) {
-    document.querySelectorAll('.tab-btn:not([data-tab="active-queue"])').forEach(b => b.style.display = 'none');
+    document.querySelectorAll('.tab-btn:not([data-tab="active-queue"]):not([data-tab="manual"])').forEach(b => b.style.display = 'none');
     activateTab('active-queue');
   }
 
