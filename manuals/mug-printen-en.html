@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mug Printer Printing</title>
+<style>
+/* Layout: eenvoudige werkinstructie — één kolom, genummerde stappen, foto's onder de tekst */
+:root{--bg:#ffffff;--ink:#1a1a1a;--muted:#555a60;--line:#d9d9d9;--accent:#e8501e;--soft:#f5f5f5;--warn:#fff4ec;--ok:#1f7a45;--no:#b3261e;
+--body:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:24px 56px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:32px}
+h1{font-size:30px;line-height:1.2;margin:0}
+h2{font-size:22px;line-height:1.3;margin:0}
+header{display:grid;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+header p{margin:0}
+.eyebrow{font-size:13px;color:var(--muted)}
+.code{font-family:var(--mono);font-weight:700;background:var(--soft);border:1px solid var(--line);padding:0 6px;border-radius:4px}
+.hero{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.hero img{width:100%;border-radius:6px;display:block}
+.need{display:grid;gap:8px}.need ul{margin:0;padding-left:20px}
+@media (max-width:600px){.hero{grid-template-columns:1fr}.hero img{max-width:260px}}
+.step{display:grid;gap:14px;border-top:1px solid var(--line);padding-top:24px;scroll-margin-top:16px}
+.step-head{display:flex;gap:12px;align-items:center}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:19px;display:grid;place-items:center}
+.step-body{display:grid;gap:14px;min-width:0}
+.step ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+figure.wide{grid-column:span 2}
+@media (max-width:480px){figure.wide{grid-column:auto}.shots{grid-template-columns:1fr}}
+figure{margin:0;display:grid;gap:4px;min-width:0}
+figure img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;border:1px solid var(--line)}
+figure.wide img{aspect-ratio:16/9}
+figcaption{font-size:14px;color:var(--muted);line-height:1.35}
+.warn{background:var(--warn);border-left:4px solid var(--accent);padding:12px 14px;display:grid;gap:6px}
+.warn strong{font-size:17px}
+.warn .row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:start}
+.warn .row img{width:100%;border-radius:4px;aspect-ratio:3/4;object-fit:cover}
+@media (max-width:560px){.warn .row{grid-template-columns:1fr}.warn .row img{max-width:200px}}
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-weight:600}
+.do{color:var(--ok)}.dont{color:var(--no)}
+@media (max-width:480px){.dd{grid-template-columns:1fr}}
+.ready{color:var(--ok);font-weight:700}
+.check{border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:10px}
+.check .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.check ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:6px 4px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:3px}
+.check input:checked + span{text-decoration:line-through;color:var(--muted)}
+.check button{font:600 14px var(--body);background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.check button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bar{display:none}
+.done{font-weight:700;color:var(--ok)}
+footer{color:var(--muted);font-size:14px}
+figure img{aspect-ratio:auto}.dd .warn p{font-weight:400}@media (max-width:640px){.dd{grid-template-columns:1fr!important}}</style>
+</head><body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">IZY Bottles · Work instruction · Part 2</div>
+  <h1>Printing mugs</h1>
+  <p>How to get the mug printer (Mug 1) ready and print an order. Do part 1 first: starting the printer. Note: the preparation on the Siemens screen differs from the bottle printers.</p>
+</header>
+<article class="step" id="s1"><div class="step-head"><div class="num">1</div><h2>Home the clamping shaft</h2></div><div class="step-body"><ol><li>On the Siemens screen, tap <b>System Login</b>.</li><li>Tap <b>Debug</b> and go to <b>Clamping shaft</b>.</li><li>Press <b>Inching Clamping</b> until <b>Origin</b> turns green.</li></ol><div class="shots"><figure><img src="img/mug-printen/login-en.jpg" alt="System Login"><figcaption>System Login.</figcaption></figure><figure><img src="img/mug-printen/debug-en.jpg" alt="Debug"><figcaption>Debug → Clamping shaft.</figcaption></figure><figure><img src="img/mug-printen/inching-en.jpg" alt="Inching Clamping"><figcaption>Inching Clamping until Origin is green.</figcaption></figure></div></div></article>
+<article class="step" id="s2"><div class="step-head"><div class="num">2</div><h2>Raise the lifting axis</h2></div><div class="step-body"><ol><li>Go to <b>Lifting Axis</b>.</li><li>Press <b>Jog Up</b> briefly, really only <b>1–2 seconds</b>.</li><li>Check that <b>Origin</b> and <b>Positive limit</b> are green.</li></ol><div class="shots"><figure><img src="img/mug-printen/lifting-en.jpg" alt="Jog Up"><figcaption>Lifting Axis → Jog Up 1–2 sec.</figcaption></figure></div></div></article>
+<article class="step" id="s3"><div class="step-head"><div class="num">3</div><h2>Reset the machine</h2></div><div class="step-body"><ol><li>Go to <b>Main Control</b>.</li><li>Hold <b>Reset</b> for <b>5 seconds</b>.</li><li>An orange bar appears and the machine moves.</li><li>The red indicator switches to green: <b>Device is Ready</b>. Then it is ready.</li></ol><div class="shots"><figure><img src="img/mug-printen/reset-en.jpg" alt="Reset"><figcaption>Main Control → Reset 5 sec.</figcaption></figure><figure><img src="img/mug-printen/ready-en.jpg" alt="Device is Ready"><figcaption>Green: Device is Ready.</figcaption></figure></div></div></article>
+<article class="step" id="s4"><div class="step-head"><div class="num">4</div><h2>Save the positions</h2></div><div class="step-body"><ol><li>Go back to <b>Debug → Clamping shaft</b> and press <b>Save Position</b>.</li><li>Go to <b>Lifting Axis</b> and also press <b>Save Position</b>.</li><li>The machine is now in the right position to load a mug.</li></ol><div class="shots"><figure><img src="img/mug-printen/save-en.jpg" alt="Save Position"><figcaption>Save Position.</figcaption></figure></div></div></article>
+<article class="step" id="s5"><div class="step-head"><div class="num">5</div><h2>Choose: manual or automatic</h2></div><div class="step-body"><div class="dd" style="grid-template-columns:1fr 1fr;gap:12px">
+<div class="warn" style="border-left-color:#d4a400"><strong>Manual</strong><p style="margin:0">Leave the button on the Siemens screen <b>yellow</b>. Tick <b>Manual</b> in the print software.</p></div>
+<div class="warn" style="border-left-color:#1f8a4c;background:var(--soft)"><strong>Automatic</strong><p style="margin:0">Press the <b>yellow button</b> so everything turns <b>green</b>. <b>Untick Manual</b> in the print software.</p></div></div>
+<div class="shots"><figure><img src="img/mug-printen/mode-en.jpg" alt="Mode"><figcaption>Yellow = Manual, green = automatic.</figcaption></figure></div></div></article>
+<article class="step" id="s6"><div class="step-head"><div class="num">6</div><h2>Set up the print file</h2></div><div class="step-body"><ol><li>Pick the right print file in the print software.</li><li>Click <b>Modify</b>, set <b>C and W</b> and click <b>Apply</b>.</li><li>Enter the number of mugs to print in <b>Print Quantity</b>.</li></ol><div class="shots"><figure><img src="img/mug-printen/software-en.jpg" alt="Software"><figcaption>Pick print, fill in Print Quantity.</figcaption></figure><figure><img src="img/mug-printen/modify-en.jpg" alt="C and W"><figcaption>Modify → C and W → Apply.</figcaption></figure></div></div></article>
+<article class="step" id="s7"><div class="step-head"><div class="num">7</div><h2>Start printing</h2></div><div class="step-body"><ol><li>Click the <b>Print</b> button, then <b>Yes</b>.</li></ol><div class="shots"><figure><img src="img/mug-printen/confirm-en.jpg" alt="Print Confirm"><figcaption>Print Confirm → Yes.</figcaption></figure></div></div></article>
+<article class="step" id="s8"><div class="step-head"><div class="num">8</div><h2>Load the mug and START</h2></div><div class="step-body"><p style="margin:0">For <b>automatic</b> printing:</p><ol><li>Place the mug in the printer with your <b>finger on the screw thread</b>.</li><li>Find the right position yourself, so the cap ends up at the front.</li><li>Press the green <b>START</b> button on the machine. The mug is printed.</li></ol><div class="shots"><figure><img src="img/mug-printen/mug-en.jpg" alt="Mug"><figcaption>Finger on the screw thread.</figcaption></figure><figure><img src="img/mug-printen/loaded-en.jpg" alt="Mug loaded"><figcaption>Mug in the printer.</figcaption></figure><figure><img src="img/mug-printen/start-en.jpg" alt="START"><figcaption>Green START button.</figcaption></figure></div></div></article>
+<section class="check" aria-labelledby="ck"><div class="top"><h2 id="ck">Checklist</h2><button type="button" id="reset">Start over</button></div><div class="bar" aria-hidden="true"><i id="prog"></i></div><ul id="list"><li><label><input type="checkbox" id="c1"><span>System Login → Debug → Clamping shaft → Inching Clamping (Origin green)</span></label></li><li><label><input type="checkbox" id="c2"><span>Lifting Axis → Jog Up 1–2 sec (Origin + Positive limit green)</span></label></li><li><label><input type="checkbox" id="c3"><span>Main Control → Reset 5 sec → Device is Ready</span></label></li><li><label><input type="checkbox" id="c4"><span>Save Position on Clamping shaft and Lifting Axis</span></label></li><li><label><input type="checkbox" id="c5"><span>Manual (yellow + Manual on) or automatic (green + Manual off)</span></label></li><li><label><input type="checkbox" id="c6"><span>Print file: Modify → C and W → Apply, Print Quantity filled in</span></label></li><li><label><input type="checkbox" id="c7"><span>Print → Yes</span></label></li><li><label><input type="checkbox" id="c8"><span>Mug loaded, START pressed</span></label></li></ul><div id="msg" class="done" hidden>All checked. The mugs are printing.</div></section>
+<footer>Machine: Mug 1. Based on the instruction video of 22 October 2026.</footer>
+</div>
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('#list input'));
+  var key='izy-manual-mug-printen-en';
+  function save(){try{localStorage.setItem(key,JSON.stringify(boxes.map(function(b){return b.checked})))}catch(e){}}
+  function upd(){var n=boxes.filter(function(b){return b.checked}).length;document.getElementById('prog').style.width=(n/boxes.length*100)+'%';document.getElementById('msg').hidden=n!==boxes.length}
+  try{var s=JSON.parse(localStorage.getItem(key)||'null');if(s)boxes.forEach(function(b,i){b.checked=!!s[i]})}catch(e){}
+  boxes.forEach(function(b){b.addEventListener('change',function(){save();upd()})});
+  document.getElementById('reset').addEventListener('click',function(){boxes.forEach(function(b){b.checked=false});save();upd()});
+  upd();
+})();
+</script>
+</body></html>

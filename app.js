@@ -915,6 +915,7 @@ const MANUALS = [
     ] },
   { printer: 'Mug 1',    machine: '', manuals: [
       { id: 'mug1-opstarten', title: 'Deel 1: Printer opstarten', title_en: 'Part 1: Starting the printer', desc: 'START, computer + DPCS-software, temperatuur 31 °C, inktkraantjes open, COLOR/WHITE doorspuiten en printkop schoonvegen.', file: 'manuals/mug-opstarten.html', file_en: 'manuals/mug-opstarten-en.html', updated: '22-10-2026' },
+      { id: 'mug1-printen', title: 'Deel 2: Mokken printen', title_en: 'Part 2: Printing mugs', desc: 'Siemens-scherm gereedmaken (Clamping shaft, Lifting Axis, Reset, Save Position), manual of automatisch, printbestand en START.', file: 'manuals/mug-printen.html', file_en: 'manuals/mug-printen-en.html', updated: '22-10-2026' },
     ] },
 ];
 
