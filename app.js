@@ -913,7 +913,9 @@ const MANUALS = [
       { id: 'bottle2-printen', title: 'Deel 2: Flessen printen', title_en: 'Part 2: Printing bottles', desc: 'Temperatuur, schacht vullen, afzuiging, printbestand + instellingen (Zone Print, X Length 238, C and W), Push/Clamp en printen.', file: 'manuals/bottle-printen.html', file_en: 'manuals/bottle-printen-en.html', updated: '30-09-2026' },
       { id: 'bottle2-tijdens-na', title: 'Deel 3: Tijdens en na het printen', title_en: 'Part 3: During and after printing', desc: 'Wat je doet terwijl de printer print, print-job loggen en sleeve-orders verwerken.', file: 'manuals/bottle-tijdens-na.html', file_en: 'manuals/bottle-tijdens-na-en.html', updated: '30-09-2026' },
     ] },
-  { printer: 'Mug 1',    machine: '', manuals: [] },
+  { printer: 'Mug 1',    machine: '', manuals: [
+      { id: 'mug1-opstarten', title: 'Deel 1: Printer opstarten', title_en: 'Part 1: Starting the printer', desc: 'START, computer + DPCS-software, temperatuur 31 °C, inktkraantjes open, COLOR/WHITE doorspuiten en printkop schoonvegen.', file: 'manuals/mug-opstarten.html', file_en: 'manuals/mug-opstarten-en.html', updated: '22-10-2026' },
+    ] },
 ];
 
 function _escM(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }

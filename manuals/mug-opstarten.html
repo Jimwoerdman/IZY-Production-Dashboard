@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mokprinter Opstarten</title>
+<style>
+/* Layout: eenvoudige werkinstructie — één kolom, genummerde stappen, foto's onder de tekst */
+:root{--bg:#ffffff;--ink:#1a1a1a;--muted:#555a60;--line:#d9d9d9;--accent:#e8501e;--soft:#f5f5f5;--warn:#fff4ec;--ok:#1f7a45;--no:#b3261e;
+--body:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18191b;--ink:#ececec;--muted:#a8abb0;--line:#393b3f;--soft:#232427;--warn:#33241b;--ok:#62c98d;--no:#ef7a6c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:24px 56px}
+.wrap{max-width:820px;margin:0 auto;display:grid;gap:32px}
+h1{font-size:30px;line-height:1.2;margin:0}
+h2{font-size:22px;line-height:1.3;margin:0}
+header{display:grid;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+header p{margin:0}
+.eyebrow{font-size:13px;color:var(--muted)}
+.code{font-family:var(--mono);font-weight:700;background:var(--soft);border:1px solid var(--line);padding:0 6px;border-radius:4px}
+.hero{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.hero img{width:100%;border-radius:6px;display:block}
+.need{display:grid;gap:8px}.need ul{margin:0;padding-left:20px}
+@media (max-width:600px){.hero{grid-template-columns:1fr}.hero img{max-width:260px}}
+.step{display:grid;gap:14px;border-top:1px solid var(--line);padding-top:24px;scroll-margin-top:16px}
+.step-head{display:flex;gap:12px;align-items:center}
+.num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:19px;display:grid;place-items:center}
+.step-body{display:grid;gap:14px;min-width:0}
+.step ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+figure.wide{grid-column:span 2}
+@media (max-width:480px){figure.wide{grid-column:auto}.shots{grid-template-columns:1fr}}
+figure{margin:0;display:grid;gap:4px;min-width:0}
+figure img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;border:1px solid var(--line)}
+figure.wide img{aspect-ratio:16/9}
+figcaption{font-size:14px;color:var(--muted);line-height:1.35}
+.warn{background:var(--warn);border-left:4px solid var(--accent);padding:12px 14px;display:grid;gap:6px}
+.warn strong{font-size:17px}
+.warn .row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;align-items:start}
+.warn .row img{width:100%;border-radius:4px;aspect-ratio:3/4;object-fit:cover}
+@media (max-width:560px){.warn .row{grid-template-columns:1fr}.warn .row img{max-width:200px}}
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-weight:600}
+.do{color:var(--ok)}.dont{color:var(--no)}
+@media (max-width:480px){.dd{grid-template-columns:1fr}}
+.ready{color:var(--ok);font-weight:700}
+.check{border:1px solid var(--line);border-radius:8px;padding:18px;display:grid;gap:10px}
+.check .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.check ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:6px 4px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:3px}
+.check input:checked + span{text-decoration:line-through;color:var(--muted)}
+.check button{font:600 14px var(--body);background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.check button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bar{display:none}
+.done{font-weight:700;color:var(--ok)}
+footer{color:var(--muted);font-size:14px}
+figure.wide img{aspect-ratio:auto;max-height:420px;object-fit:contain;background:var(--soft)}</style>
+</head><body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">IZY Bottles · Werkinstructie · Deel 1</div>
+  <h1>Mokprinter opstarten</h1>
+  <p>Zo zet je de mokprinter (Mug 1) aan en maak je hem klaar om te printen. Hij werkt net iets anders dan de flessenprinter.</p>
+  <p><b>Nodig:</b> non-dust cloth (pluisvrij doekje) · <b>PC-code:</b> <span class="code">1997</span></p>
+</header>
+<section class="hero">
+  <img src="img/mug-opstarten/overview.jpg" alt="De mokprinter">
+  <div class="need"><h2>De machine</h2><ul>
+    <li>Knoppenpaneel naast het opvangbakje: <b>START</b> (groen), STOP (rood), <b>COLOR</b> en <b>WHITE</b>.</li>
+    <li>Boven: inktcartridges <b>W K C M Y V</b> met kraantjes.</li>
+    <li>Computer met de <b>DPCS Printer</b>-software.</li>
+  </ul></div>
+</section>
+<article class="step" id="s1"><div class="step-head"><div class="num">1</div><h2>Machine aanzetten</h2></div><div class="step-body"><ol><li>Druk op <b>START</b> op de machine.</li><li>Het groene lampje gaat branden.</li></ol><div class="shots"><figure><img src="img/mug-opstarten/start.jpg" alt="START"><figcaption>START-knop: groen lampje brandt.</figcaption></figure></div></div></article>
+<article class="step" id="s2"><div class="step-head"><div class="num">2</div><h2>Computer aanzetten en inloggen</h2></div><div class="step-body"><ol><li>Zet de computer aan met <b>power on</b>.</li><li>Log in met code <span class="code">1997</span>.</li></ol><div class="shots"><figure><img src="img/mug-opstarten/pc.jpg" alt="Power on"><figcaption>Power-knop van de computer.</figcaption></figure><figure><img src="img/mug-opstarten/login.jpg" alt="Login"><figcaption>Inloggen met 1997.</figcaption></figure></div></div></article>
+<article class="step" id="s3"><div class="step-head"><div class="num">3</div><h2>Printsoftware openen</h2></div><div class="step-body"><ol><li>Open bovenaan het bureaublad de map <b>DPCS</b>.</li><li>Open daarin de <b>DPCS Printer</b>-software.</li></ol><div class="shots"><figure><img src="img/mug-opstarten/folder.jpg" alt="DPCS"><figcaption>Map DPCS bovenaan het bureaublad.</figcaption></figure><figure class="wide"><img src="img/mug-opstarten/software.jpg" alt="Software"><figcaption>DPCS Printer-software open.</figcaption></figure></div></div></article>
+<article class="step" id="s4"><div class="step-head"><div class="num">4</div><h2>Temperatuur op 31 °C</h2></div><div class="step-body"><ol><li>Ga naar <b>Settings → Voltage</b>.</li><li>Zet de temperatuur (<b>Tempe. Set</b>) op <b>31 °C</b>.</li><li>De printer moet <b>rond de 31 °C</b> worden voordat je gaat printen. Ga ondertussen door met stap 5.</li></ol><div class="shots"><figure><img src="img/mug-opstarten/temp.jpg" alt="Temp"><figcaption>Tempe. Set op 31.0, Temp loopt op naar 31 °C.</figcaption></figure></div></div></article>
+<article class="step" id="s5"><div class="step-head"><div class="num">5</div><h2>Inktkraantjes opendraaien</h2></div><div class="step-body"><ol><li>Pak het sleuteltje/staafje.</li><li>Draai alleen de kraantjes die <b>aangesloten</b> zijn (met slangetje) <b>een kwartslag terug</b>. Ook die van wit (W).</li><li>Een kraantje dat <b>niet aangesloten</b> is, sla je over.</li><li>Werk zo per kleur van links naar rechts: <b>die niet, die wel</b>.</li></ol><div class="shots"><figure><img src="img/mug-opstarten/valves.jpg" alt="Inktkraantjes"><figcaption>Alleen aangesloten kraantjes een kwartslag terug.</figcaption></figure></div></div></article>
+<article class="step" id="s6"><div class="step-head"><div class="num">6</div><h2>Printkoppen doorspuiten</h2></div><div class="step-body"><ol><li>Pak een <b>non-dust cloth</b> en vouw hem netjes op.</li><li>Druk <b>5 seconden</b> op <b>COLOR</b>.</li><li>Druk <b>5 seconden</b> op <b>WHITE</b>.</li><li>Kijk of de kleur en het wit eruit lopen.</li></ol><div class="shots"><figure><img src="img/mug-opstarten/cloth.jpg" alt="Doekje"><figcaption>Doekje opvouwen.</figcaption></figure><figure><img src="img/mug-opstarten/colorwhite.jpg" alt="Color / White"><figcaption>Knop WHITE (links ernaast COLOR).</figcaption></figure></div></div></article>
+<article class="step" id="s7"><div class="step-head"><div class="num">7</div><h2>Printkop schoonvegen</h2></div><div class="step-body"><ol><li>Veeg de printkop schoon met het gevouwen doekje.</li></ol><div class="dd"><div class="do">✓ Non-dust cloth, netjes gevouwen</div><div class="dont">✗ Niet heen en weer vegen</div></div><div class="shots"><figure><img src="img/mug-opstarten/wipe.jpg" alt="Schoonvegen"><figcaption>Printkop van onderen schoonvegen.</figcaption></figure></div><p class="ready" style="margin:0">✓ Klaar om te printen.</p></div></article>
+<section class="check" aria-labelledby="ck"><div class="top"><h2 id="ck">Afvinklijst</h2><button type="button" id="reset">Opnieuw beginnen</button></div><div class="bar" aria-hidden="true"><i id="prog"></i></div><ul id="list"><li><label><input type="checkbox" id="c1"><span>START ingedrukt, groen lampje brandt</span></label></li><li><label><input type="checkbox" id="c2"><span>Computer aan, ingelogd met 1997</span></label></li><li><label><input type="checkbox" id="c3"><span>DPCS Printer-software open</span></label></li><li><label><input type="checkbox" id="c4"><span>Settings → Voltage: temperatuur 31 °C</span></label></li><li><label><input type="checkbox" id="c5"><span>Aangesloten kraantjes ¼ slag terug, ook wit</span></label></li><li><label><input type="checkbox" id="c6"><span>COLOR en WHITE elk 5 sec</span></label></li><li><label><input type="checkbox" id="c7"><span>Printkop schoongeveegd</span></label></li></ul><div id="msg" class="done" hidden>Alles afgevinkt. De mokprinter staat klaar.</div></section>
+<footer>Machine: Mug 1. Gemaakt op basis van de instructievideo van 22 oktober 2026.</footer>
+</div>
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('#list input'));
+  var key='izy-manual-mug-opstarten';
+  function save(){try{localStorage.setItem(key,JSON.stringify(boxes.map(function(b){return b.checked})))}catch(e){}}
+  function upd(){var n=boxes.filter(function(b){return b.checked}).length;document.getElementById('prog').style.width=(n/boxes.length*100)+'%';document.getElementById('msg').hidden=n!==boxes.length}
+  try{var s=JSON.parse(localStorage.getItem(key)||'null');if(s)boxes.forEach(function(b,i){b.checked=!!s[i]})}catch(e){}
+  boxes.forEach(function(b){b.addEventListener('change',function(){save();upd()})});
+  document.getElementById('reset').addEventListener('click',function(){boxes.forEach(function(b){b.checked=false});save();upd()});
+  upd();
+})();
+</script>
+</body></html>
